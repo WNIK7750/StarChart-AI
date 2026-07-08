@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI 知识导航 - LeetBook 风格学习路线图</title>
+  <style>
+    * { box-sizing: border-box; }
+    html { font-size: 15px; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #111827;
+      background: #f4f7fb;
+    }
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+      background: #f7fafc;
+    }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 24px;
+      background: #fff;
+      border-right: 1px solid #edf1f6;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      z-index: 5;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: #2563eb;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, .22);
+    }
+    .nav-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .nav-item {
+      height: 44px;
+      border-radius: 10px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #667085;
+      font-weight: 700;
+    }
+    .nav-item.active {
+      color: #172033;
+      background: #eef6ff;
+    }
+    .nav-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      background: #cbd5e1;
+      flex: 0 0 auto;
+    }
+    .active .nav-dot { background: #2f80ed; }
+    .login-box {
+      margin-top: auto;
+      padding-top: 28px;
+      border-top: 1px solid #e8edf3;
+      text-align: center;
+      color: #7b8494;
+    }
+    .login-copy {
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .login-btn {
+      width: 120px;
+      height: 42px;
+      border: 0;
+      border-radius: 999px;
+      background: #111827;
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 60px 0 52px;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #edf1f6;
+    }
+    .search {
+      width: 380px;
+      height: 40px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      padding-left: 22px;
+    }
+    .top-actions {
+      font-size: 14px;
+      font-weight: 700;
+      color: #5b6575;
+    }
+    .content {
+      padding: 36px 48px 56px;
+    }
+    .hero {
+      position: relative;
+      min-height: 168px;
+      padding-right: 400px;
+    }
+    .eyebrow {
+      color: #2f80ed;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 38px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+    .hero-desc {
+      margin: 16px 0 22px;
+      max-width: 640px;
+      color: #667085;
+      font-size: 17px;
+      line-height: 1.65;
+    }
+    .chips {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      height: 30px;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .chip.blue { color: #1d6fd6; background: #eaf4ff; }
+    .chip.green { color: #12825c; background: #ecfdf3; }
+    .chip.purple { color: #7c3aed; background: #f1ecff; }
+    .chip.orange { color: #b66800; background: #fff7e6; }
+    .preview {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 350px;
+      min-height: 166px;
+      padding: 24px;
+      border: 1px solid #e4ebf3;
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 14px 32px rgba(17, 56, 95, .1);
+    }
+    .preview-kicker {
+      color: #2f80ed;
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .preview-title {
+      margin-top: 12px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+    .preview-text {
+      margin-top: 10px;
+      color: #667085;
+      line-height: 1.55;
+    }
+    .progress {
+      margin-top: 18px;
+      height: 8px;
+      width: 214px;
+      border-radius: 999px;
+      background: #eef2f7;
+      overflow: hidden;
+    }
+    .progress span {
+      display: block;
+      width: 31%;
+      height: 100%;
+      border-radius: inherit;
+      background: #2f80ed;
+    }
+    .map-wrap {
+      position: relative;
+      margin-top: 30px;
+      width: 100%;
+      height: 332px;
+      overflow: hidden;
+      border: 1px solid #e5edf5;
+      border-radius: 18px;
+      background:
+        linear-gradient(#e9eff6 1px, transparent 1px),
+        linear-gradient(90deg, #e9eff6 1px, transparent 1px),
+        #fafcfe;
+      background-size: 28px 28px;
+    }
+    .map-lines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .map-lines path {
+      fill: none;
+      stroke: #8a94a6;
+      stroke-width: 1.5;
+      stroke-dasharray: 5 5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .node {
+      position: absolute;
+      z-index: 2;
+      width: 118px;
+      height: 48px;
+      border: 1px solid #aeb8c5;
+      border-radius: 8px;
+      background: #fff;
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      grid-template-rows: 22px 16px;
+      column-gap: 8px;
+      padding: 8px 10px 6px 14px;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(17, 56, 95, .03);
+      cursor: pointer;
+      transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+    .node:hover,
+    .node.active {
+      transform: translateY(-2px);
+      border-color: #2f80ed;
+      box-shadow: 0 10px 22px rgba(47, 128, 237, .14);
+    }
+    .node.wide { width: 128px; }
+    .node-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      grid-row: 1 / span 2;
+      align-self: center;
+    }
+    .node-title {
+      align-self: end;
+      font-size: 13px;
+      line-height: 1.1;
+      font-weight: 800;
+      color: #2f3747;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .node-desc {
+      align-self: start;
+      color: #7b8797;
+      font-size: 10px;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tabs-band {
+      margin: 24px -48px 0;
+      height: 94px;
+      padding-left: 48px;
+      display: flex;
+      align-items: center;
+      gap: 54px;
+      background: #fff;
+    }
+    .tab {
+      font-size: 16px;
+      font-weight: 800;
+      color: #667085;
+      padding: 12px 0;
+    }
+    .tab.active {
+      width: 112px;
+      height: 44px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: #111827;
+    }
+    .branch-title {
+      margin: 30px 0 18px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+    .branches {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(210px, 250px));
+      gap: 28px;
+    }
+    .branch-card {
+      height: 72px;
+      border: 1px solid #e1e8f0;
+      border-radius: 12px;
+      background: #fff;
+      padding: 14px 18px;
+      display: grid;
+      grid-template-columns: 14px 1fr;
+      column-gap: 12px;
+      align-items: center;
+    }
+    .branch-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      grid-row: 1 / span 2;
+    }
+    .branch-name {
+      font-size: 16px;
+      line-height: 1.2;
+      font-weight: 800;
+    }
+    .branch-desc {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #7b8797;
+    }
+    @media (max-width: 1180px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .content { padding: 28px 20px 48px; }
+      .topbar { padding: 0 20px; }
+      .hero { padding-right: 0; }
+      .preview { position: static; margin-top: 20px; width: 100%; }
+      .map-wrap { overflow-x: auto; }
+      .tabs-band { margin-left: -20px; margin-right: -20px; padding-left: 20px; overflow-x: auto; }
+      .branches { grid-template-columns: 1fr; gap: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark"></span><span>AI 知识导航</span></div>
+      <nav class="nav-list">
+        <div class="nav-item active"><span class="nav-dot"></span><span>路线图</span></div>
+        <div class="nav-item"><span class="nav-dot"></span><span>资源库</span></div>
+        <div class="nav-item"><span class="nav-dot"></span><span>模型对比</span></div>
+        <div class="nav-item"><span class="nav-dot"></span><span>工具导航</span></div>
+        <div class="nav-item"><span class="nav-dot"></span><span>学习计划</span></div>
+      </nav>
+      <div class="login-box">
+        <div class="login-copy">登录后保存学习进度<br>并同步收藏资料</div>
+        <button class="login-btn">登录</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="search">搜索学习节点、课程、工具...</div>
+        <div class="top-actions">中 / 深色 / 收藏</div>
+      </header>
+
+      <section class="content">
+        <div class="hero">
+          <div class="eyebrow">学习区 · AI Roadmap</div>
+          <h1>探索 AI 知识地图</h1>
+          <p class="hero-desc">通往 AI 应用开发的必经之路。先沿主线理解基础与模型，再按目标进入 Prompt、RAG、Agent 和上线治理。</p>
+          <div class="chips">
+            <span class="chip blue">推荐主线</span>
+            <span class="chip green">应用分支</span>
+            <span class="chip purple">工程实践</span>
+            <span class="chip orange">资源可后补</span>
+          </div>
+
+          <aside class="preview" id="preview">
+            <div class="preview-kicker">当前选中</div>
+            <div class="preview-title" id="previewTitle">AI 通识</div>
+            <div class="preview-text" id="previewText">先理解能力边界、常见场景和学习顺序，再进入基础与模型。</div>
+            <div class="progress"><span></span></div>
+          </aside>
+        </div>
+
+        <section class="map-wrap" aria-label="AI 学习知识地图">
+          <svg class="map-lines" viewBox="0 0 1064 332" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M198 98 H226 V98 H256" />
+            <path d="M198 178 H226 V178 H256" />
+            <path d="M198 258 H226 V258 H256" />
+            <path d="M374 98 H402 V98 H432" />
+            <path d="M374 178 H402 V178 H432" />
+            <path d="M374 258 H402 V258 H432" />
+            <path d="M550 98 H584 V138 H612" />
+            <path d="M550 258 H584 V238 H612" />
+            <path d="M740 138 H792 V78 H820" />
+            <path d="M740 138 H792 V158 H820" />
+            <path d="M740 238 H792 V238 H820" />
+            <path d="M938 238 H946 V198 H960" />
+          </svg>
+
+          <div class="node active" style="left:80px;top:74px" data-title="AI 通识" data-text="先理解 AI 能做什么、不能做什么，以及常见应用场景。">
+            <span class="node-dot" style="background:#2f80ed"></span><span class="node-title">AI 通识</span><span class="node-desc">概念、边界</span>
+          </div>
+          <div class="node" style="left:80px;top:154px" data-title="Python" data-text="掌握后续数据处理和模型实验需要的基础语法与环境。">
+            <span class="node-dot" style="background:#12b76a"></span><span class="node-title">Python</span><span class="node-desc">语法、环境</span>
+          </div>
+          <div class="node" style="left:80px;top:234px" data-title="数学基础" data-text="补齐线性代数、概率统计和微积分中的高频概念。">
+            <span class="node-dot" style="background:#12b76a"></span><span class="node-title">数学基础</span><span class="node-desc">概率、线代</span>
+          </div>
+
+          <div class="node" style="left:256px;top:74px" data-title="机器学习" data-text="理解监督学习如何从数据中学习分类和回归规律。">
+            <span class="node-dot" style="background:#f79009"></span><span class="node-title">机器学习</span><span class="node-desc">监督学习</span>
+          </div>
+          <div class="node" style="left:256px;top:154px" data-title="训练评估" data-text="掌握训练集、验证集、指标、泛化和过拟合。">
+            <span class="node-dot" style="background:#f79009"></span><span class="node-title">训练评估</span><span class="node-desc">指标、泛化</span>
+          </div>
+          <div class="node" style="left:256px;top:234px" data-title="无监督学习" data-text="学习聚类、降维和异常检测，理解无标签数据的用法。">
+            <span class="node-dot" style="background:#f79009"></span><span class="node-title">无监督学习</span><span class="node-desc">聚类、降维</span>
+          </div>
+
+          <div class="node" style="left:432px;top:74px" data-title="神经网络" data-text="理解层、激活函数、损失函数和反向传播。">
+            <span class="node-dot" style="background:#7c3aed"></span><span class="node-title">神经网络</span><span class="node-desc">层、反传</span>
+          </div>
+          <div class="node" style="left:432px;top:154px" data-title="Embedding" data-text="理解向量表示、相似度搜索和语义空间。">
+            <span class="node-dot" style="background:#7c3aed"></span><span class="node-title">Embedding</span><span class="node-desc">向量语义</span>
+          </div>
+          <div class="node" style="left:432px;top:234px" data-title="Transformer" data-text="学习注意力机制和大模型结构的核心骨架。">
+            <span class="node-dot" style="background:#7c3aed"></span><span class="node-title">Transformer</span><span class="node-desc">注意力</span>
+          </div>
+
+          <div class="node wide" style="left:612px;top:114px" data-title="LLM 基础" data-text="理解 Token、上下文窗口、模型能力和调用成本。">
+            <span class="node-dot" style="background:#2563eb"></span><span class="node-title">LLM 基础</span><span class="node-desc">上下文、Token</span>
+          </div>
+          <div class="node wide" style="left:612px;top:214px" data-title="微调与评测" data-text="了解 SFT、LoRA、模型评测和幻觉风险。">
+            <span class="node-dot" style="background:#2563eb"></span><span class="node-title">微调与评测</span><span class="node-desc">SFT、LoRA</span>
+          </div>
+
+          <div class="node" style="left:820px;top:54px" data-title="Prompt" data-text="用结构化提示控制模型角色、格式和输出质量。">
+            <span class="node-dot" style="background:#14b8a6"></span><span class="node-title">Prompt</span><span class="node-desc">结构化输出</span>
+          </div>
+          <div class="node" style="left:820px;top:134px" data-title="RAG" data-text="把外部知识接入模型，构建可维护的知识库问答。">
+            <span class="node-dot" style="background:#14b8a6"></span><span class="node-title">RAG</span><span class="node-desc">知识库</span>
+          </div>
+          <div class="node" style="left:820px;top:214px" data-title="Agent" data-text="让模型通过规划、工具调用和记忆完成任务。">
+            <span class="node-dot" style="background:#14b8a6"></span><span class="node-title">Agent</span><span class="node-desc">工具调用</span>
+          </div>
+          <div class="node" style="left:960px;top:174px" data-title="上线治理" data-text="关注监控、成本、安全、反馈和版本迭代。">
+            <span class="node-dot" style="background:#64748b"></span><span class="node-title">上线治理</span><span class="node-desc">监控、安全</span>
+          </div>
+        </section>
+
+        <div class="tabs-band">
+          <span class="tab active">推荐主线</span>
+          <span class="tab">大模型应用</span>
+          <span class="tab">AI 编程</span>
+          <span class="tab">图像视频</span>
+          <span class="tab">安全治理</span>
+        </div>
+
+        <div class="branch-title">应用分支</div>
+        <div class="branches">
+          <div class="branch-card">
+            <span class="branch-dot" style="background:#2f80ed"></span>
+            <div>
+              <div class="branch-name">AI 编程助手</div>
+              <div class="branch-desc">代码生成、审查、测试</div>
+            </div>
+          </div>
+          <div class="branch-card">
+            <span class="branch-dot" style="background:#8b5cf6"></span>
+            <div>
+              <div class="branch-name">企业知识库</div>
+              <div class="branch-desc">文档解析、权限、反馈</div>
+            </div>
+          </div>
+          <div class="branch-card">
+            <span class="branch-dot" style="background:#f97316"></span>
+            <div>
+              <div class="branch-name">图像视频生成</div>
+              <div class="branch-desc">文生图、分镜、剪辑</div>
+            </div>
+          </div>
+          <div class="branch-card">
+            <span class="branch-dot" style="background:#64748b"></span>
+            <div>
+              <div class="branch-name">上线治理</div>
+              <div class="branch-desc">监控、成本、安全</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const nodes = document.querySelectorAll('.node');
+    const title = document.getElementById('previewTitle');
+    const text = document.getElementById('previewText');
+    nodes.forEach(node => {
+      node.addEventListener('click', () => {
+        nodes.forEach(n => n.classList.remove('active'));
+        node.classList.add('active');
+        title.textContent = node.dataset.title;
+        text.textContent = node.dataset.text;
+      });
+    });
+  </script>
+</body>
+</html>

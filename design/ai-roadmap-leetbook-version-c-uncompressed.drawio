@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile compressed="false" host="app.diagrams.net" modified="2026-07-06T19:08:00.000Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="ai-roadmap-vc" name="Version C - LeetBook Roadmap">
+    <mxGraphModel dx="1600" dy="920" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="920" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Page shell -->
+        <mxCell id="bg" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#F7FAFC;strokeColor=#E2E8F0;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="920" as="geometry" />
+        </mxCell>
+        <mxCell id="sidebar" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="248" height="920" as="geometry" />
+        </mxCell>
+        <mxCell id="topbar" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="248" y="0" width="1352" height="72" as="geometry" />
+        </mxCell>
+
+        <!-- Sidebar -->
+        <mxCell id="logo" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=25;fillColor=#2563EB;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="32" y="30" width="34" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="brand" value="AI 知识导航" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=20;fontStyle=1;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="78" y="28" width="140" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="nav-active" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=18;fillColor=#EEF6FF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="24" y="102" width="200" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="nav1-icon" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#2F80ED;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="42" y="112" width="18" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="nav1" value="路线图" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=17;fontStyle=1;fontColor=#172033;" vertex="1" parent="1">
+          <mxGeometry x="76" y="104" width="112" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="nav2" value="资源库" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=17;fontStyle=1;fontColor=#667085;" vertex="1" parent="1">
+          <mxGeometry x="76" y="162" width="112" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="nav2-icon" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#CBD5E1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="42" y="170" width="18" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="nav3" value="模型对比" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=17;fontStyle=1;fontColor=#667085;" vertex="1" parent="1">
+          <mxGeometry x="76" y="220" width="112" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="nav3-icon" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#CBD5E1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="42" y="228" width="18" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="nav4" value="工具导航" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=17;fontStyle=1;fontColor=#667085;" vertex="1" parent="1">
+          <mxGeometry x="76" y="278" width="112" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="nav4-icon" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#CBD5E1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="42" y="286" width="18" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="nav5" value="学习计划" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=17;fontStyle=1;fontColor=#667085;" vertex="1" parent="1">
+          <mxGeometry x="76" y="336" width="112" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="nav5-icon" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#CBD5E1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="42" y="344" width="18" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="login-tip" value="登录后保存学习进度&lt;br&gt;并同步收藏资料" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=15;fontColor=#7B8494;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="48" y="468" width="152" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="login-btn" value="登录" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#111827;strokeColor=none;fontFamily=Noto Sans SC;fontSize=16;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="64" y="536" width="120" height="42" as="geometry" />
+        </mxCell>
+
+        <!-- Topbar -->
+        <mxCell id="search" value="搜索学习节点、课程、工具..." style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#F1F5F9;strokeColor=none;fontFamily=Noto Sans SC;fontSize=15;fontColor=#94A3B8;align=left;spacingLeft=22;" vertex="1" parent="1">
+          <mxGeometry x="300" y="18" width="380" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="top-action" value="中 / 深色 / 收藏" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=14;fontStyle=1;fontColor=#5B6575;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="22" width="160" height="28" as="geometry" />
+        </mxCell>
+
+        <!-- Header -->
+        <mxCell id="eyebrow" value="学习区 · AI Roadmap" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontFamily=Noto Sans SC;fontSize=14;fontStyle=1;fontColor=#2F80ED;" vertex="1" parent="1">
+          <mxGeometry x="296" y="112" width="220" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="探索 AI 知识地图" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontFamily=Noto Sans SC;fontSize=34;fontStyle=1;fontColor=#101828;" vertex="1" parent="1">
+          <mxGeometry x="296" y="142" width="420" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="desc" value="通往 AI 应用开发的必经之路" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontFamily=Noto Sans SC;fontSize=18;fontColor=#667085;" vertex="1" parent="1">
+          <mxGeometry x="296" y="198" width="360" height="32" as="geometry" />
+        </mxCell>
+
+        <!-- Preview card -->
+        <mxCell id="preview" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#E4EBF3;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1148" y="112" width="330" height="168" as="geometry" />
+        </mxCell>
+        <mxCell id="preview-label" value="当前选中" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontFamily=Noto Sans SC;fontSize=13;fontStyle=1;fontColor=#2F80ED;" vertex="1" parent="1">
+          <mxGeometry x="1172" y="132" width="90" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="preview-title" value="AI 通识" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontFamily=Noto Sans SC;fontSize=24;fontStyle=1;fontColor=#172033;" vertex="1" parent="1">
+          <mxGeometry x="1172" y="160" width="160" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="preview-copy" value="先理解能力边界、常见场景和学习顺序，再进入基础与模型。" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontFamily=Noto Sans SC;fontSize=14;fontColor=#667085;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1172" y="202" width="250" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="preview-progress-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#EEF2F7;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1172" y="248" width="214" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="preview-progress" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#2F80ED;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1172" y="248" width="62" height="8" as="geometry" />
+        </mxCell>
+
+        <!-- Knowledge map canvas -->
+        <mxCell id="map" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#FAFCFE;strokeColor=#E5EDF5;" vertex="1" parent="1">
+          <mxGeometry x="296" y="250" width="1240" height="332" as="geometry" />
+        </mxCell>
+
+        <!-- Map nodes -->
+        <mxCell id="n-ai" value="&lt;b&gt;AI 通识&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;概念、边界&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="386" y="324" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-ai" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#2F80ED;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="400" y="342" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n-py" value="&lt;b&gt;Python&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;语法、环境&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="386" y="404" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-py" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#12B76A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="400" y="422" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n-math" value="&lt;b&gt;数学基础&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;概率、线代&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="386" y="484" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-math" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#12B76A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="400" y="502" width="10" height="10" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n-ml" value="&lt;b&gt;机器学习&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;监督学习&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="596" y="324" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-ml" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F79009;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="610" y="342" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n-eval" value="&lt;b&gt;训练评估&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;指标、泛化&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="596" y="404" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-eval" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F79009;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="610" y="422" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n-unsup" value="&lt;b&gt;无监督学习&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;聚类、降维&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="596" y="484" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-unsup" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F79009;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="610" y="502" width="10" height="10" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n-nn" value="&lt;b&gt;神经网络&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;层、反传&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="806" y="324" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-nn" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#7C3AED;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="820" y="342" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n-embed" value="&lt;b&gt;Embedding&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;向量语义&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="806" y="404" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-embed" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#7C3AED;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="820" y="422" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n-trans" value="&lt;b&gt;Transformer&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;注意力&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="806" y="484" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-trans" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#7C3AED;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="820" y="502" width="10" height="10" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n-llm" value="&lt;b&gt;LLM 基础&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;上下文、Token&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="1016" y="364" width="142" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-llm" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#2563EB;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="382" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n-finetune" value="&lt;b&gt;微调与评测&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;SFT、LoRA&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="1016" y="464" width="142" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-finetune" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#2563EB;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="482" width="10" height="10" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n-prompt" value="&lt;b&gt;Prompt&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;结构化输出&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="1246" y="304" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-prompt" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#14B8A6;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="322" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n-rag" value="&lt;b&gt;RAG&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;知识库&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="1246" y="384" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-rag" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#14B8A6;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="402" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n-agent" value="&lt;b&gt;Agent&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;工具调用&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="1246" y="464" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-agent" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#14B8A6;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="482" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n-deploy" value="&lt;b&gt;上线治理&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7B8797&quot;&gt;监控、安全&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#AEB8C5;fontFamily=Noto Sans SC;fontSize=13;fontColor=#2F3747;align=left;spacingLeft=32;" vertex="1" parent="1">
+          <mxGeometry x="1396" y="424" width="132" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="dot-deploy" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#64748B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1410" y="442" width="10" height="10" as="geometry" />
+        </mxCell>
+
+        <!-- Orthogonal dashed dependency edges -->
+        <mxCell id="e-ai-ml" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-ai" target="n-ml">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-py-eval" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-py" target="n-eval">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-math-unsup" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-math" target="n-unsup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ml-nn" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-ml" target="n-nn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eval-embed" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-eval" target="n-embed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-unsup-trans" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-unsup" target="n-trans">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-nn-llm" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-nn" target="n-llm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-trans-finetune" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-trans" target="n-finetune">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-llm-prompt" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-llm" target="n-prompt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-llm-rag" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-llm" target="n-rag">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-finetune-agent" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-finetune" target="n-agent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-agent-deploy" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=5 5;strokeColor=#8A94A6;strokeWidth=1.5;endArrow=none;" edge="1" parent="1" source="n-agent" target="n-deploy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Tabs and branches -->
+        <mxCell id="tabs-band" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="248" y="606" width="1352" height="94" as="geometry" />
+        </mxCell>
+        <mxCell id="tab-active" value="推荐主线" style="rounded=1;whiteSpace=wrap;html=1;arcSize=24;fillColor=#111827;strokeColor=none;fontFamily=Noto Sans SC;fontSize=16;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="296" y="626" width="112" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="tab-llm" value="大模型应用" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=16;fontStyle=1;fontColor=#667085;" vertex="1" parent="1">
+          <mxGeometry x="466" y="626" width="110" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="tab-code" value="AI 编程" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=16;fontStyle=1;fontColor=#667085;" vertex="1" parent="1">
+          <mxGeometry x="626" y="626" width="90" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="tab-media" value="图像视频" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=16;fontStyle=1;fontColor=#667085;" vertex="1" parent="1">
+          <mxGeometry x="766" y="626" width="90" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="tab-safety" value="安全治理" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Noto Sans SC;fontSize=16;fontStyle=1;fontColor=#667085;" vertex="1" parent="1">
+          <mxGeometry x="906" y="626" width="90" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-title" value="应用分支" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontFamily=Noto Sans SC;fontSize=24;fontStyle=1;fontColor=#101828;" vertex="1" parent="1">
+          <mxGeometry x="296" y="736" width="120" height="34" as="geometry" />
+        </mxCell>
+
+        <mxCell id="branch-code" value="&lt;b&gt;AI 编程助手&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px&quot; color=&quot;#7B8797&quot;&gt;代码生成、审查、测试&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fillColor=#FFFFFF;strokeColor=#E1E8F0;fontFamily=Noto Sans SC;fontSize=16;fontColor=#172033;align=left;spacingLeft=42;" vertex="1" parent="1">
+          <mxGeometry x="296" y="790" width="250" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-dot-code" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#2F80ED;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="314" y="814" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-kb" value="&lt;b&gt;企业知识库&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px&quot; color=&quot;#7B8797&quot;&gt;文档解析、权限、反馈&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fillColor=#FFFFFF;strokeColor=#E1E8F0;fontFamily=Noto Sans SC;fontSize=16;fontColor=#172033;align=left;spacingLeft=42;" vertex="1" parent="1">
+          <mxGeometry x="586" y="790" width="250" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-dot-kb" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#8B5CF6;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="604" y="814" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-media" value="&lt;b&gt;图像视频生成&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px&quot; color=&quot;#7B8797&quot;&gt;文生图、分镜、剪辑&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fillColor=#FFFFFF;strokeColor=#E1E8F0;fontFamily=Noto Sans SC;fontSize=16;fontColor=#172033;align=left;spacingLeft=42;" vertex="1" parent="1">
+          <mxGeometry x="876" y="790" width="250" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-dot-media" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F97316;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="894" y="814" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-gov" value="&lt;b&gt;上线治理&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px&quot; color=&quot;#7B8797&quot;&gt;监控、成本、安全&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fillColor=#FFFFFF;strokeColor=#E1E8F0;fontFamily=Noto Sans SC;fontSize=16;fontColor=#172033;align=left;spacingLeft=42;" vertex="1" parent="1">
+          <mxGeometry x="1166" y="790" width="250" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-dot-gov" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#64748B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1184" y="814" width="12" height="12" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
