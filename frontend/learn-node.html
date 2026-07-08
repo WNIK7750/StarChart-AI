@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习节点介绍 · AI 知识导航</title>
+<link rel="icon" type="image/png" href="assets/img/logo.png">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: #FAFAFB;
+  color: #0A0A0F;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: 0; background: none; color: inherit; }
+:root {
+  --bg-elevated: #FFFFFF;
+  --bg-subtle: #F4F4F7;
+  --bg-muted: #ECECF1;
+  --text-secondary: #3F3F4A;
+  --text-tertiary: #6E6E7A;
+  --text-quaternary: #A0A0AC;
+  --border-subtle: rgba(15, 15, 25, 0.06);
+  --border-default: rgba(15, 15, 25, 0.10);
+  --border-strong: rgba(15, 15, 25, 0.16);
+  --brand-primary: #7C5CFF;
+  --grad-brand: linear-gradient(135deg, #7C5CFF, #5EE0FF);
+  --grad-warm: linear-gradient(135deg, #FF7AC6, #FFD56B);
+  --success: #16A34A;
+  --font-mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+.nav { position: sticky; top: 0; z-index: 50; transition: transform .25s cubic-bezier(.4,0,.2,1); }
+.nav::before { content: ""; position: absolute; inset: 0 50%; width: 100vw; transform: translateX(-50%); background: rgba(255,255,255,.72); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); border-bottom: 1px solid var(--border-subtle); pointer-events: none; }
+.nav.hidden { transform: translateY(-100%); }
+.nav-inner { position: relative; max-width: 1200px; margin: 0 auto; height: 64px; padding: 0 32px; display: flex; align-items: center; gap: 32px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; letter-spacing: -.01em; }
+.brand-mark { width: 28px; height: 28px; background: var(--grad-brand); border-radius: 6px; display: grid; place-items: center; font-size: 14px; font-weight: 700; color: #fff; box-shadow: 0 4px 12px -2px rgba(124,92,255,.5); }
+.nav-links { display: flex; gap: 4px; flex: 1; }
+.nav-links a { position: relative; padding: 6px 12px; border-radius: 8px; font-size: 13px; color: var(--text-tertiary); font-weight: 500; transition: color .15s, background .15s; }
+.nav-links a:hover { color: #0A0A0F; background: var(--bg-subtle); }
+.nav-links a.active { color: var(--brand-primary); }
+.nav-links a.active::after { content: ""; position: absolute; bottom: -22px; left: 12px; right: 12px; height: 2px; background: var(--brand-primary); border-radius: 1px; }
+.nav-actions { display: flex; gap: 8px; align-items: center; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: 8px; font-size: 13px; font-weight: 500; border: 1px solid var(--border-default); background: var(--bg-elevated); color: #0A0A0F; transition: all .15s cubic-bezier(.4,0,.2,1); }
+.btn:hover { border-color: var(--border-strong); box-shadow: 0 2px 8px rgba(15,15,25,.06); }
+.btn-primary { background: #0A0A0F; color: #FAFAFB; border-color: transparent; font-weight: 600; }
+.icon-btn { width: 36px; height: 36px; padding: 0; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+.breadcrumb { display: flex; align-items: center; gap: 8px; padding: 24px 0 16px; font-size: 13px; color: var(--text-tertiary); font-family: var(--font-mono); }
+.breadcrumb a:hover { color: #0A0A0F; }
+.breadcrumb .sep { color: var(--text-quaternary); }
+.breadcrumb .current { color: #0A0A0F; font-weight: 500; }
+.detail-head { display: grid; grid-template-columns: 200px 1fr 280px; gap: 32px; padding: 12px 0 24px; align-items: start; }
+.cover { width: 200px; height: 240px; border-radius: 10px; background: var(--grad-warm); display: grid; place-items: center; color: #fff; font-family: var(--font-mono); font-weight: 700; text-align: center; position: relative; overflow: hidden; box-shadow: 0 12px 32px -8px rgba(255,122,198,.4); }
+.cover.g-purple { background: linear-gradient(135deg,#7C5CFF,#5EE0FF); }
+.cover.g-pink { background: linear-gradient(135deg,#FF7AC6,#FFD56B); }
+.cover.g-green { background: linear-gradient(135deg,#4ADE80,#5EE0FF); }
+.cover.g-warm { background: linear-gradient(135deg,#FB923C,#FF7AC6); }
+.cover.g-cyan { background: linear-gradient(135deg,#5EE0FF,#7C5CFF); }
+.cover.g-yellow { background: linear-gradient(135deg,#FFD56B,#FB923C); }
+.cover::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.3), transparent 40%), radial-gradient(circle at 70% 80%, rgba(255,255,255,.2), transparent 40%); }
+.cover-text { position: relative; z-index: 1; padding: 18px; }
+.cover-num { font-size: 11px; font-weight: 600; letter-spacing: .1em; opacity: .78; margin-bottom: 8px; text-transform: uppercase; }
+.cover-name { font-size: 18px; line-height: 1.3; }
+.cover-badge { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,.28); color: #fff; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: 700; letter-spacing: .05em; z-index: 1; }
+.detail-info { padding-top: 8px; }
+.detail-info h1 { font-size: 36px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; margin-bottom: 8px; }
+.detail-info p { font-size: 14px; color: #8A8A98; line-height: 1.7; margin-bottom: 14px; max-width: 560px; }
+.detail-stats { display: flex; gap: 32px; padding: 12px 0; margin-bottom: 16px; border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); font-family: var(--font-mono); }
+.detail-stat { display: flex; flex-direction: column; font-size: 11px; min-width: 64px; }
+.detail-stat .num { font-size: 18px; font-weight: 700; color: #0A0A0F; margin-bottom: 2px; }
+.detail-stat .label { color: var(--text-tertiary); font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
+.detail-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.btn-lg { min-height: 44px; padding: 0 24px; font-size: 14px; font-weight: 700; }
+.material-meta { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; color: var(--text-tertiary); font-size: 12px; font-family: var(--font-mono); }
+.material-meta span { padding: 4px 8px; border-radius: 6px; background: var(--bg-subtle); }
+.side-block { padding: 12px 0; border-bottom: 1px solid var(--border-subtle); }
+.side-block:last-child { border-bottom: 0; }
+.side-label { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 8px; }
+.side-text { font-size: 13px; color: #8A8A98; line-height: 1.65; }
+.side-link { display: block; font-size: 13px; color: var(--brand-primary); margin: 4px 0; }
+.side-tag { display: inline-block; padding: 4px 10px; font-size: 12px; background: var(--bg-subtle); color: var(--text-secondary); border-radius: 4px; margin: 0 4px 6px 0; font-family: var(--font-mono); }
+.detail-content { display: grid; grid-template-columns: 1fr 320px; gap: 40px; margin-top: 4px; }
+.tabs { display: flex; gap: 32px; border-bottom: 1px solid var(--border-default); margin-bottom: 16px; }
+.tab { position: relative; padding: 8px 0; font-size: 16px; font-weight: 500; color: var(--text-tertiary); transition: color .15s; }
+.tab:hover, .tab.active { color: #0A0A0F; }
+.tab.active::after { content: ""; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: #0A0A0F; border-radius: 1px; }
+.content-placeholder { padding: 16px 0; }
+.content-section { margin-bottom: 24px; }
+.content-section-title { font-size: 20px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 12px; }
+.content-section p { color: #8A8A98; font-size: 14px; line-height: 1.8; margin-bottom: 12px; white-space: pre-line; }
+.content-list { list-style: none; padding-left: 0; margin-bottom: 16px; }
+.content-list li { position: relative; padding-left: 20px; color: #8A8A98; font-size: 14px; line-height: 1.8; }
+.content-list li::before { content: ""; position: absolute; left: 0; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--brand-primary); }
+.toc-list, .resource-list { border: 1px solid var(--border-subtle); border-radius: 10px; overflow: hidden; background: #fff; }
+.toc-item { display: flex; align-items: flex-start; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); transition: background .15s; }
+.toc-item:last-child { border-bottom: 0; }
+.toc-item:hover { background: var(--bg-subtle); }
+.toc-num { font-family: var(--font-mono); font-size: 12px; color: var(--text-quaternary); width: 40px; flex: 0 0 auto; }
+.toc-title { flex: 1; min-width: 0; }
+.toc-title strong { display: block; font-size: 14px; font-weight: 600; }
+.toc-title span { display: block; margin-top: 4px; font-size: 12px; color: #8A8A98; line-height: 1.55; }
+.toc-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+.resource-link { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); transition: background .15s; }
+.resource-link:last-child { border-bottom: 0; }
+.resource-link:hover { background: var(--bg-subtle); }
+.resource-link-icon { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; font-weight: 800; }
+.resource-link-info { flex: 1; min-width: 0; }
+.resource-link-name { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.resource-link-meta { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); }
+.resource-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1; border: 1px solid transparent; }
+.resource-badge.primary { color: #5B3DF5; background: rgba(124,92,255,.10); border-color: rgba(124,92,255,.18); }
+.resource-badge.cn { color: #047857; background: rgba(20,184,166,.10); border-color: rgba(20,184,166,.18); }
+.resource-badge.external { color: #B45309; background: rgba(251,146,60,.12); border-color: rgba(251,146,60,.22); }
+.resource-link-arrow { color: var(--text-quaternary); transition: transform .15s; }
+.resource-link:hover .resource-link-arrow { color: var(--brand-primary); transform: translateX(4px); }
+.empty-state { padding: 20px; color: var(--text-tertiary); font-size: 13px; background: #fff; border: 1px solid var(--border-subtle); border-radius: 10px; }
+.reveal { opacity: 0; transform: translateY(16px); transition: opacity 800ms cubic-bezier(.16,1,.3,1), transform 800ms cubic-bezier(.16,1,.3,1); }
+.reveal.in { opacity: 1; transform: translateY(0); }
+.footer { padding: 64px 0 40px; border-top: 1px solid var(--border-subtle); margin-top: 80px; }
+.footer-inner { display: flex; justify-content: space-between; gap: 20px; font-size: 12px; color: var(--text-tertiary); font-family: var(--font-mono); }
+.footer-links { display: flex; gap: 24px; }
+@media (max-width: 1024px) {
+  .detail-head { grid-template-columns: 160px 1fr; }
+  .detail-head .side-col { grid-column: span 2; }
+  .cover { width: 160px; height: 200px; }
+  .detail-content { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .nav-actions .btn:not(.btn-primary) { display: none; }
+  .container { padding: 0 20px; }
+  .detail-head { grid-template-columns: 1fr; }
+  .cover { width: 128px; height: 156px; }
+  .detail-head .side-col { grid-column: span 1; }
+  .detail-info h1 { font-size: 28px; }
+  .detail-stats { flex-wrap: wrap; gap: 16px; }
+  .tabs { gap: 20px; overflow-x: auto; }
+  .toc-item, .resource-link { padding: 14px; }
+  .footer-inner { flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body data-page="learn">
+<header class="nav" id="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">A+</span>
+      <span>AI 知识导航</span>
+    </a>
+    <nav class="nav-links" aria-label="主导航"></nav>
+    <div class="nav-actions">
+      <button class="icon-btn btn" title="搜索" aria-label="搜索">⌕</button>
+      <button class="icon-btn btn" title="切换主题" aria-label="切换主题">◐</button>
+      <button class="icon-btn btn" title="切换语言" aria-label="切换语言">中</button>
+      <a class="btn btn-primary" data-start-learning href="#" target="_blank" rel="noopener">开始学习 →</a>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <div class="breadcrumb reveal">
+    <a href="index.html">AI 知识导航</a>
+    <span class="sep">/</span>
+    <a href="learn.html">学习路径</a>
+    <span class="sep">/</span>
+    <span class="current" data-node-title>加载中</span>
+  </div>
+
+  <section class="detail-head reveal" aria-labelledby="nodeTitle">
+    <div class="cover" data-cover>
+      <div class="cover-badge" data-cover-label>NODE</div>
+      <div class="cover-text">
+        <div class="cover-num" data-material-provider>PRIMARY</div>
+        <div class="cover-name" data-cover-name>学习节点</div>
+      </div>
+    </div>
+
+    <div class="detail-info">
+      <h1 id="nodeTitle" data-node-title>学习节点</h1>
+      <p data-node-description>正在加载节点介绍...</p>
+      <div class="detail-stats" aria-label="学习资料统计">
+        <div class="detail-stat">
+          <span class="num" data-stat-chapters>--</span>
+          <span class="label">章节</span>
+        </div>
+        <div class="detail-stat">
+          <span class="num" data-stat-sections>--</span>
+          <span class="label">目录节点</span>
+        </div>
+        <div class="detail-stat">
+          <span class="num" data-stat-duration>--</span>
+          <span class="label">建议时长</span>
+        </div>
+      </div>
+      <div class="detail-actions">
+        <a class="btn btn-primary btn-lg" data-start-learning href="#" target="_blank" rel="noopener">开始学习 →</a>
+        <a class="btn btn-lg" data-main-material href="#" target="_blank" rel="noopener">查看主资料 ↗</a>
+      </div>
+      <div class="material-meta">
+        <span data-material-title>主学习资料加载中</span>
+        <span data-material-type>资料类型</span>
+        <span data-material-language>语言</span>
+        <span data-material-access>访问</span>
+      </div>
+    </div>
+
+    <aside class="side-col" aria-label="节点资料信息">
+      <div class="side-block">
+        <div class="side-label">主学习资料</div>
+        <p class="side-text" data-material-description>正在加载主学习资料...</p>
+      </div>
+      <div class="side-block">
+        <div class="side-label">标签</div>
+        <div data-tags></div>
+      </div>
+      <div class="side-block">
+        <div class="side-label">路线位置</div>
+        <div data-node-nav></div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="detail-content">
+    <div>
+      <div class="tabs reveal" role="tablist">
+        <button class="tab active" data-tab="overview" type="button">概览</button>
+        <button class="tab" data-tab="toc" type="button">目录</button>
+        <button class="tab" data-tab="resources" type="button">资料</button>
+      </div>
+
+      <div class="tab-panel" data-panel="overview">
+        <div class="content-placeholder reveal" data-overview></div>
+      </div>
+
+      <div class="tab-panel" data-panel="toc" style="display:none;">
+        <div class="toc-list reveal" data-outline></div>
+      </div>
+
+      <div class="tab-panel" data-panel="resources" style="display:none;">
+        <div class="resource-list reveal" data-resources></div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="side-block">
+        <div class="side-label">学习建议</div>
+        <p class="side-text">先完成主学习资料的目录，再按需阅读补充资料。建议时长由主资料目录条目自动汇总。</p>
+      </div>
+      <div class="side-block">
+        <div class="side-label">数据来源</div>
+        <p class="side-text">本页内容来自后端学习内容接口，由数据库中的学习资料表统一维护。</p>
+      </div>
+    </aside>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <span>© 2026 AI 知识导航 · Fullstack</span>
+    <div class="footer-links">
+      <a href="learn.html">← 返回学习路径</a>
+      <a href="index.html">回到主页</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const navbar = document.getElementById('navbar');
+let lastScroll = 0;
+window.addEventListener('scroll', () => {
+  const cur = window.scrollY;
+  if (cur > 80 && cur > lastScroll) navbar.classList.add('hidden');
+  else navbar.classList.remove('hidden');
+  lastScroll = cur;
+}, { passive: true });
+
+const revealIo = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); revealIo.unobserve(e.target); }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -80px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealIo.observe(el));
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+      panel.style.display = panel.dataset.panel === tab.dataset.tab ? '' : 'none';
+    });
+    const activePanel = document.querySelector(`.tab-panel[data-panel="${tab.dataset.tab}"]`);
+    activePanel?.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
+  });
+});
+</script>
+<script type="module" src="assets/js/v2-api.js"></script>
+</body>
+</html>
