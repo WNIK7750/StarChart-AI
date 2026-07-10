@@ -22,6 +22,14 @@
 - `learning_node_links`：节点资料池，保存视频、课程、文档、指南等补充资料。
 - `tool_categories` / `tool_subcategories` / `ai_tools`：工具库标准三层结构。
 - `tool_workflows` / `workflow_tools`：工具工作流。
+- `user_accounts`：用户账号主表。
+- `user_auth_passwords`：密码 hash 与登录失败计数。
+- `user_security_questions`：用户密保问题与答案 hash，用于登录页找回密码；答案不明文返回前端。
+- `user_profiles`：用户展示资料。
+- `user_preferences`：用户推荐与 Agent 偏好。
+- `user_sessions`：登录会话和刷新令牌 hash。
+- `roles` / `permissions` / `role_permissions` / `user_role_assignments`：RBAC 权限模型。
+- `user_login_logs` / `user_audit_logs`：登录与审计记录。
 
 ## 学习资料访问标准
 
@@ -52,3 +60,13 @@
 - `navigation`：前后相邻节点。
 
 建议学习时长由 `learning_material_sections.duration_minutes` 自动汇总，避免前端维护重复的虚假数据。
+
+## 用户模块设计
+
+用户模块按认证、资料、偏好、权限和审计分层，避免把所有字段塞进单张用户表。
+
+- 对外暴露 `user_uid`，不暴露自增主键。
+- 密码使用 hash 存储，第一阶段为 `pbkdf2_sha256`，后续可迁移到 Argon2id。
+- Refresh Token 只保存 HMAC hash。
+- 高频筛选字段和外键字段均建立索引。
+- 当前 SQLite 阶段保留迁移到 PostgreSQL RLS 的数据边界：用户私有表均以 `user_id` 作为隔离字段。

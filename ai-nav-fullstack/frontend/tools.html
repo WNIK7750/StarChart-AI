@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 工具导航 · AI 知识导航</title>
 <link rel="icon" type="image/png" href="assets/img/logo.png">
+<script src="assets/js/tool-data.js"></script>
+<script src="assets/js/tool-page-lists.js"></script>
 <script>
 try {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -135,7 +137,8 @@ img, svg { max-width: 100%; display: block; }
 .workflow-card p { min-height: 38px; color: rgba(226,232,240,.68); font-size: 12px; line-height: 1.55; letter-spacing: 0; }
 .tool-chain { margin-top: auto; display: flex; align-items: center; gap: 7px; padding-top: 10px; overflow: hidden; }
 .tool-item { width: 50px; display: grid; justify-items: center; gap: 5px; color: #d9def5; font-size: 10px; font-weight: 700; white-space: nowrap; }
-.tool-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; color: #fff; font-size: 11px; font-weight: 900; background: linear-gradient(135deg,#2F6BFF,#8B5CF6); border: 1px solid rgba(255,255,255,.1); }
+.tool-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; color: #fff; font-size: 11px; font-weight: 900; background: linear-gradient(135deg,#2F6BFF,#8B5CF6); border: 1px solid rgba(255,255,255,.1); overflow: hidden; }
+.tool-icon img { width: 100%; height: 100%; object-fit: contain; padding: 6px; background: #fff; }
 .chain-arrow { flex: 0 0 auto; width: 10px; height: 1px; background: linear-gradient(90deg,rgba(112,121,149,.34),rgba(112,121,149,.72)); }
 .hero-orbit, .hero-stats { display: none; }
 .ai-glyph { position: relative; z-index: 1; font-size: 118px; font-weight: 900; letter-spacing: -.1em; color: rgba(255,255,255,.9); text-shadow: 0 0 42px rgba(36,214,255,.9); }
@@ -160,7 +163,8 @@ img, svg { max-width: 100%; display: block; }
 .latest-card::after { content: ""; position: absolute; inset: 0; opacity: 0; background: linear-gradient(115deg,transparent 0%,rgba(47,107,255,.09) 38%,transparent 70%); transform: translateX(-60%); transition: opacity .18s ease; }
 .latest-card:hover { transform: translateY(-3px); border-color: rgba(47,107,255,.24); box-shadow: 0 18px 38px rgba(15,23,42,.1); }
 .latest-card:hover::after { opacity: 1; animation: cardShine 1.2s ease; }
-.latest-logo { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 14px; display: grid; place-items: center; color: #FFF; font-weight: 900; background: linear-gradient(135deg,var(--blue),var(--violet)); }
+.latest-logo { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 14px; display: grid; place-items: center; color: #FFF; font-weight: 900; background: linear-gradient(135deg,var(--blue),var(--violet)); overflow: hidden; }
+.latest-logo img { width: 100%; height: 100%; object-fit: contain; padding: 8px; background: #FFF; }
 .latest-card > div:last-child { position: relative; z-index: 1; min-width: 0; }
 .latest-card strong { display: block; font-size: 14px; line-height: 1.2; }
 .latest-card span { display: block; margin-top: 6px; font-size: 11px; color: var(--muted); }
@@ -202,7 +206,8 @@ img, svg { max-width: 100%; display: block; }
 .tool-card:hover { transform: translateY(-3px); border-color: rgba(47,107,255,.24); background: #FFF; box-shadow: 0 18px 40px rgba(15,23,42,.1); }
 .tool-card:hover::before { opacity: 1; }
 .tool-main { position: relative; display: contents; min-width: 0; }
-.tool-logo { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 15px; display: grid; place-items: center; color: #FFF; font-weight: 900; font-size: 13px; box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 12px 24px rgba(47,107,255,.14); }
+.tool-logo { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 15px; display: grid; place-items: center; color: #FFF; font-weight: 900; font-size: 13px; box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 12px 24px rgba(47,107,255,.14); overflow: hidden; }
+.tool-logo img { width: 100%; height: 100%; object-fit: contain; padding: 8px; background: #FFF; }
 .logo-chat { background: linear-gradient(135deg,#10B981,#2F6BFF); }
 .logo-text { background: linear-gradient(135deg,#F97316,#F15BB5); }
 .logo-image { background: linear-gradient(135deg,#8B5CF6,#24D6FF); }
@@ -616,11 +621,11 @@ img, svg { max-width: 100%; display: block; }
               <h2>YouTube 视频工作流</h2>
               <p>从创意、脚本、画面到成片的一站式 AI 制作链路。</p>
               <div class="tool-chain" aria-label="ChatGPT 到 Midjourney 到 Runway 到 CapCut">
-                <span class="tool-item"><span class="tool-icon">GPT</span>ChatGPT</span>
+                <span class="tool-item" data-workflow-tool="ChatGPT" data-workflow-mark="GPT"><span class="tool-icon">GPT</span>ChatGPT</span>
                 <span class="chain-arrow"></span>
-                <span class="tool-item"><span class="tool-icon">MJ</span>Midjourney</span>
+                <span class="tool-item" data-workflow-tool="Midjourney" data-workflow-mark="MJ"><span class="tool-icon">MJ</span>Midjourney</span>
                 <span class="chain-arrow"></span>
-                <span class="tool-item"><span class="tool-icon">RW</span>Runway</span>
+                <span class="tool-item" data-workflow-tool="Runway" data-workflow-mark="RW"><span class="tool-icon">RW</span>Runway</span>
               </div>
             </article>
             <article class="workflow-card">
@@ -631,11 +636,11 @@ img, svg { max-width: 100%; display: block; }
               <h2>论文阅读工作流</h2>
               <p>高效理解、总结、追问与沉淀资料的学术辅助方案。</p>
               <div class="tool-chain" aria-label="NotebookLM 到 Perplexity 到 Claude">
-                <span class="tool-item"><span class="tool-icon">LM</span>NotebookLM</span>
+                <span class="tool-item" data-workflow-tool="Google NotebookLM" data-workflow-mark="LM"><span class="tool-icon">LM</span>NotebookLM</span>
                 <span class="chain-arrow"></span>
-                <span class="tool-item"><span class="tool-icon">PX</span>Perplexity</span>
+                <span class="tool-item" data-workflow-tool="Perplexity" data-workflow-mark="PX"><span class="tool-icon">PX</span>Perplexity</span>
                 <span class="chain-arrow"></span>
-                <span class="tool-item"><span class="tool-icon">CL</span>Claude</span>
+                <span class="tool-item" data-workflow-tool="Claude" data-workflow-mark="CL"><span class="tool-icon">CL</span>Claude</span>
               </div>
             </article>
             <article class="workflow-card">
@@ -646,11 +651,11 @@ img, svg { max-width: 100%; display: block; }
               <h2>代码开发工作流</h2>
               <p>智能编程、协作补全与质量监控的全栈开发组合。</p>
               <div class="tool-chain" aria-label="Cursor 到 GitHub Copilot 到 Sentry">
-                <span class="tool-item"><span class="tool-icon">CR</span>Cursor</span>
+                <span class="tool-item" data-workflow-tool="Cursor" data-workflow-mark="CR"><span class="tool-icon">CR</span>Cursor</span>
                 <span class="chain-arrow"></span>
-                <span class="tool-item"><span class="tool-icon">CP</span>Copilot</span>
+                <span class="tool-item" data-workflow-tool="GitHub Copilot" data-workflow-mark="CP"><span class="tool-icon">CP</span>Copilot</span>
                 <span class="chain-arrow"></span>
-                <span class="tool-item"><span class="tool-icon">SE</span>Sentry</span>
+                <span class="tool-item" data-workflow-tool="Sentry" data-workflow-mark="SE"><span class="tool-icon">SE</span>Sentry</span>
               </div>
             </article>
           </div>
@@ -694,552 +699,8 @@ img, svg { max-width: 100%; display: block; }
   <button aria-label="收藏">★</button>
 </div>
 
-<script>
-var categories = [
-  { id:'chat', name:'AI 对话聊天', icon:'💬', logo:'logo-chat', desc:'通用聊天、角色扮演、搜索增强和学习助手，按热度优先展示。', subs:['全部','通用对话','国产大模型','角色陪伴','学习助手'], tools:[
-    ['ChatGPT','OpenAI 旗舰通用 AI 助手，多模态、写作、代码和图像能力全面。','通用对话',99,'热门','CG'],
-    ['Claude','Anthropic 出品，长文写作、代码理解和知识工作表现稳定。','通用对话',96,'写作','CL'],
-    ['Gemini','Google 多模态 AI，适合搜索、文档、代码和 Workspace 场景。','通用对话',94,'多模态','GM'],
-    ['DeepSeek','国产推理与编程强项模型，适合深度分析和代码任务。','国产大模型',93,'推理','DS'],
-    ['Kimi 智能助手','月之暗面长文本助手，适合资料阅读、网页搜索和文件总结。','国产大模型',91,'长文本','KM'],
-    ['豆包','字节跳动 AI 助手，聊天、写作、图片和视频能力整合度高。','国产大模型',90,'免费','DB'],
-    ['通义千问','阿里大模型助手，中文、代码、多模态与开放模型生态完整。','国产大模型',89,'中文','QW'],
-    ['文心一言','百度大模型服务，中文知识、搜索增强和办公场景友好。','国产大模型',87,'中文','WX'],
-    ['智谱清言 ChatGLM','智谱 AI 对话平台，GLM 模型、智能体和多模态能力丰富。','国产大模型',86,'智能体','ZP'],
-    ['腾讯元宝','腾讯混元大模型助手，微信生态资料处理和内容生成便利。','国产大模型',84,'生态','YB'],
-    ['Grok','xAI 实时信息与推理助手，擅长逻辑、代码和热点信息总结。','通用对话',82,'实时','GK'],
-    ['Poe AI','Quora 的多模型聚合平台，可快速切换不同 AI 模型。','通用对话',80,'聚合','PO'],
-    ['Character.AI','角色对话社区，适合虚拟角色、陪伴和剧情互动。','角色陪伴',78,'角色','CA'],
-    ['MiniMax 星野','MiniMax 角色互动产品，适合陪伴、剧情和多模态聊天。','角色陪伴',76,'角色','MX'],
-    ['Pi','Inflection 的温和陪伴式 AI，适合日常沟通和情绪支持。','角色陪伴',74,'陪伴','PI'],
-    ['YouChat','You.com 的 AI 对话搜索助手，面向问答和网页资料整合。','通用对话',72,'搜索','YC'],
-    ['HuggingChat','Hugging Face 推出的开源模型聊天入口，适合模型体验。','学习助手',70,'开源','HF'],
-    ['ChatPDF','PDF 文档问答工具，适合论文、合同和报告快速阅读。','学习助手',69,'PDF','CP'],
-    ['秘塔 AI 搜索','搜索式 AI 问答，适合资料检索、阅读和中文内容整理。','学习助手',68,'搜索','MT'],
-    ['Monica','浏览器侧边栏 AI 助手，适合网页总结、写作和翻译。','学习助手',66,'插件','MO'],
-    ['天工 AI','昆仑万维 AI 搜索与对话工具，适合联网问答和内容生成。','国产大模型',65,'搜索','TG'],
-    ['百小应','百川智能助手，面向问答、写作和效率办公。','国产大模型',63,'办公','BX']
-  ]},
-  { id:'text', name:'AI 文本工具', icon:'✍', logo:'logo-text', desc:'写作、公文、论文、翻译和营销文案工具，适合内容生产者。', subs:['全部','AI写作','公文论文','翻译润色','营销文案'], tools:[
-    ['讯飞绘文','科大讯飞内容创作平台，覆盖文章、方案、脚本和营销文案。','AI写作',93,'写作','XF'],
-    ['蛙蛙写作','AI 小说与长文写作助手，支持润色、改写和扩写。','AI写作',88,'小说','WW'],
-    ['Notion AI','嵌入 Notion 工作区的写作、总结和知识管理助手。','AI写作',87,'办公','NA'],
-    ['Grammarly','英文写作校对与重写工具，适合邮件、论文和商务文案。','翻译润色',86,'英文','GR'],
-    ['DeepL Write','英文润色和翻译辅助工具，适合跨语言写作。','翻译润色',84,'翻译','DL'],
-    ['秘塔写作猫','中文纠错、改写和长文写作工具，适合学生和编辑。','AI写作',82,'中文','MW'],
-    ['笔灵 AI 写作','多场景文案写作平台，覆盖公文、论文和短视频脚本。','公文论文',80,'公文','BL'],
-    ['小鱼 AI 写作','在线智能写作平台，适合自媒体、简历和办公文档。','AI写作',78,'写作','XY'],
-    ['橙篇','百度文库知识检索与长文写作工具，适合资料型写作。','公文论文',77,'资料','CP'],
-    ['句子控 AI','面向灵感收集、句子改写和内容润色的小工具。','翻译润色',72,'润色','JZ'],
-    ['Copy.ai','营销文案与销售邮件生成工具，适合增长团队。','营销文案',70,'营销','CY'],
-    ['Jasper','品牌营销内容平台，适合团队化内容生产。','营销文案',69,'品牌','JP'],
-    ['Writesonic','营销文章、广告文案和 SEO 内容生成平台。','营销文案',68,'SEO','WS'],
-    ['QuillBot','改写、摘要和语法检查工具，适合英文学习与论文。','翻译润色',66,'改写','QB'],
-    ['火山写作','字节系中文写作与纠错工具，适合日常办公表达。','AI写作',65,'中文','HS'],
-    ['九歌诗歌','清华九歌诗歌生成系统，适合中文诗词创作体验。','AI写作',60,'诗歌','JG'],
-    ['万彩 AI','短文案、脚本和视频创作辅助工具，适合内容运营。','营销文案',59,'运营','WC'],
-    ['搭画快写','AI 文案与新媒体写作工具，适合公众号和营销文章。','营销文案',58,'新媒','DH'],
-    ['悟智写作','中文写作平台，覆盖作文、报告和办公材料。','公文论文',57,'办公','WZ'],
-    ['笔墨公文','面向公文写作的 AIGC 创作平台。','公文论文',56,'公文','BM'],
-    ['Rytr','轻量级英文文案生成工具，适合快速起草。','营销文案',55,'英文','RY']
-  ]},
-  { id:'image', name:'AI 绘画工具', icon:'🎨', logo:'logo-image', desc:'文生图、修图、设计素材和商品图工具，适合设计与内容创作。', subs:['全部','文生图','设计修图','商品素材','开源模型'], tools:[
-    ['Midjourney','高质量艺术图像生成工具，风格化和质感表现突出。','文生图',98,'艺术','MJ'],
-    ['ChatGPT 图像','OpenAI 图像生成与编辑能力，适合和文案上下文联动。','文生图',95,'多模态','OI'],
-    ['Adobe Firefly','Adobe 商业友好的图像生成与设计编辑工具。','设计修图',91,'设计','AF'],
-    ['Stable Diffusion','开源图像生成模型生态，可本地部署和深度定制。','开源模型',90,'开源','SD'],
-    ['通义万相','阿里 AI 绘画平台，中文提示词和国产应用场景友好。','文生图',86,'中文','WX'],
-    ['即梦 AI','字节系图像与视频生成工具，适合社媒和视觉创意。','文生图',84,'创意','JM'],
-    ['文心一格','百度 AI 艺术和设计生成工具，适合中文创意出图。','文生图',82,'中文','YG'],
-    ['Leonardo AI','游戏资产、概念设计和商业素材生成平台。','商品素材',80,'资产','LD'],
-    ['Canva AI','在线设计工具内置 AI 生图、抠图和排版能力。','设计修图',79,'设计','CV'],
-    ['Recraft','面向品牌和矢量图形的 AI 设计生成工具。','设计修图',77,'矢量','RC'],
-    ['Ideogram','文字渲染能力较强的图像生成工具，适合海报和标语。','文生图',76,'文字','ID'],
-    ['Krea AI','实时生成与图像增强工具，适合设计探索。','设计修图',74,'实时','KR'],
-    ['Remove.bg','自动抠图工具，适合商品图和头像处理。','设计修图',72,'抠图','RB'],
-    ['美图设计室','国产在线设计和 AI 图片处理工具。','设计修图',70,'修图','MT'],
-    ['稿定 AI','海报、电商图和运营图设计平台，适合营销素材。','商品素材',68,'电商','GD'],
-    ['Photoroom','商品图背景替换、抠图和批量处理工具。','商品素材',66,'商品','PR'],
-    ['Magnific AI','图像超分和细节增强工具，适合高质量放大。','设计修图',64,'增强','MG'],
-    ['Civitai','Stable Diffusion 模型和 LoRA 社区。','开源模型',63,'模型','CI'],
-    ['LiblibAI','国内 AI 模型与绘图社区，适合模型查找和出图。','开源模型',62,'社区','LL'],
-    ['Clipdrop','图像清理、重光照、抠图和创意编辑工具集合。','设计修图',61,'编辑','CD'],
-    ['Scenario','游戏素材和风格一致资产生成平台。','商品素材',58,'游戏','SC']
-  ]},
-  { id:'video', name:'AI 视频工具', icon:'🎬', logo:'logo-video', desc:'文生视频、数字人、剪辑、音乐和配音工具。', subs:['全部','文生视频','剪辑包装','音频音乐','数字人'], tools:[
-    ['Sora','OpenAI 视频生成模型，适合高质量创意视频生成。','文生视频',96,'视频','SO'],
-    ['Runway','AI 视频生成与编辑平台，覆盖 Gen 系列模型和后期工具。','文生视频',94,'视频','RW'],
-    ['可灵 AI','快手文生视频工具，中文场景和人物运动表现强。','文生视频',91,'国产','KL'],
-    ['Pika','轻量视频生成与动效工具，适合社媒短片。','文生视频',86,'短片','PK'],
-    ['Luma Dream Machine','高质量视频生成和镜头运动工具。','文生视频',84,'镜头','LU'],
-    ['即梦 AI 视频','字节系视频生成能力，适合创意短视频和运营素材。','文生视频',82,'国产','JV'],
-    ['剪映 AI','剪辑、字幕、口播、图文成片和模板化包装。','剪辑包装',80,'剪辑','JY'],
-    ['CapCut AI','海外版剪映，适合短视频剪辑和社媒内容。','剪辑包装',78,'剪辑','CC'],
-    ['HeyGen','数字人视频、口播翻译和企业培训视频工具。','数字人',76,'数字人','HG'],
-    ['Synthesia','企业数字人视频生成平台，适合培训和说明视频。','数字人',74,'企业','SY'],
-    ['D-ID','头像驱动和数字人口播工具。','数字人',72,'头像','DI'],
-    ['Suno','文字生成歌曲工具，支持完整音乐和人声。','音频音乐',86,'音乐','SN'],
-    ['Udio','AI 音乐生成工具，适合歌曲、配乐和创意实验。','音频音乐',84,'音乐','UD'],
-    ['ElevenLabs','高质量 AI 配音、语音克隆和多语种朗读工具。','音频音乐',83,'配音','EL'],
-    ['Mureka','AI 音乐创作平台，适合中文歌曲和灵感草稿。','音频音乐',76,'音乐','MR'],
-    ['Descript','音视频剪辑与转录工具，通过编辑文本剪视频。','剪辑包装',70,'转录','DS'],
-    ['Veed.io','在线视频编辑器，集成字幕、翻译和 AI 工具。','剪辑包装',68,'在线','VE'],
-    ['OpusClip','长视频自动切条为短视频的 AI 工具。','剪辑包装',66,'切条','OC'],
-    ['Captions','口播视频字幕、美化和 AI 剪辑工具。','剪辑包装',64,'字幕','CA']
-  ]},
-  { id:'code', name:'AI 编程工具', icon:'⌘', logo:'logo-code', desc:'AI IDE、代码助手、测试、部署与低代码平台。', subs:['全部','AI IDE','代码补全','低代码平台','测试运维'], tools:[
-    ['Cursor','AI 原生代码编辑器，适合项目级代码理解和重构。','AI IDE',96,'IDE','CU'],
-    ['GitHub Copilot','经典代码补全与 Agent 编程助手，IDE 集成成熟。','代码补全',94,'补全','GH'],
-    ['Claude Code','Anthropic 的终端/项目级编码助手，适合大型代码库。','AI IDE',91,'Agent','CC'],
-    ['Windsurf','AI IDE 和 Cascade Agent 工作流，适合连续开发。','AI IDE',88,'IDE','WS'],
-    ['Trae','字节系 AI IDE，面向国内开发者的智能编程工具。','AI IDE',86,'国产','TR'],
-    ['CodeBuddy','腾讯云智能编程工具，适合云开发和 IDE 辅助。','代码补全',84,'国产','CB'],
-    ['通义灵码','阿里云 AI 编码助手，代码补全、问答和单测生成。','代码补全',82,'国产','LM'],
-    ['Amazon Q Developer','AWS 开发者 AI 助手，适合云上代码和运维。','测试运维',80,'云','AQ'],
-    ['Replit Agent','在线开发环境里的 AI 代理，适合快速原型。','低代码平台',78,'原型','RP'],
-    ['Bolt.new','浏览器内 AI 生成全栈应用原型。','低代码平台',77,'Web','BN'],
-    ['Lovable','通过自然语言生成 Web App 和产品原型。','低代码平台',76,'产品','LV'],
-    ['v0','Vercel 的 UI 生成工具，适合 React 组件和界面草图。','低代码平台',75,'UI','V0'],
-    ['Tabnine','企业级代码补全工具，强调隐私和团队部署。','代码补全',72,'企业','TN'],
-    ['Codeium','免费代码补全和聊天助手，支持多 IDE。','代码补全',70,'免费','CI'],
-    ['Sourcegraph Cody','面向代码搜索和大型代码库理解的 AI 助手。','代码补全',68,'搜索','CO'],
-    ['Devin','AI 软件工程师代理，适合自动化开发任务。','AI IDE',67,'代理','DV'],
-    ['Qodo','AI 代码测试、审查和质量辅助工具。','测试运维',64,'测试','QD'],
-    ['Snyk AI','安全扫描和修复建议工具，适合代码安全。','测试运维',62,'安全','SK']
-  ]},
-  { id:'office', name:'AI 办公工具', icon:'▣', logo:'logo-office', desc:'文档、会议、知识库、流程自动化和团队协作。', subs:['全部','文档知识','会议纪要','PPT表格','自动化'], tools:[
-    ['Microsoft Copilot','Office 与 Windows 生态 AI 助手，适合文档、表格和会议。','文档知识',95,'办公','MS'],
-    ['Google NotebookLM','基于资料源的笔记、问答和播客摘要工具。','文档知识',92,'资料','NL'],
-    ['Notion AI','知识库、项目管理和文档写作一体化助手。','文档知识',88,'知识库','NA'],
-    ['飞书智能伙伴','飞书文档、会议和项目协作中的 AI 助手。','文档知识',86,'协作','FS'],
-    ['钉钉 AI 助理','钉钉办公场景 AI 助手，适合企业协作和流程处理。','文档知识',84,'企业','DD'],
-    ['Gamma','AI 生成演示文稿、网页和文档。','PPT表格',82,'PPT','GA'],
-    ['Beautiful.ai','自动排版的在线演示文稿工具。','PPT表格',78,'PPT','BA'],
-    ['Tome','AI 故事化演示和文档生成平台。','PPT表格',76,'演示','TM'],
-    ['夸克 AI PPT','国产 PPT 生成与资料整理工具。','PPT表格',74,'国产','QP'],
-    ['妙办画板','中文在线白板和 AI 会议协作工具。','会议纪要',72,'会议','MB'],
-    ['Fireflies.ai','会议录音、转写和摘要工具。','会议纪要',76,'纪要','FF'],
-    ['Otter.ai','英文会议转写和协作笔记工具。','会议纪要',73,'转写','OT'],
-    ['Read AI','会议摘要、行动项和沟通分析工具。','会议纪要',70,'会议','RA'],
-    ['Zapier AI','跨应用自动化和 AI 工作流连接平台。','自动化',80,'自动化','ZA'],
-    ['Make','低代码自动化平台，可连接上千个应用和 AI 能力。','自动化',78,'自动化','MK'],
-    ['Gumloop','AI 原生自动化工作流平台，适合研究和运营流程。','自动化',72,'流程','GL'],
-    ['Airtable AI','表格数据库与 AI 工作流结合的团队工具。','PPT表格',69,'表格','AT'],
-    ['Miro AI','在线白板中的头脑风暴、整理和摘要工具。','文档知识',67,'白板','MI']
-  ]},
-  { id:'data', name:'AI 搜索与数据', icon:'◈', logo:'logo-data', desc:'联网搜索、研究、数据分析、商业洞察和知识检索工具。', subs:['全部','AI搜索','研究分析','数据图表','知识库'], tools:[
-    ['Perplexity','带引用来源的 AI 搜索引擎，适合研究和事实核查。','AI搜索',96,'搜索','PX'],
-    ['秘塔 AI 搜索','中文 AI 搜索工具，适合资料收集和报告初稿。','AI搜索',90,'中文','MT'],
-    ['夸克 AI 搜索','面向中文用户的搜索、总结和学习场景工具。','AI搜索',86,'中文','QK'],
-    ['Google AI Mode','Google 搜索的 AI 回答模式，适合全球资料检索。','AI搜索',84,'搜索','GO'],
-    ['Consensus','学术论文搜索和证据总结工具。','研究分析',82,'学术','CS'],
-    ['Elicit','研究问题拆解、论文查找和证据表格工具。','研究分析',80,'研究','EL'],
-    ['Scite','论文引用语境分析工具，适合判断研究可信度。','研究分析',76,'论文','SC'],
-    ['ChatDOC','文档问答和资料阅读工具，适合报告、合同和论文。','知识库',74,'文档','CD'],
-    ['Glean','企业知识搜索和内部问答平台。','知识库',72,'企业','GN'],
-    ['Dify','开源 LLM 应用开发平台，适合搭建知识库问答。','知识库',70,'开源','DF'],
-    ['Coze 扣子','字节 AI Bot 和工作流平台，适合智能体与知识库。','知识库',69,'Bot','CZ'],
-    ['Flowith','知识图谱式 AI 工作空间，适合研究和创意发散。','研究分析',68,'图谱','FW'],
-    ['Julius AI','面向表格和数据分析的 AI 助手。','数据图表',76,'数据','JA'],
-    ['ChatGPT Data Analyst','上传表格进行分析、可视化和 Python 计算。','数据图表',75,'分析','DA'],
-    ['Power BI Copilot','微软 BI 分析与报表生成助手。','数据图表',72,'BI','PB'],
-    ['Tableau Pulse','数据洞察和指标解释工具，面向企业分析。','数据图表',70,'BI','TB'],
-    ['Rows AI','在线表格中的 AI 数据清洗、公式和分析工具。','数据图表',68,'表格','RS'],
-    ['Browse AI','网页数据抓取和监控自动化工具。','数据图表',62,'采集','BA']
-  ]}
-];
+<script src="assets/js/tools-page.js"></script>
 
-var latestTools = [
-  ['GPT-5.3','OpenAI','对话模型','CG','logo-chat'], ['Claude 4.5','Anthropic','写作代码','CL','logo-chat'],
-  ['Gemini 3.1','Google','多模态','GM','logo-chat'], ['Midjourney V7','Midjourney','绘画工具','MJ','logo-image'],
-  ['Sora','OpenAI','视频生成','SO','logo-video'], ['Runway Gen-4','Runway','视频工具','RW','logo-video'],
-  ['Cursor 2.0','Cursor','AI IDE','CU','logo-code'], ['Claude Code','Anthropic','编程助手','CC','logo-code'],
-  ['NotebookLM','Google','资料学习','NL','logo-office'], ['Perplexity Pro','Perplexity','AI搜索','PX','logo-data'],
-  ['Suno V5','Suno','音乐生成','SN','logo-video'], ['Zapier AI','Zapier','自动化','ZA','logo-office']
-];
-
-var state = { category: 'chat', sub: '全部', page: 1, pageSize: 20, query: '', freeOnly: false };
-
-function $(id) { return document.getElementById(id); }
-function getCategory() { return categories.find(function(c){ return c.id === state.category; }) || categories[0]; }
-function allTools() {
-  return categories.flatMap(function(c){ return c.tools.map(function(t){ return { category:c, name:t[0], desc:t[1], sub:t[2], heat:t[3], tag:t[4], mark:t[5] }; }); });
-}
-function renderLatest() {
-  var items = latestTools.concat(latestTools).map(function(t){
-    return '<a class="latest-card" href="#"><div class="latest-logo '+t[4]+'">'+t[3]+'</div><strong>'+t[0]+'</strong><span>'+t[1]+'</span><em>'+t[2]+'</em></a>';
-  }).join('');
-  $('latestTrack').innerHTML = items;
-}
-function renderNav() {
-  $('categoryNav').innerHTML = '<h3>功能分类</h3>' + categories.map(function(c){
-    return '<button class="'+(c.id===state.category?'active':'')+'" data-cat="'+c.id+'"><span>'+c.icon+'</span>'+c.name+'</button>';
-  }).join('');
-  document.querySelectorAll('#categoryNav button').forEach(function(btn){
-    btn.addEventListener('click', function(){ setCategory(btn.dataset.cat); });
-  });
-}
-function renderSubTabs(cat) {
-  $('subTabs').innerHTML = cat.subs.map(function(s){
-    return '<button class="subtab '+(s===state.sub?'active':'')+'" data-sub="'+s+'">'+s+'</button>';
-  }).join('');
-  document.querySelectorAll('.subtab').forEach(function(btn){
-    btn.addEventListener('click', function(){ state.sub = btn.dataset.sub; state.page = 1; renderTools(); });
-  });
-}
-function filteredTools() {
-  var source = state.query ? allTools() : getCategory().tools.map(function(t){ return { category:getCategory(), name:t[0], desc:t[1], sub:t[2], heat:t[3], tag:t[4], mark:t[5] }; });
-  return source.filter(function(t){
-    var matchSub = state.sub === '全部' || t.sub === state.sub || state.query;
-    var matchQuery = !state.query || (t.name + t.desc + t.sub + t.category.name).toLowerCase().includes(state.query.toLowerCase());
-    var matchFree = !state.freeOnly || /免费|开源|国产|中文/.test(t.tag + t.desc);
-    return matchSub && matchQuery && matchFree;
-  }).sort(function(a,b){ return b.heat - a.heat; });
-}
-function renderTools() {
-  var cat = getCategory();
-  $('categoryTitle').textContent = state.query ? '搜索结果' : cat.name;
-  $('categoryDesc').textContent = state.query ? '正在全站搜索：' + state.query : cat.desc;
-  renderSubTabs(cat);
-  renderNav();
-  document.querySelectorAll('.rail-link').forEach(function(btn){ btn.classList.toggle('active', btn.dataset.rail === state.category); });
-  var list = filteredTools();
-  $('categoryCount').textContent = list.length + ' 个工具';
-  var totalPages = Math.max(1, Math.ceil(list.length / state.pageSize));
-  if (state.page > totalPages) state.page = totalPages;
-  var start = (state.page - 1) * state.pageSize;
-  var pageItems = list.slice(start, start + state.pageSize);
-  $('toolsGrid').innerHTML = pageItems.length ? pageItems.map(function(t){
-    return '<a href="#" class="tool-card" data-tool="'+t.name+'"><div class="tool-main"><div class="tool-logo '+t.category.logo+'">'+t.mark+'</div><div class="tool-info"><strong>'+t.name+'</strong><p>'+t.desc+'</p></div></div><div class="tool-meta"><span class="heat">🔥 '+t.heat+'.0k</span><span class="tag">'+t.sub+'</span></div></a>';
-  }).join('') : '<div class="empty">没有找到匹配工具，换个关键词试试。</div>';
-  $('pager').innerHTML = totalPages > 1 ? Array.from({length: totalPages}, function(_,i){
-    var p = i + 1; return '<button class="'+(p===state.page?'active':'')+'" data-page="'+p+'">'+p+'</button>';
-  }).join('') : '';
-  document.querySelectorAll('#pager button').forEach(function(btn){
-    btn.addEventListener('click', function(){ state.page = Number(btn.dataset.page); renderTools(); });
-  });
-  document.querySelectorAll('.tool-card').forEach(function(card){
-    card.addEventListener('mousemove', function(e){ var r = card.getBoundingClientRect(); card.style.setProperty('--mx', ((e.clientX-r.left)/r.width*100)+'%'); card.style.setProperty('--my', ((e.clientY-r.top)/r.height*100)+'%'); });
-  });
-}
-function setCategory(id) {
-  state.category = id; state.sub = '全部'; state.page = 1; state.query = ''; state.freeOnly = false;
-  $('searchInput').value = '';
-  renderTools();
-  $('directory').scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-function toolCard(t) {
-  return '<a href="#" class="tool-card" data-tool="'+t.name+'"><div class="tool-main"><div class="tool-logo '+t.category.logo+'">'+t.mark+'</div><div class="tool-info"><strong>'+t.name+'</strong><p>'+t.desc+'</p></div></div><div class="tool-meta"><span class="heat">🔥 '+t.heat+'.0k</span><span class="tag">'+t.sub+'</span></div></a>';
-}
-
-function renderLatest() {
-  var items = latestTools.concat(latestTools).map(function(t){
-    return '<a class="latest-card" href="#"><div class="latest-logo '+t[4]+'">'+t[3]+'</div><div><strong>'+t[0]+'</strong><span>'+t[1]+'</span><em>'+t[2]+'</em></div></a>';
-  }).join('');
-  $('latestTrack').innerHTML = items;
-}
-
-function renderNav() {
-  $('categoryNav').innerHTML = '<h3>分区跳转</h3>' + categories.map(function(c){
-    return '<button class="'+(c.id===state.category?'active':'')+'" data-cat="'+c.id+'"><span>'+c.icon+'</span>'+c.name+'</button>';
-  }).join('');
-  document.querySelectorAll('#categoryNav button').forEach(function(btn){
-    btn.addEventListener('click', function(){ setCategory(btn.dataset.cat); });
-  });
-}
-
-function renderTools() {
-  renderNav();
-  document.querySelectorAll('.rail-link').forEach(function(btn){ btn.classList.toggle('active', btn.dataset.rail === state.category); });
-  var html = categories.map(function(cat) {
-    var tools = cat.tools.map(function(t){ return { category:cat, name:t[0], desc:t[1], sub:t[2], heat:t[3], tag:t[4], mark:t[5] }; }).filter(function(t){
-      var text = (t.name + t.desc + t.sub + t.category.name).toLowerCase();
-      var matchQuery = !state.query || text.includes(state.query.toLowerCase());
-      var matchFree = !state.freeOnly || /免费|开源|国产|中文|free|open/i.test(t.tag + t.desc + t.sub);
-      return matchQuery && matchFree;
-    }).sort(function(a,b){ return b.heat - a.heat; });
-    if (!tools.length) return '';
-    return '<section class="category-section" id="section-'+cat.id+'"><div class="category-top"><div class="category-title"><h2>'+cat.name+'</h2><p>'+cat.desc+'</p></div><div class="category-count">'+tools.length+' 个工具</div></div><div class="category-tools">'+tools.map(toolCard).join('')+'</div></section>';
-  }).join('');
-  $('toolsSections').innerHTML = html || '<div class="empty">没有找到匹配工具，换个关键词试试。</div>';
-  document.querySelectorAll('.tool-card').forEach(function(card){
-    card.addEventListener('mousemove', function(e){ var r = card.getBoundingClientRect(); card.style.setProperty('--mx', ((e.clientX-r.left)/r.width*100)+'%'); card.style.setProperty('--my', ((e.clientY-r.top)/r.height*100)+'%'); });
-  });
-}
-
-function setCategory(id) {
-  state.category = id; state.sub = '全部'; state.page = 1; state.query = ''; state.freeOnly = false;
-  $('searchInput').value = '';
-  renderTools();
-  var target = document.getElementById('section-' + id) || $('directory');
-  target.scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-function getAllSub(cat) {
-  return cat.subs[0];
-}
-
-function getActiveSub(cat) {
-  state.activeSubs = state.activeSubs || {};
-  return state.activeSubs[cat.id] || getAllSub(cat);
-}
-
-function setActiveSub(catId, sub) {
-  state.activeSubs = state.activeSubs || {};
-  state.activeSubs[catId] = sub;
-}
-
-function toolCard(t) {
-  return '<a href="#" class="tool-card" data-tool="'+t.name+'"><div class="tool-main"><div class="tool-logo '+t.category.logo+'">'+t.mark+'</div><div class="tool-info"><strong>'+t.name+'</strong><p>'+t.desc+'</p></div></div><div class="tool-meta"><span class="heat">🔥 '+t.heat+'.0k</span><span class="tag">'+t.sub+'</span></div></a>';
-}
-
-function decorateCards() {
-  document.querySelectorAll('.tool-card').forEach(function(card){
-    card.addEventListener('mousemove', function(e){
-      var r = card.getBoundingClientRect();
-      card.style.setProperty('--mx', ((e.clientX-r.left)/r.width*100)+'%');
-      card.style.setProperty('--my', ((e.clientY-r.top)/r.height*100)+'%');
-    });
-  });
-}
-
-function renderLatest() {
-  var items = latestTools.concat(latestTools).map(function(t){
-    return '<a class="latest-card" href="#"><div class="latest-logo '+t[4]+'">'+t[3]+'</div><div><strong>'+t[0]+'</strong><span>'+t[1]+'</span><em>'+t[2]+'</em></div></a>';
-  }).join('');
-  $('latestTrack').innerHTML = items;
-}
-
-function renderRail() {
-  var groups = document.querySelectorAll('.rail-group');
-  if (!groups.length) return;
-  groups[0].innerHTML = '<div class="rail-title">核心工具</div>' + categories.map(function(c){
-    var active = c.id === state.category;
-    var activeSub = getActiveSub(c);
-    var subs = c.subs.slice(1).map(function(sub){
-      return '<button class="rail-sub '+(active && activeSub === sub ? 'active' : '')+'" data-rail-sub="'+sub+'" data-rail-cat="'+c.id+'">'+sub+'</button>';
-    }).join('');
-    return '<div class="rail-category"><button class="rail-link rail-parent '+(active ? 'active open' : '')+'" data-rail="'+c.id+'"><span class="rail-icon">'+c.icon+'</span><span>'+c.name+'</span></button><div class="rail-sublist '+(active ? 'open' : '')+'">'+subs+'</div></div>';
-  }).join('');
-  document.querySelectorAll('[data-rail]').forEach(function(btn){
-    btn.addEventListener('click', function(){ setCategory(btn.dataset.rail); });
-  });
-  document.querySelectorAll('[data-rail-sub]').forEach(function(btn){
-    btn.addEventListener('click', function(e){
-      e.stopPropagation();
-      setSubcategory(btn.dataset.railCat, btn.dataset.railSub);
-    });
-  });
-}
-
-function renderNav() {
-  $('categoryNav').innerHTML = '<h3>分区跳转</h3>' + categories.map(function(c){
-    return '<button class="'+(c.id===state.category?'active':'')+'" data-cat="'+c.id+'"><span>'+c.icon+'</span>'+c.name+'</button>';
-  }).join('');
-  document.querySelectorAll('#categoryNav button').forEach(function(btn){
-    btn.addEventListener('click', function(){ setCategory(btn.dataset.cat); });
-  });
-}
-
-function renderTools() {
-  state.activeSubs = state.activeSubs || {};
-  renderNav();
-  renderRail();
-  var html = categories.map(function(cat) {
-    var activeSub = state.query || state.freeOnly ? getAllSub(cat) : getActiveSub(cat);
-    var tools = cat.tools.map(function(t){ return { category:cat, name:t[0], desc:t[1], sub:t[2], heat:t[3], tag:t[4], mark:t[5] }; }).filter(function(t){
-      var text = (t.name + t.desc + t.sub + t.category.name).toLowerCase();
-      var matchSub = activeSub === getAllSub(cat) || t.sub === activeSub;
-      var matchQuery = !state.query || text.includes(state.query.toLowerCase());
-      var matchFree = !state.freeOnly || /免费|开源|国产|中文|free|open/i.test(t.tag + t.desc + t.sub);
-      return matchSub && matchQuery && matchFree;
-    }).sort(function(a,b){ return b.heat - a.heat; });
-    if (!tools.length) return '';
-    var tabs = cat.subs.map(function(sub){
-      return '<button class="'+(sub === activeSub ? 'active' : '')+'" data-sub-cat="'+cat.id+'" data-sub="'+sub+'">'+sub+'</button>';
-    }).join('');
-    return '<section class="category-section" id="section-'+cat.id+'"><div class="category-top"><div class="category-title"><h2>'+cat.name+'</h2><p>'+cat.desc+'</p></div><div class="category-count">'+tools.length+' 个工具</div></div><div class="section-subnav">'+tabs+'</div><div class="category-tools">'+tools.map(toolCard).join('')+'</div></section>';
-  }).join('');
-  $('toolsSections').innerHTML = html || '<div class="empty">没有找到匹配工具，换个关键词试试。</div>';
-  document.querySelectorAll('[data-sub-cat]').forEach(function(btn){
-    btn.addEventListener('click', function(){ setSubcategory(btn.dataset.subCat, btn.dataset.sub); });
-  });
-  decorateCards();
-}
-
-function setCategory(id) {
-  state.category = id; state.page = 1; state.query = ''; state.freeOnly = false;
-  $('searchInput').value = '';
-  renderTools();
-  var target = document.getElementById('section-' + id) || $('directory');
-  target.scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-function setSubcategory(catId, sub) {
-  state.category = catId; state.page = 1; state.query = ''; state.freeOnly = false;
-  setActiveSub(catId, sub);
-  $('searchInput').value = '';
-  renderTools();
-  var target = document.getElementById('section-' + catId) || $('directory');
-  target.scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-function toolCard(t) {
-  return '<a href="#" class="tool-card" data-tool="'+t.name+'"><div class="tool-main"><div class="tool-logo '+t.category.logo+'">'+t.mark+'</div><div class="tool-info"><strong>'+t.name+'</strong><p>'+t.desc+'</p></div></div><div class="tool-meta"><span class="tag">'+t.sub+'</span><span class="tool-arrow">›</span></div></a>';
-}
-
-function resetSectionPages() {
-  state.sectionPages = {};
-}
-
-function sectionPageKey(catId, sub) {
-  return catId + '::' + sub + '::' + (state.query || '') + '::' + (state.freeOnly ? 'free' : 'all');
-}
-
-function getSectionPage(catId, sub) {
-  state.sectionPages = state.sectionPages || {};
-  return state.sectionPages[sectionPageKey(catId, sub)] || 1;
-}
-
-function setSectionPage(catId, sub, page) {
-  state.sectionPages = state.sectionPages || {};
-  state.sectionPages[sectionPageKey(catId, sub)] = page;
-}
-
-function filteredSectionTools(cat, activeSub) {
-  return cat.tools.map(function(t){
-    return { category:cat, name:t[0], desc:t[1], sub:t[2], heat:t[3], tag:t[4], mark:t[5] };
-  }).filter(function(t){
-    var text = (t.name + t.desc + t.sub + t.category.name).toLowerCase();
-    var matchSub = activeSub === getAllSub(cat) || t.sub === activeSub;
-    var matchQuery = !state.query || text.includes(state.query.toLowerCase());
-    var matchFree = !state.freeOnly || /免费|开源|国产|中文|free|open|鍏嶈垂|寮€婧|鍥戒骇|涓枃/i.test(t.tag + t.desc + t.sub);
-    return matchSub && matchQuery && matchFree;
-  }).sort(function(a,b){ return b.heat - a.heat; });
-}
-
-function sectionPagerControls(catId, activeSub, currentPage, totalPages) {
-  return '<button type="button" data-page-cat="'+catId+'" data-page-sub="'+activeSub+'" data-page-dir="prev" '+(currentPage === 1 ? 'disabled' : '')+'>&lt;</button><span>'+currentPage+' / '+totalPages+'</span><button type="button" data-page-cat="'+catId+'" data-page-sub="'+activeSub+'" data-page-dir="next" '+(currentPage === totalPages ? 'disabled' : '')+'>&gt;</button>';
-}
-
-function bindSectionPager(scope) {
-  (scope || document).querySelectorAll('[data-page-dir]').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var current = getSectionPage(btn.dataset.pageCat, btn.dataset.pageSub);
-      var next = current + (btn.dataset.pageDir === 'next' ? 1 : -1);
-      renderSectionPage(btn.dataset.pageCat, btn.dataset.pageSub, next);
-    });
-  });
-}
-
-function renderSectionPage(catId, activeSub, requestedPage) {
-  var keepY = window.scrollY;
-  var cat = categories.find(function(c){ return c.id === catId; });
-  var section = document.getElementById('section-' + catId);
-  if (!cat || !section) return;
-  var tools = filteredSectionTools(cat, activeSub);
-  var pageSize = 12;
-  var totalPages = Math.max(1, Math.ceil(tools.length / pageSize));
-  var currentPage = Math.max(1, Math.min(requestedPage, totalPages));
-  setSectionPage(catId, activeSub, currentPage);
-  var pageTools = tools.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  var grid = section.querySelector('.category-tools');
-  if (grid) grid.innerHTML = pageTools.map(toolCard).join('');
-  var pager = section.querySelector('.section-pager');
-  if (totalPages > 1) {
-    if (!pager) {
-      section.insertAdjacentHTML('beforeend', '<div class="section-pager"></div>');
-      pager = section.querySelector('.section-pager');
-    }
-    pager.innerHTML = sectionPagerControls(catId, activeSub, currentPage, totalPages);
-    bindSectionPager(pager);
-  } else if (pager) {
-    pager.remove();
-  }
-  decorateCards();
-  if (document.activeElement) document.activeElement.blur();
-  window.scrollTo(0, keepY);
-  requestAnimationFrame(function(){ window.scrollTo(0, keepY); });
-}
-
-function renderTools() {
-  state.activeSubs = state.activeSubs || {};
-  state.sectionPages = state.sectionPages || {};
-  renderNav();
-  renderRail();
-  var html = categories.map(function(cat) {
-    var activeSub = state.query || state.freeOnly ? getAllSub(cat) : getActiveSub(cat);
-    var tools = cat.tools.map(function(t){ return { category:cat, name:t[0], desc:t[1], sub:t[2], heat:t[3], tag:t[4], mark:t[5] }; }).filter(function(t){
-      var text = (t.name + t.desc + t.sub + t.category.name).toLowerCase();
-      var matchSub = activeSub === getAllSub(cat) || t.sub === activeSub;
-      var matchQuery = !state.query || text.includes(state.query.toLowerCase());
-      var matchFree = !state.freeOnly || /免费|开源|国产|中文|free|open|鍏嶈垂|寮€婧|鍥戒骇|涓枃/i.test(t.tag + t.desc + t.sub);
-      return matchSub && matchQuery && matchFree;
-    }).sort(function(a,b){ return b.heat - a.heat; });
-    if (!tools.length) return '';
-    var pageSize = 12;
-    var totalPages = Math.max(1, Math.ceil(tools.length / pageSize));
-    var currentPage = Math.min(getSectionPage(cat.id, activeSub), totalPages);
-    setSectionPage(cat.id, activeSub, currentPage);
-    var pageTools = tools.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-    var tabs = cat.subs.map(function(sub){
-      return '<button class="'+(sub === activeSub ? 'active' : '')+'" data-sub-cat="'+cat.id+'" data-sub="'+sub+'">'+sub+'</button>';
-    }).join('');
-    var pager = totalPages > 1 ? '<div class="section-pager">'+sectionPagerControls(cat.id, activeSub, currentPage, totalPages)+'</div>' : '';
-    return '<section class="category-section" id="section-'+cat.id+'"><div class="category-top"><div class="category-title"><h2>'+cat.name+'</h2><p>'+cat.desc+'</p></div><div class="category-count">'+tools.length+' 个工具</div></div><div class="section-subnav">'+tabs+'</div><div class="category-tools">'+pageTools.map(toolCard).join('')+'</div>'+pager+'</section>';
-  }).join('');
-  $('toolsSections').innerHTML = html || '<div class="empty">没有找到匹配工具，换个关键词试试。</div>';
-  document.querySelectorAll('[data-sub-cat]').forEach(function(btn){
-    btn.addEventListener('click', function(){ setSubcategory(btn.dataset.subCat, btn.dataset.sub); });
-  });
-  bindSectionPager(document);
-  decorateCards();
-}
-
-function setCategory(id) {
-  state.category = id; state.page = 1; state.query = ''; state.freeOnly = false;
-  $('searchInput').value = '';
-  renderTools();
-  var target = document.getElementById('section-' + id) || $('directory');
-  target.scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-function setSubcategory(catId, sub) {
-  state.category = catId; state.page = 1; state.query = ''; state.freeOnly = false;
-  setActiveSub(catId, sub);
-  setSectionPage(catId, sub, 1);
-  $('searchInput').value = '';
-  renderTools();
-  var target = document.getElementById('section-' + catId) || $('directory');
-  target.scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-renderLatest();
-renderNav();
-renderTools();
-
-var pb = $('progressBar');
-window.addEventListener('scroll', function(){ var h = document.documentElement; pb.style.width = (h.scrollTop / (h.scrollHeight - h.clientHeight) * 100) + '%'; }, { passive:true });
-var revealIo = new IntersectionObserver(function(entries){ entries.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('in'); revealIo.unobserve(e.target); } }); }, { threshold:.12, rootMargin:'0px 0px -80px 0px' });
-document.querySelectorAll('.reveal').forEach(function(el){ revealIo.observe(el); });
-document.querySelectorAll('[data-rail]').forEach(function(btn){ btn.addEventListener('click', function(){ setCategory(btn.dataset.rail); }); });
-document.querySelectorAll('[data-scroll]').forEach(function(btn){ btn.addEventListener('click', function(){ $(btn.dataset.scroll).scrollIntoView({behavior:'smooth'}); }); });
-document.querySelectorAll('a[href^="#"]').forEach(function(link){
-  link.addEventListener('click', function(e){
-    var id = link.getAttribute('href').slice(1);
-    var target = id ? $(id) : null;
-    if (!target) return;
-    e.preventDefault();
-    target.scrollIntoView({ behavior:'smooth', block:'start' });
-  });
-});
-document.querySelector('[data-hot="free"]').addEventListener('click', function(){ state.freeOnly = !state.freeOnly; state.page = 1; renderTools(); $('directory').scrollIntoView({behavior:'smooth'}); });
-document.querySelectorAll('[data-query]').forEach(function(btn){ btn.addEventListener('click', function(){ state.query = btn.dataset.query; $('searchInput').value = state.query; state.page = 1; renderTools(); $('directory').scrollIntoView({behavior:'smooth'}); }); });
-$('searchForm').addEventListener('submit', function(e){ e.preventDefault(); state.query = $('searchInput').value.trim(); state.page = 1; renderTools(); $('directory').scrollIntoView({behavior:'smooth'}); });
-if ($('railToggle')) $('railToggle').addEventListener('click', function(){ document.querySelector('.page-shell').classList.toggle('rail-collapsed'); });
-$('backTop').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
-</script>
   <script type="module" src="assets/js/v2-api.js"></script>
 </body>
 </html>

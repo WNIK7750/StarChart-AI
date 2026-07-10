@@ -1,7 +1,10 @@
 import { apiGet } from "./api.js";
+import { initAuthUI } from "./auth-ui.js";
+import { initSiteSearch } from "./site-search.js";
 
 const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
+const TOOL_ICON_STYLE_ID = "ai-nav-tool-icon-style";
 
 function escapeHtml(value = "") {
   return String(value)
@@ -42,6 +45,40 @@ function bindReveal(scope = document) {
   $$(".reveal", scope).forEach((el) => {
     if (!el.classList.contains("in")) io.observe(el);
   });
+}
+
+function injectToolIconStyles() {
+  if (document.getElementById(TOOL_ICON_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = TOOL_ICON_STYLE_ID;
+  style.textContent = `
+    .brand-icon{background:#fff!important;color:#24292f!important;border:1px solid #d8dee4!important;box-shadow:0 1px 2px rgba(31,35,40,.06)!important;overflow:hidden}
+    .brand-icon img{width:64%;height:64%;object-fit:contain}
+    .marquee-fav.brand-icon img{width:22px;height:22px}.latest-logo.brand-icon img,.tool-logo.brand-icon img{width:28px;height:28px}
+  `;
+  document.head.appendChild(style);
+}
+
+function bindToolIconFallbacks(scope = document) {
+  $$("img[data-fallbacks]", scope).forEach((img) => {
+    img.addEventListener("error", () => {
+      const fallbacks = JSON.parse(img.dataset.fallbacks || "[]");
+      const next = fallbacks.shift();
+      if (next) {
+        img.dataset.fallbacks = JSON.stringify(fallbacks);
+        img.src = next;
+        return;
+      }
+      img.parentElement.textContent = img.dataset.mark || "AI";
+    }, { once: false });
+  });
+}
+
+function toolIcon(tool, className) {
+  const fallback = escapeHtml(tool.mark || tool.name?.slice(0, 2) || "AI");
+  const fallbacks = [tool.iconUrl, ...(tool.iconFallbacks || [])].filter(Boolean);
+  if (!fallbacks.length) return `<div class="${className} ${escapeHtml(tool.logoClass || "")}">${fallback}</div>`;
+  return `<div class="${className} brand-icon"><img src="${escapeHtml(fallbacks[0])}" data-fallbacks="${escapeHtml(JSON.stringify(fallbacks.slice(1)))}" data-mark="${fallback}" alt="" loading="lazy"></div>`;
 }
 
 async function hydrateNavigation(activeCode) {
@@ -152,7 +189,7 @@ async function hydrateLearnPage() {
 
 function latestToolCard(tool) {
   return `<a class="latest-card" href="${escapeHtml(tool.officialUrl || "#")}" target="_blank" rel="noopener">
-    <div class="latest-logo ${escapeHtml(tool.logoClass)}">${escapeHtml(tool.mark)}</div>
+    ${toolIcon(tool, "latest-logo")}
     <div><strong>${escapeHtml(tool.name)}</strong><span>${escapeHtml(tool.description)}</span><em>${escapeHtml(tool.tag)}</em></div>
   </a>`;
 }
@@ -164,11 +201,12 @@ async function hydrateHomeTools() {
     const { items } = await apiGet("/tools/latest", { limit: 12 });
     const cards = items.concat(items).map((tool) => `
       <a href="${escapeHtml(tool.officialUrl || "tools.html")}" target="_blank" rel="noopener" class="marquee-card">
-        <div class="marquee-fav">${escapeHtml(tool.mark)}</div>
+        ${toolIcon(tool, "marquee-fav")}
         <div><div class="marquee-name">${escapeHtml(tool.name)}</div><div class="marquee-maker">${escapeHtml(tool.description)}</div></div>
         <div class="marquee-cat">${escapeHtml(tool.tag)}</div>
       </a>`).join("");
     track.innerHTML = cards;
+    bindToolIconFallbacks(track);
   } catch (error) {
     console.warn("Home tools API fallback:", error);
   }
@@ -177,7 +215,7 @@ async function hydrateHomeTools() {
 function toolCard(tool) {
   return `<a href="${escapeHtml(tool.officialUrl || "#")}" target="_blank" rel="noopener" class="tool-card" data-tool="${escapeHtml(tool.name)}" data-spotlight>
     <div class="tool-main">
-      <div class="tool-logo ${escapeHtml(tool.logoClass)}">${escapeHtml(tool.mark)}</div>
+      ${toolIcon(tool, "tool-logo")}
       <div class="tool-info"><strong>${escapeHtml(tool.name)}</strong><p>${escapeHtml(tool.description)}</p></div>
     </div>
     <div class="tool-meta"><span class="tag">${escapeHtml(tool.subcategory)}</span><span class="tool-arrow">›</span></div>
@@ -201,6 +239,7 @@ async function hydrateToolsPage() {
     ]);
     const latestTrack = $("#latestTrack");
     if (latestTrack) latestTrack.innerHTML = latest.concat(latest).map(latestToolCard).join("");
+    if (latestTrack) bindToolIconFallbacks(latestTrack);
     const state = { q: "", freeOnly: false, activeSub: {} };
     const render = async () => {
       const nav = $("#categoryNav");
@@ -234,6 +273,7 @@ async function hydrateToolsPage() {
       }));
       bindSpotlight(sections);
       bindReveal(sections);
+      bindToolIconFallbacks(sections);
     };
     $("#searchForm")?.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -367,11 +407,14 @@ async function hydrateNodePage() {
 }
 
 const page = document.body.dataset.page || location.pathname.split("/").pop().replace(".html", "");
+injectToolIconStyles();
 await hydrateNavigation(page === "v2-light-concept" || page === "index" ? "home" : page === "learn-node" ? "learn" : page);
+initSiteSearch();
+await initAuthUI();
 if (location.pathname.endsWith("/learn.html")) await hydrateLearnPage();
 if (location.pathname.endsWith("/index.html") || location.pathname.endsWith("/")) {
   await hydrateRoadmap();
   await hydrateHomeTools();
 }
-if (location.pathname.endsWith("/tools.html")) await hydrateToolsPage();
+if (location.pathname.endsWith("/tools.html") && document.body.dataset.apiTools === "true") await hydrateToolsPage();
 if (location.pathname.endsWith("/learn-node.html")) await hydrateNodePage();
