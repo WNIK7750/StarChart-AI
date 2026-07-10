@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户设置 · AI 知识导航</title>
+<link rel="icon" type="image/png" href="assets/img/logo.png">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#fafafb;color:#24292f;line-height:1.5;font-size:14px}
+a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}button{border:0;background:none;cursor:pointer}
+.settings-top{position:sticky;top:0;z-index:20;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid #d8dee4;background:rgba(246,248,250,.88);backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700}.brand img{width:26px;height:26px;border-radius:6px}.top-links{display:flex;align-items:center;gap:8px}.top-links a,.top-links button{height:32px;display:inline-flex;align-items:center;padding:0 10px;border-radius:7px;background:#fff;border:1px solid #d0d7de;font-weight:650;font-size:13px}
+.layout{width:min(1120px,calc(100vw - 36px));margin:24px auto 56px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:28px}
+.sidebar{position:sticky;top:76px;align-self:start}.user-card{display:flex;gap:10px;align-items:center;margin-bottom:18px}.avatar-sm{width:44px;height:44px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#7c5cff,#5ee0ff);border:1px solid #d8dee4}.user-card strong{display:block;font-size:15px}.user-card span{display:block;color:#57606a;font-size:12px}
+.side-nav{display:grid;gap:2px;border-right:1px solid #d8dee4;padding-right:12px}.side-nav a{height:34px;display:flex;align-items:center;padding:0 10px;border-radius:7px;color:#57606a;font-weight:650;font-size:13px}.side-nav a.active,.side-nav a:hover{background:#eaeef2;color:#24292f}
+.section{display:none}.section.active{display:block}.section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;padding-bottom:12px;border-bottom:1px solid #d8dee4;margin-bottom:18px}.section-head h1{font-size:22px}.section-head p{margin-top:3px;color:#57606a;font-size:13px}
+.panel{background:#fff;border:1px solid #d8dee4;border-radius:8px;margin-bottom:16px}.panel h2{font-size:15px;padding:12px 16px;border-bottom:1px solid #d8dee4}.panel-body{padding:16px;display:grid;gap:12px}.grid-2{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:26px;align-items:start}
+.field{display:grid;gap:6px}.field label{font-weight:650;color:#24292f;font-size:13px}.field input,.field textarea,.field select{width:100%;min-height:34px;border:1px solid #d0d7de;border-radius:7px;padding:0 10px;background:#fff;outline:none}.field textarea{min-height:84px;padding:9px 10px;resize:vertical}.field input:focus,.field textarea:focus,.field select:focus{border-color:#0969da;box-shadow:0 0 0 3px rgba(9,105,218,.12)}.hint{font-size:12px;color:#57606a}
+.btn{height:34px;justify-self:start;padding:0 12px;border-radius:7px;background:#24292f;color:#fff;font-weight:700;font-size:13px}.btn.subtle{background:#f6f8fa;color:#24292f}.btn.danger{background:#fff1f1;color:#cf222e}.message{min-height:18px;font-size:12px;color:#0969da}.error{color:#cf222e}
+.avatar-box{display:grid;justify-items:center;gap:10px}.avatar-lg{width:136px;height:136px;border-radius:50%;object-fit:cover;background:#f6f8fa;border:1px solid #d8dee4}.upload{position:relative;height:32px;display:inline-flex;align-items:center;padding:0 10px;border-radius:7px;background:#f6f8fa;border:1px solid #d8dee4;font-weight:650;font-size:13px}.upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.question-list{display:grid;gap:12px}.question-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}.session-list,.empty-list{display:grid;gap:10px}.session-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid rgba(15,15,25,.08);border-radius:9px;background:#fafafb}.session-item span{display:block;color:#6e6e7a;font-size:12px;margin-top:4px}.reserved{padding:14px;border:1px dashed rgba(15,15,25,.16);border-radius:10px;background:#fff;color:#6e6e7a}
+.crop-overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(31,35,40,.28);backdrop-filter:blur(10px)}.crop-overlay.open{display:flex}.crop-dialog{width:min(430px,100%);background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 18px 46px rgba(31,35,40,.18)}.crop-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #d8dee4}.crop-body{padding:16px;display:grid;gap:12px}.crop-canvas{width:100%;aspect-ratio:1;background:#f6f8fa;border:1px solid #d8dee4;border-radius:8px;touch-action:none}.crop-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:860px){.layout{grid-template-columns:1fr}.sidebar{position:static}.side-nav{grid-template-columns:repeat(2,1fr);border-right:0;padding-right:0}.grid-2{grid-template-columns:1fr}.question-row{grid-template-columns:1fr}.settings-top{padding:0 16px}}
+</style>
+</head>
+<body>
+<header class="settings-top">
+  <a class="brand" href="index.html"><img src="assets/img/logo.png" alt="">AI 知识导航</a>
+  <div class="top-links"><a href="learn.html">学习区</a><a href="tools.html">工具区</a><button data-logout type="button">退出</button></div>
+</header>
+
+<main class="layout">
+  <aside class="sidebar">
+    <div class="user-card">
+      <img class="avatar-sm" data-avatar-small alt="头像">
+      <div><strong data-user-display>用户设置</strong><span data-user-name>@user</span></div>
+    </div>
+    <nav class="side-nav">
+      <a href="#profile" data-section-link>公开资料</a>
+      <a href="#account" data-section-link>账号</a>
+      <a href="#security" data-section-link>安全与密保</a>
+      <a href="#sessions" data-section-link>登录设备</a>
+      <a href="#preferences" data-section-link>偏好</a>
+      <a href="#learning" data-section-link>学习空间</a>
+      <a href="#workflows" data-section-link>工作流</a>
+    </nav>
+  </aside>
+
+  <section class="content">
+    <div class="section" data-section="profile">
+      <div class="section-head"><div><h1>公开资料</h1><p>管理头像、展示名和学习方向。</p></div></div>
+      <div class="panel"><h2>个人资料</h2><div class="panel-body grid-2">
+        <form class="panel-body" data-profile-form>
+          <div class="field"><label>展示名</label><input name="displayName" maxlength="40"></div>
+          <div class="field"><label>学习水平</label><select name="learningLevel"><option value="beginner">入门</option><option value="intermediate">进阶</option><option value="advanced">高级</option></select></div>
+          <div class="field"><label>目标方向</label><input name="targetDirection" maxlength="80" placeholder="例如：AI 应用开发"></div>
+          <div class="field"><label>简介</label><textarea name="bio" maxlength="300"></textarea></div>
+          <button class="btn" type="submit">保存资料</button><div class="message" data-profile-message></div>
+        </form>
+        <div class="avatar-box">
+          <img class="avatar-lg" data-avatar-preview alt="头像">
+          <label class="upload">选择头像<input data-avatar-input type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+          <p class="hint">支持 JPG、PNG、WebP、GIF，前端裁剪后上传，后端会再次压缩并限制大小。</p>
+          <div class="message" data-avatar-message></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="section" data-section="account">
+      <div class="section-head"><div><h1>账号</h1><p>用户名必须唯一，且不能使用系统保留词或敏感词。</p></div></div>
+      <div class="panel"><h2>用户名</h2><form class="panel-body" data-account-form>
+        <div class="field"><label>用户名</label><input name="username" required minlength="3" maxlength="32"></div>
+        <button class="btn" type="submit">保存用户名</button><div class="message" data-account-message></div>
+      </form></div>
+    </div>
+
+    <div class="section" data-section="security">
+      <div class="section-head"><div><h1>安全与密保</h1><p>修改密码、设置密保问题。找回密码入口在登录页。</p></div></div>
+      <div class="panel"><h2>修改密码</h2><form class="panel-body" data-password-form>
+        <div class="field"><label>当前密码</label><input name="currentPassword" type="password" autocomplete="current-password" required minlength="8"></div>
+        <div class="field"><label>新密码</label><input name="newPassword" type="password" autocomplete="new-password" required minlength="8"></div>
+        <button class="btn" type="submit">修改密码</button><div class="message" data-password-message></div>
+      </form></div>
+      <div class="panel"><h2>密保问题</h2><form class="panel-body" data-security-form>
+        <p class="hint" data-security-status>正在读取密保状态...</p>
+        <div class="field"><label>当前密码</label><input name="currentPassword" type="password" autocomplete="current-password" required minlength="8"></div>
+        <div class="question-list" data-question-list></div>
+        <button class="btn" type="submit">保存密保问题</button><div class="message" data-security-message></div>
+      </form></div>
+    </div>
+
+    <div class="section" data-section="sessions">
+      <div class="section-head"><div><h1>登录设备</h1><p>查看和撤销当前账号的登录会话。</p></div></div>
+      <div class="panel"><h2>设备列表</h2><div class="panel-body"><div class="session-list" data-session-list></div></div></div>
+    </div>
+
+    <div class="section" data-section="preferences">
+      <div class="section-head"><div><h1>偏好</h1><p>这些偏好会被后续学习区和 Agent 读取。</p></div></div>
+      <div class="panel"><h2>资源与 Agent</h2><form class="panel-body" data-preferences-form>
+        <label><input name="cnFirst" type="checkbox"> 国内资源优先</label>
+        <label><input name="freeFirst" type="checkbox"> 免费资源优先</label>
+        <label><input name="showExternalResources" type="checkbox"> 显示外网资源</label>
+        <label><input name="agentMemoryEnabled" type="checkbox"> 允许 Agent 记住偏好</label>
+        <button class="btn" type="submit">保存偏好</button><div class="message" data-preferences-message></div>
+      </form></div>
+    </div>
+
+    <div class="section" data-section="learning">
+      <div class="section-head"><div><h1>学习空间</h1><p>保留真实接口位置，后续接入学习记录、收藏和推荐。</p></div></div>
+      <div class="panel"><h2>学习记录</h2><div class="panel-body"><div class="reserved" data-progress-box>正在读取...</div></div></div>
+      <div class="panel"><h2>收藏</h2><div class="panel-body"><div class="reserved" data-favorites-box>正在读取...</div></div></div>
+    </div>
+
+    <div class="section" data-section="workflows">
+      <div class="section-head"><div><h1>工作流</h1><p>为 Agent 模块预留专属工作流管理入口。</p></div></div>
+      <div class="panel"><h2>我的工作流</h2><div class="panel-body"><div class="reserved" data-workflows-box>正在读取...</div></div></div>
+    </div>
+  </section>
+</main>
+
+<div class="crop-overlay" data-crop-panel>
+  <div class="crop-dialog">
+    <div class="crop-head"><strong>调整头像</strong><button data-crop-close type="button">×</button></div>
+    <div class="crop-body">
+      <canvas class="crop-canvas" data-crop-canvas width="512" height="512"></canvas>
+      <input data-crop-zoom type="range" min="1" max="3" step="0.01" value="1">
+      <div class="crop-actions"><button class="btn subtle" data-crop-close type="button">取消</button><button class="btn" data-crop-confirm type="button">使用头像</button></div>
+      <div class="message" data-crop-message></div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="assets/js/settings.js"></script>
+</body>
+</html>
