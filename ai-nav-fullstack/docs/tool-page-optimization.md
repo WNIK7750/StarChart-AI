@@ -143,3 +143,40 @@ Agent 应使用稳定的工具目录服务：
 - 图标没有加载失败。
 - 工具数据审计通过。
 - 后续维护者能从文档、数据文件和运行脚本中清楚判断每一层职责。
+## 11. Agent 地基当前落地状态
+
+本轮已把工具页从“前端展示数据”推进到“后端可复用工具知识服务”：
+
+| 层级 | 文件/模块 | 职责 |
+| --- | --- | --- |
+| 工具目录服务 | `backend/app/services/tool_catalog.py` | 读取统一工具事实源，构建工具索引、搜索排序、推荐、工作流候选 |
+| 工具 API | `backend/app/api/v1/routers/tools.py` | 提供分类、列表、搜索、最新推荐、工作流和 Agent 上下文接口 |
+| Agent 工具适配 | `backend/app/agent/tools/catalog_tools.py` | 把工具搜索结果转换为 Agent 可用的站内安全卡片 |
+| Agent 占位服务 | `backend/app/agent/service.py` | 在未接入 LLM 前，先能基于工具目录返回卡片和工作流步骤 |
+| Agent 输出守卫 | `backend/app/agent/evaluator.py` | 限制 Agent 卡片链接只能指向已允许的站内页面 |
+| 前端搜索 | `frontend/assets/js/site-search.js` | 优先调用后端 `/tools/search`，后端不可用时回退本地索引 |
+
+新增/稳定接口：
+
+```text
+GET /api/v1/tools/search?q=企业级&limit=7
+GET /api/v1/tools/agent-context?q=论文&limit=5
+GET /api/v1/tools/workflows?q=代码
+GET /api/v1/tools/latest?limit=8
+GET /api/v1/tools/categories
+GET /api/v1/tools
+```
+
+低耦合约束：
+
+- Agent 不读取 `tools.html` DOM，不依赖 `tools-page.js` 的渲染函数，只通过 `backend/app/services/tool_catalog.py` 和工具 API 获取结构化工具知识。
+- 工具页不嵌入 Agent 推理逻辑，前端只调用 `/api/v1/tools/search` 等接口并保留本地兜底。
+- 后续接入 LLM 时，只替换或扩展 `backend/app/agent/service.py` 内的编排层，不改工具页展示层。
+- Agent 输出链接经过 `backend/app/agent/evaluator.py` 过滤，只允许跳转到站内白名单页面，避免模型输出污染导航。
+
+当前边界：
+
+- 路由层不再维护工具事实，避免 API 和前端数据分裂。
+- 搜索排序在服务层集中维护，前端只负责展示。
+- Agent 不抓 DOM，不复制前端逻辑，只调用工具目录适配层。
+- 现在仍以 `tool-data.js` 作为过渡期事实源；后续应迁移到数据库表，并保持同样的服务接口不变。

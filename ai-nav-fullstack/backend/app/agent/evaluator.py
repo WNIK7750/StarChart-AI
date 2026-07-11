@@ -1,11 +1,18 @@
 from app.agent.schemas import AgentStructuredResponse
 
+ALLOWED_HREF_PREFIXES = (
+    "index.html",
+    "learn.html",
+    "learn-node.html",
+    "tools.html",
+)
+
 
 def validate_response(response: AgentStructuredResponse) -> AgentStructuredResponse:
-    """Final response guardrail placeholder.
-
-    Future implementations should verify every href comes from a site route,
-    the learning database, or the tool database. For now this function preserves
-    the module boundary and keeps generation separate from validation.
-    """
+    """Final response guardrail for deterministic and future LLM outputs."""
+    response.cards = [
+        card
+        for card in response.cards
+        if card.href.startswith(ALLOWED_HREF_PREFIXES) and "://" not in card.href
+    ]
     return response

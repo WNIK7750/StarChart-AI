@@ -110,7 +110,7 @@
       "description": "OpenAI 旗舰通用 AI 助手，多模态、写作、代码和图像能力全面。",
       "mark": "CG",
       "url": "https://chatgpt.com/",
-      "icon": "assets/icons/tools/chatgpt.svg",
+      "icon": "assets/icons/tools/chatgpt.webp",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/openai",
         "https://icons.duckduckgo.com/ip3/chatgpt.com.ico",
@@ -179,7 +179,7 @@
       "description": "字节跳动 AI 助手，聊天、写作、图片和视频能力整合度高。",
       "mark": "DB",
       "url": "https://www.doubao.com/",
-      "icon": "assets/icons/tools/豆包.svg",
+      "icon": "assets/icons/tools/豆包.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.doubao.com.ico",
         "https://www.doubao.com/favicon.ico"
@@ -192,7 +192,7 @@
       "description": "阿里大模型助手，中文、代码、多模态与开放模型生态完整。",
       "mark": "QW",
       "url": "https://www.tongyi.com/qianwen/",
-      "icon": "assets/icons/tools/通义千问.svg",
+      "icon": "assets/icons/tools/通义千问.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.tongyi.com.ico",
         "https://www.tongyi.com/favicon.ico"
@@ -205,7 +205,7 @@
       "description": "百度大模型服务，中文知识、搜索增强和办公场景友好。",
       "mark": "WX",
       "url": "https://yiyan.baidu.com/",
-      "icon": "assets/icons/tools/文心一言.svg",
+      "icon": "assets/icons/tools/文心一言.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/yiyan.baidu.com.ico",
         "https://yiyan.baidu.com/favicon.ico"
@@ -272,7 +272,7 @@
       "description": "角色对话社区，适合虚拟角色、陪伴和剧情互动。",
       "mark": "CA",
       "url": "https://character.ai/",
-      "icon": "assets/icons/tools/character-ai.svg",
+      "icon": "assets/icons/tools/character-ai.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/character.ai.ico",
         "https://character.ai/favicon.ico"
@@ -285,7 +285,7 @@
       "description": "MiniMax 角色互动产品，适合陪伴、剧情和多模态聊天。",
       "mark": "MX",
       "url": "https://www.xingyeai.com/",
-      "icon": "assets/icons/tools/minimax-星野.svg",
+      "icon": "assets/icons/tools/minimax-星野.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.xingyeai.com.ico",
         "https://www.xingyeai.com/favicon.ico"
@@ -298,7 +298,7 @@
       "description": "Inflection 的温和陪伴式 AI，适合日常沟通和情绪支持。",
       "mark": "PI",
       "url": "https://pi.ai/",
-      "icon": "assets/icons/tools/pi.svg",
+      "icon": "assets/icons/tools/pi.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/pi.ai.ico",
         "https://pi.ai/favicon.ico"
@@ -311,7 +311,7 @@
       "description": "You.com 的 AI 对话搜索助手，面向问答和网页资料整合。",
       "mark": "YC",
       "url": "https://you.com/",
-      "icon": "assets/icons/tools/youchat.svg",
+      "icon": "assets/icons/tools/youchat.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/you.com.ico",
         "https://you.com/favicon.ico"
@@ -338,7 +338,7 @@
       "description": "PDF 文档问答工具，适合论文、合同和报告快速阅读。",
       "mark": "CP",
       "url": "https://www.chatpdf.com/",
-      "icon": "assets/icons/tools/chatpdf.svg",
+      "icon": "assets/icons/tools/chatpdf.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.chatpdf.com.ico",
         "https://www.chatpdf.com/favicon.ico"
@@ -364,7 +364,7 @@
       "description": "浏览器侧边栏 AI 助手，适合网页总结、写作和翻译。",
       "mark": "MO",
       "url": "https://monica.im/",
-      "icon": "assets/icons/tools/monica.svg",
+      "icon": "assets/icons/tools/monica.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/monica.im.ico",
         "https://monica.im/favicon.ico"
@@ -416,7 +416,7 @@
       "description": "AI 小说与长文写作助手，支持润色、改写和扩写。",
       "mark": "WW",
       "url": "https://www.wawawriter.com/",
-      "icon": "assets/icons/tools/蛙蛙写作.svg",
+      "icon": "assets/icons/tools/蛙蛙写作.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.wawawriter.com.ico",
         "https://www.wawawriter.com/favicon.ico"
@@ -497,7 +497,7 @@
       "description": "在线智能写作平台，适合自媒体、简历和办公文档。",
       "mark": "XY",
       "url": "https://www.xiaoyuxiezuo.com/",
-      "icon": "assets/icons/tools/小鱼-ai-写作.svg",
+      "icon": "assets/icons/tools/小鱼-ai-写作.webp",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.xiaoyuxiezuo.com.ico",
         "https://www.xiaoyuxiezuo.com/favicon.ico"
@@ -536,7 +536,7 @@
       "description": "营销文案与销售邮件生成工具，适合增长团队。",
       "mark": "CY",
       "url": "https://www.copy.ai/",
-      "icon": "assets/icons/tools/copy-ai.svg",
+      "icon": "assets/icons/tools/copy-ai.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/copydotcom",
         "https://icons.duckduckgo.com/ip3/www.copy.ai.ico",
@@ -550,7 +550,7 @@
       "description": "品牌营销内容平台，适合团队化内容生产。",
       "mark": "JP",
       "url": "https://www.jasper.ai/",
-      "icon": "assets/icons/tools/jasper.svg",
+      "icon": "assets/icons/tools/jasper.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/jasper",
         "https://icons.duckduckgo.com/ip3/www.jasper.ai.ico",
@@ -564,7 +564,7 @@
       "description": "营销文章、广告文案和 SEO 内容生成平台。",
       "mark": "WS",
       "url": "https://writesonic.com/",
-      "icon": "assets/icons/tools/writesonic.svg",
+      "icon": "assets/icons/tools/writesonic.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/writesonic",
         "https://icons.duckduckgo.com/ip3/writesonic.com.ico",
@@ -605,7 +605,7 @@
       "description": "清华九歌诗歌生成系统，适合中文诗词创作体验。",
       "mark": "JG",
       "url": "https://jiuge.thunlp.org/",
-      "icon": "assets/icons/tools/九歌诗歌.svg",
+      "icon": "assets/icons/tools/九歌诗歌.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/jiuge.thunlp.org.ico",
         "https://jiuge.thunlp.org/favicon.ico"
@@ -683,7 +683,7 @@
       "description": "高质量艺术图像生成工具，风格化和质感表现突出。",
       "mark": "MJ",
       "url": "https://www.midjourney.com/",
-      "icon": "assets/icons/tools/midjourney.svg",
+      "icon": "assets/icons/tools/midjourney.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/midjourney",
         "https://icons.duckduckgo.com/ip3/www.midjourney.com.ico",
@@ -697,7 +697,7 @@
       "description": "OpenAI 图像生成与编辑能力，适合和文案上下文联动。",
       "mark": "OI",
       "url": "https://chatgpt.com/",
-      "icon": "assets/icons/tools/chatgpt-图像.svg",
+      "icon": "assets/icons/tools/chatgpt-图像.webp",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/chatgpt.com.ico",
         "https://chatgpt.com/favicon.ico"
@@ -710,7 +710,7 @@
       "description": "Adobe 商业友好的图像生成与设计编辑工具。",
       "mark": "AF",
       "url": "https://firefly.adobe.com/",
-      "icon": "assets/icons/tools/adobe-firefly.svg",
+      "icon": "assets/icons/tools/adobe-firefly.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/adobe",
         "https://icons.duckduckgo.com/ip3/firefly.adobe.com.ico",
@@ -737,7 +737,7 @@
       "description": "阿里 AI 绘画平台，中文提示词和国产应用场景友好。",
       "mark": "WX",
       "url": "https://tongyi.aliyun.com/wanxiang/",
-      "icon": "assets/icons/tools/通义万相.svg",
+      "icon": "assets/icons/tools/通义万相.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/tongyi.aliyun.com.ico",
         "https://tongyi.aliyun.com/favicon.ico"
@@ -750,7 +750,7 @@
       "description": "字节系图像与视频生成工具，适合社媒和视觉创意。",
       "mark": "JM",
       "url": "https://jimeng.jianying.com/",
-      "icon": "assets/icons/tools/即梦-ai.svg",
+      "icon": "assets/icons/tools/即梦-ai.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/jimeng.jianying.com.ico",
         "https://jimeng.jianying.com/favicon.ico"
@@ -763,7 +763,7 @@
       "description": "百度 AI 艺术和设计生成工具，适合中文创意出图。",
       "mark": "YG",
       "url": "https://yige.baidu.com/",
-      "icon": "assets/icons/tools/文心一格.svg",
+      "icon": "assets/icons/tools/文心一格.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/yige.baidu.com.ico",
         "https://yige.baidu.com/favicon.ico"
@@ -776,7 +776,7 @@
       "description": "游戏资产、概念设计和商业素材生成平台。",
       "mark": "LD",
       "url": "https://leonardo.ai/",
-      "icon": "assets/icons/tools/leonardo-ai.svg",
+      "icon": "assets/icons/tools/leonardo-ai.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/leonardo.ai.ico",
         "https://leonardo.ai/favicon.ico"
@@ -789,7 +789,7 @@
       "description": "在线设计工具内置 AI 生图、抠图和排版能力。",
       "mark": "CV",
       "url": "https://www.canva.com/ai/",
-      "icon": "assets/icons/tools/canva-ai.svg",
+      "icon": "assets/icons/tools/canva-ai.ico",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/canva",
         "https://icons.duckduckgo.com/ip3/www.canva.com.ico",
@@ -803,7 +803,7 @@
       "description": "面向品牌和矢量图形的 AI 设计生成工具。",
       "mark": "RC",
       "url": "https://www.recraft.ai/",
-      "icon": "assets/icons/tools/recraft.svg",
+      "icon": "assets/icons/tools/recraft.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.recraft.ai.ico",
         "https://www.recraft.ai/favicon.ico"
@@ -816,7 +816,7 @@
       "description": "文字渲染能力较强的图像生成工具，适合海报和标语。",
       "mark": "ID",
       "url": "https://ideogram.ai/",
-      "icon": "assets/icons/tools/ideogram.svg",
+      "icon": "assets/icons/tools/ideogram.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/ideogram.ai.ico",
         "https://ideogram.ai/favicon.ico"
@@ -829,7 +829,7 @@
       "description": "实时生成与图像增强工具，适合设计探索。",
       "mark": "KR",
       "url": "https://www.krea.ai/",
-      "icon": "assets/icons/tools/krea-ai.svg",
+      "icon": "assets/icons/tools/krea-ai.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.krea.ai.ico",
         "https://www.krea.ai/favicon.ico"
@@ -895,7 +895,7 @@
       "description": "图像超分和细节增强工具，适合高质量放大。",
       "mark": "MG",
       "url": "https://magnific.ai/",
-      "icon": "assets/icons/tools/magnific-ai.svg",
+      "icon": "assets/icons/tools/magnific-ai.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/magnific.ai.ico",
         "https://magnific.ai/favicon.ico"
@@ -908,7 +908,7 @@
       "description": "Stable Diffusion 模型和 LoRA 社区。",
       "mark": "CI",
       "url": "https://civitai.com/",
-      "icon": "assets/icons/tools/civitai.svg",
+      "icon": "assets/icons/tools/civitai.ico",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/civitai",
         "https://icons.duckduckgo.com/ip3/civitai.com.ico",
@@ -935,7 +935,7 @@
       "description": "图像清理、重光照、抠图和创意编辑工具集合。",
       "mark": "CD",
       "url": "https://clipdrop.co/",
-      "icon": "assets/icons/tools/clipdrop.svg",
+      "icon": "assets/icons/tools/clipdrop.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/clipdrop.co.ico",
         "https://clipdrop.co/favicon.ico"
@@ -961,7 +961,7 @@
       "description": "OpenAI 视频生成模型，适合高质量创意视频生成。",
       "mark": "SO",
       "url": "https://sora.chatgpt.com/",
-      "icon": "assets/icons/tools/sora.svg",
+      "icon": "assets/icons/tools/sora.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/openai",
         "https://icons.duckduckgo.com/ip3/sora.chatgpt.com.ico",
@@ -975,7 +975,7 @@
       "description": "AI 视频生成与编辑平台，覆盖 Gen 系列模型和后期工具。",
       "mark": "RW",
       "url": "https://runwayml.com/",
-      "icon": "assets/icons/tools/runway.svg",
+      "icon": "assets/icons/tools/runway.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/runway",
         "https://icons.duckduckgo.com/ip3/runwayml.com.ico",
@@ -989,7 +989,7 @@
       "description": "快手文生视频工具，中文场景和人物运动表现强。",
       "mark": "KL",
       "url": "https://app.klingai.com/",
-      "icon": "assets/icons/tools/可灵-ai.svg",
+      "icon": "assets/icons/tools/可灵-ai.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/app.klingai.com.ico",
         "https://app.klingai.com/favicon.ico"
@@ -1002,7 +1002,7 @@
       "description": "轻量视频生成与动效工具，适合社媒短片。",
       "mark": "PK",
       "url": "https://pika.art/",
-      "icon": "assets/icons/tools/pika.svg",
+      "icon": "assets/icons/tools/pika.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/pika.art.ico",
         "https://pika.art/favicon.ico"
@@ -1015,7 +1015,7 @@
       "description": "高质量视频生成和镜头运动工具。",
       "mark": "LU",
       "url": "https://lumalabs.ai/dream-machine",
-      "icon": "assets/icons/tools/luma-dream-machine.svg",
+      "icon": "assets/icons/tools/luma-dream-machine.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/lumalabs.ai.ico",
         "https://lumalabs.ai/favicon.ico"
@@ -1028,7 +1028,7 @@
       "description": "字节系视频生成能力，适合创意短视频和运营素材。",
       "mark": "JV",
       "url": "https://jimeng.jianying.com/",
-      "icon": "assets/icons/tools/即梦-ai-视频.svg",
+      "icon": "assets/icons/tools/即梦-ai-视频.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/jimeng.jianying.com.ico",
         "https://jimeng.jianying.com/favicon.ico"
@@ -1041,7 +1041,7 @@
       "description": "剪辑、字幕、口播、图文成片和模板化包装。",
       "mark": "JY",
       "url": "https://www.jianying.com/",
-      "icon": "assets/icons/tools/剪映-ai.svg",
+      "icon": "assets/icons/tools/剪映-ai.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.jianying.com.ico",
         "https://www.jianying.com/favicon.ico"
@@ -1054,7 +1054,7 @@
       "description": "海外版剪映，适合短视频剪辑和社媒内容。",
       "mark": "CC",
       "url": "https://www.capcut.com/",
-      "icon": "assets/icons/tools/capcut-ai.svg",
+      "icon": "assets/icons/tools/capcut-ai.ico",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/capcut",
         "https://icons.duckduckgo.com/ip3/www.capcut.com.ico",
@@ -1068,7 +1068,7 @@
       "description": "数字人视频、口播翻译和企业培训视频工具。",
       "mark": "HG",
       "url": "https://www.heygen.com/",
-      "icon": "assets/icons/tools/heygen.svg",
+      "icon": "assets/icons/tools/heygen.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.heygen.com.ico",
         "https://www.heygen.com/favicon.ico"
@@ -1081,7 +1081,7 @@
       "description": "企业数字人视频生成平台，适合培训和说明视频。",
       "mark": "SY",
       "url": "https://www.synthesia.io/",
-      "icon": "assets/icons/tools/synthesia.svg",
+      "icon": "assets/icons/tools/synthesia.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.synthesia.io.ico",
         "https://www.synthesia.io/favicon.ico"
@@ -1094,7 +1094,7 @@
       "description": "头像驱动和数字人口播工具。",
       "mark": "DI",
       "url": "https://www.d-id.com/",
-      "icon": "assets/icons/tools/d-id.svg",
+      "icon": "assets/icons/tools/d-id.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.d-id.com.ico",
         "https://www.d-id.com/favicon.ico"
@@ -1121,7 +1121,7 @@
       "description": "AI 音乐生成工具，适合歌曲、配乐和创意实验。",
       "mark": "UD",
       "url": "https://www.udio.com/",
-      "icon": "assets/icons/tools/udio.svg",
+      "icon": "assets/icons/tools/udio.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.udio.com.ico",
         "https://www.udio.com/favicon.ico"
@@ -1161,7 +1161,7 @@
       "description": "音视频剪辑与转录工具，通过编辑文本剪视频。",
       "mark": "DS",
       "url": "https://www.descript.com/",
-      "icon": "assets/icons/tools/descript.svg",
+      "icon": "assets/icons/tools/descript.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.descript.com.ico",
         "https://www.descript.com/favicon.ico"
@@ -1174,7 +1174,7 @@
       "description": "在线视频编辑器，集成字幕、翻译和 AI 工具。",
       "mark": "VE",
       "url": "https://www.veed.io/",
-      "icon": "assets/icons/tools/veed-io.svg",
+      "icon": "assets/icons/tools/veed-io.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.veed.io.ico",
         "https://www.veed.io/favicon.ico"
@@ -1187,7 +1187,7 @@
       "description": "长视频自动切条为短视频的 AI 工具。",
       "mark": "OC",
       "url": "https://www.opus.pro/",
-      "icon": "assets/icons/tools/opusclip.svg",
+      "icon": "assets/icons/tools/opusclip.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.opus.pro.ico",
         "https://www.opus.pro/favicon.ico"
@@ -1241,7 +1241,7 @@
       "description": "Anthropic 的终端/项目级编码助手，适合大型代码库。",
       "mark": "CC",
       "url": "https://www.anthropic.com/claude-code",
-      "icon": "assets/icons/tools/claude-code.svg",
+      "icon": "assets/icons/tools/claude-code.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.anthropic.com.ico",
         "https://www.anthropic.com/favicon.ico"
@@ -1267,7 +1267,7 @@
       "description": "字节系 AI IDE，面向国内开发者的智能编程工具。",
       "mark": "TR",
       "url": "https://www.trae.ai/",
-      "icon": "assets/icons/tools/trae.svg",
+      "icon": "assets/icons/tools/trae.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.trae.ai.ico",
         "https://www.trae.ai/favicon.ico"
@@ -1306,7 +1306,7 @@
       "description": "AWS 开发者 AI 助手，适合云上代码和运维。",
       "mark": "AQ",
       "url": "https://aws.amazon.com/q/developer/",
-      "icon": "assets/icons/tools/amazon-q-developer.svg",
+      "icon": "assets/icons/tools/amazon-q-developer.ico",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/amazonwebservices",
         "https://icons.duckduckgo.com/ip3/aws.amazon.com.ico",
@@ -1334,7 +1334,7 @@
       "description": "浏览器内 AI 生成全栈应用原型。",
       "mark": "BN",
       "url": "https://bolt.new/",
-      "icon": "assets/icons/tools/bolt-new.svg",
+      "icon": "assets/icons/tools/bolt-new.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/bolt",
         "https://icons.duckduckgo.com/ip3/bolt.new.ico",
@@ -1375,7 +1375,7 @@
       "description": "企业级代码补全工具，强调隐私和团队部署。",
       "mark": "TN",
       "url": "https://www.tabnine.com/",
-      "icon": "assets/icons/tools/tabnine.svg",
+      "icon": "assets/icons/tools/tabnine.ico",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/tabnine",
         "https://icons.duckduckgo.com/ip3/www.tabnine.com.ico",
@@ -1429,7 +1429,7 @@
       "description": "AI 代码测试、审查和质量辅助工具。",
       "mark": "QD",
       "url": "https://www.qodo.ai/",
-      "icon": "assets/icons/tools/qodo.svg",
+      "icon": "assets/icons/tools/qodo.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.qodo.ai.ico",
         "https://www.qodo.ai/favicon.ico"
@@ -1442,7 +1442,7 @@
       "description": "安全扫描和修复建议工具，适合代码安全。",
       "mark": "SK",
       "url": "https://snyk.io/",
-      "icon": "assets/icons/tools/snyk-ai.svg",
+      "icon": "assets/icons/tools/snyk-ai.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/snyk.io.ico",
         "https://snyk.io/favicon.ico"
@@ -1452,7 +1452,7 @@
       "id": "sentry",
       "name": "Sentry",
       "aliases": [],
-      "description": "????????????????????????????",
+      "description": "应用监控与错误追踪平台，适合前后端异常定位、性能监控和发布质量管理。",
       "mark": "SE",
       "url": "https://sentry.io/",
       "icon": "assets/icons/tools/sentry.svg",
@@ -1485,7 +1485,7 @@
       "description": "基于资料源的笔记、问答和播客摘要工具。",
       "mark": "NL",
       "url": "https://notebooklm.google.com/",
-      "icon": "assets/icons/tools/google-notebooklm.svg",
+      "icon": "assets/icons/tools/google-notebooklm.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/googlenotebooklm",
         "https://icons.duckduckgo.com/ip3/notebooklm.google.com.ico",
@@ -1499,7 +1499,7 @@
       "description": "飞书文档、会议和项目协作中的 AI 助手。",
       "mark": "FS",
       "url": "https://www.feishu.cn/product/ai",
-      "icon": "assets/icons/tools/飞书智能伙伴.svg",
+      "icon": "assets/icons/tools/飞书智能伙伴.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.feishu.cn.ico",
         "https://www.feishu.cn/favicon.ico"
@@ -1512,7 +1512,7 @@
       "description": "钉钉办公场景 AI 助手，适合企业协作和流程处理。",
       "mark": "DD",
       "url": "https://www.dingtalk.com/",
-      "icon": "assets/icons/tools/钉钉-ai-助理.svg",
+      "icon": "assets/icons/tools/钉钉-ai-助理.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.dingtalk.com.ico",
         "https://www.dingtalk.com/favicon.ico"
@@ -1525,7 +1525,7 @@
       "description": "AI 生成演示文稿、网页和文档。",
       "mark": "GA",
       "url": "https://gamma.app/",
-      "icon": "assets/icons/tools/gamma.svg",
+      "icon": "assets/icons/tools/gamma.jpg",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/gamma",
         "https://icons.duckduckgo.com/ip3/gamma.app.ico",
@@ -1539,7 +1539,7 @@
       "description": "自动排版的在线演示文稿工具。",
       "mark": "BA",
       "url": "https://www.beautiful.ai/",
-      "icon": "assets/icons/tools/beautiful-ai.svg",
+      "icon": "assets/icons/tools/beautiful-ai.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.beautiful.ai.ico",
         "https://www.beautiful.ai/favicon.ico"
@@ -1552,7 +1552,7 @@
       "description": "AI 故事化演示和文档生成平台。",
       "mark": "TM",
       "url": "https://tome.app/",
-      "icon": "assets/icons/tools/tome.svg",
+      "icon": "assets/icons/tools/tome.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/tome.app.ico",
         "https://tome.app/favicon.ico"
@@ -1565,7 +1565,7 @@
       "description": "国产 PPT 生成与资料整理工具。",
       "mark": "QP",
       "url": "https://www.quark.cn/",
-      "icon": "assets/icons/tools/夸克-ai-ppt.svg",
+      "icon": "assets/icons/tools/夸克-ai-ppt.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.quark.cn.ico",
         "https://www.quark.cn/favicon.ico"
@@ -1578,7 +1578,7 @@
       "description": "中文在线白板和 AI 会议协作工具。",
       "mark": "MB",
       "url": "https://imiaoban.com/",
-      "icon": "assets/icons/tools/妙办画板.svg",
+      "icon": "assets/icons/tools/妙办画板.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/imiaoban.com.ico",
         "https://imiaoban.com/favicon.ico"
@@ -1591,7 +1591,7 @@
       "description": "会议录音、转写和摘要工具。",
       "mark": "FF",
       "url": "https://fireflies.ai/",
-      "icon": "assets/icons/tools/fireflies-ai.svg",
+      "icon": "assets/icons/tools/fireflies-ai.ico",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/firefliesai",
         "https://icons.duckduckgo.com/ip3/fireflies.ai.ico",
@@ -1605,7 +1605,7 @@
       "description": "英文会议转写和协作笔记工具。",
       "mark": "OT",
       "url": "https://otter.ai/",
-      "icon": "assets/icons/tools/otter-ai.svg",
+      "icon": "assets/icons/tools/otter-ai.ico",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/otterdotai",
         "https://icons.duckduckgo.com/ip3/otter.ai.ico",
@@ -1619,7 +1619,7 @@
       "description": "会议摘要、行动项和沟通分析工具。",
       "mark": "RA",
       "url": "https://www.read.ai/",
-      "icon": "assets/icons/tools/read-ai.svg",
+      "icon": "assets/icons/tools/read-ai.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.read.ai.ico",
         "https://www.read.ai/favicon.ico"
@@ -1660,7 +1660,7 @@
       "description": "AI 原生自动化工作流平台，适合研究和运营流程。",
       "mark": "GL",
       "url": "https://www.gumloop.com/",
-      "icon": "assets/icons/tools/gumloop.svg",
+      "icon": "assets/icons/tools/gumloop.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.gumloop.com.ico",
         "https://www.gumloop.com/favicon.ico"
@@ -1715,7 +1715,7 @@
       "description": "面向中文用户的搜索、总结和学习场景工具。",
       "mark": "QK",
       "url": "https://www.quark.cn/",
-      "icon": "assets/icons/tools/夸克-ai-搜索.svg",
+      "icon": "assets/icons/tools/夸克-ai-搜索.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.quark.cn.ico",
         "https://www.quark.cn/favicon.ico"
@@ -1728,7 +1728,7 @@
       "description": "Google 搜索的 AI 回答模式，适合全球资料检索。",
       "mark": "GO",
       "url": "https://www.google.com/search/about/",
-      "icon": "assets/icons/tools/google-ai-mode.svg",
+      "icon": "assets/icons/tools/google-ai-mode.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.google.com.ico",
         "https://www.google.com/favicon.ico"
@@ -1741,7 +1741,7 @@
       "description": "学术论文搜索和证据总结工具。",
       "mark": "CS",
       "url": "https://consensus.app/",
-      "icon": "assets/icons/tools/consensus.svg",
+      "icon": "assets/icons/tools/consensus.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/consensus",
         "https://icons.duckduckgo.com/ip3/consensus.app.ico",
@@ -1755,7 +1755,7 @@
       "description": "研究问题拆解、论文查找和证据表格工具。",
       "mark": "EL",
       "url": "https://elicit.com/",
-      "icon": "assets/icons/tools/elicit.svg",
+      "icon": "assets/icons/tools/elicit.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/elicit.com.ico",
         "https://elicit.com/favicon.ico"
@@ -1768,7 +1768,7 @@
       "description": "论文引用语境分析工具，适合判断研究可信度。",
       "mark": "SC",
       "url": "https://scite.ai/",
-      "icon": "assets/icons/tools/scite.svg",
+      "icon": "assets/icons/tools/scite.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/scite.ai.ico",
         "https://scite.ai/favicon.ico"
@@ -1781,7 +1781,7 @@
       "description": "文档问答和资料阅读工具，适合报告、合同和论文。",
       "mark": "CD",
       "url": "https://chatdoc.com/",
-      "icon": "assets/icons/tools/chatdoc.svg",
+      "icon": "assets/icons/tools/chatdoc.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/chatdoc.com.ico",
         "https://chatdoc.com/favicon.ico"
@@ -1794,7 +1794,7 @@
       "description": "企业知识搜索和内部问答平台。",
       "mark": "GN",
       "url": "https://www.glean.com/",
-      "icon": "assets/icons/tools/glean.svg",
+      "icon": "assets/icons/tools/glean.png",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.glean.com.ico",
         "https://www.glean.com/favicon.ico"
@@ -1821,7 +1821,7 @@
       "description": "字节 AI Bot 和工作流平台，适合智能体与知识库。",
       "mark": "CZ",
       "url": "https://www.coze.cn/",
-      "icon": "assets/icons/tools/coze-扣子.svg",
+      "icon": "assets/icons/tools/coze-扣子.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.coze.cn.ico",
         "https://www.coze.cn/favicon.ico"
@@ -1847,7 +1847,7 @@
       "description": "面向表格和数据分析的 AI 助手。",
       "mark": "JA",
       "url": "https://julius.ai/",
-      "icon": "assets/icons/tools/julius-ai.svg",
+      "icon": "assets/icons/tools/julius-ai.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/julius.ai.ico",
         "https://julius.ai/favicon.ico"
@@ -1860,7 +1860,7 @@
       "description": "上传表格进行分析、可视化和 Python 计算。",
       "mark": "DA",
       "url": "https://chatgpt.com/",
-      "icon": "assets/icons/tools/chatgpt-data-analyst.svg",
+      "icon": "assets/icons/tools/chatgpt-data-analyst.webp",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/chatgpt.com.ico",
         "https://chatgpt.com/favicon.ico"
@@ -1873,7 +1873,7 @@
       "description": "微软 BI 分析与报表生成助手。",
       "mark": "PB",
       "url": "https://powerbi.microsoft.com/",
-      "icon": "assets/icons/tools/power-bi-copilot.svg",
+      "icon": "assets/icons/tools/power-bi-copilot.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/powerbi",
         "https://icons.duckduckgo.com/ip3/powerbi.microsoft.com.ico",
@@ -1887,7 +1887,7 @@
       "description": "数据洞察和指标解释工具，面向企业分析。",
       "mark": "TB",
       "url": "https://www.tableau.com/products/tableau-pulse",
-      "icon": "assets/icons/tools/tableau-pulse.svg",
+      "icon": "assets/icons/tools/tableau-pulse.ico",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/tableau",
         "https://icons.duckduckgo.com/ip3/www.tableau.com.ico",
@@ -1901,7 +1901,7 @@
       "description": "在线表格中的 AI 数据清洗、公式和分析工具。",
       "mark": "RS",
       "url": "https://rows.com/ai",
-      "icon": "assets/icons/tools/rows-ai.svg",
+      "icon": "assets/icons/tools/rows-ai.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/rows",
         "https://icons.duckduckgo.com/ip3/rows.com.ico",
@@ -1915,7 +1915,7 @@
       "description": "网页数据抓取和监控自动化工具。",
       "mark": "BA",
       "url": "https://www.browse.ai/",
-      "icon": "assets/icons/tools/browse-ai.svg",
+      "icon": "assets/icons/tools/browse-ai.png",
       "iconFallbacks": [
         "https://cdn.simpleicons.org/browseai",
         "https://icons.duckduckgo.com/ip3/www.browse.ai.ico",
@@ -2893,8 +2893,8 @@
   ]
 };
 
-  const toolsByName = new Map(window.AINavToolData.tools.map((tool) => [tool.name, tool]));
   window.AINavFindTool = function findTool(name) {
-    return toolsByName.get(name) || window.AINavToolData.tools.find((tool) => (tool.aliases || []).includes(name));
+    const value = String(name || '').trim();
+    return window.AINavToolData.tools.find((tool) => tool.name === value || tool.aliases.includes(value) || tool.id === value) || null;
   };
 })();
