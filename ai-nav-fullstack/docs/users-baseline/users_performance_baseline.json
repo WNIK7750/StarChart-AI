@@ -4,23 +4,23 @@
     {
       "operation": "auth.login",
       "sampleCount": 10,
-      "p50Ms": 76.736,
-      "p95Ms": 78.109,
-      "maxMs": 90.169,
-      "p50Statements": 7.0,
-      "maxStatements": 7,
+      "p50Ms": 68.658,
+      "p95Ms": 69.535,
+      "maxMs": 69.557,
+      "p50Statements": 8.0,
+      "maxStatements": 8,
       "budget": {
         "p95Ms": 250.0,
-        "maxStatements": 7
+        "maxStatements": 8
       },
       "withinBudget": true
     },
     {
       "operation": "auth.current_user_from_token",
       "sampleCount": 50,
-      "p50Ms": 0.045,
-      "p95Ms": 0.063,
-      "maxMs": 0.217,
+      "p50Ms": 0.043,
+      "p95Ms": 0.066,
+      "maxMs": 0.105,
       "p50Statements": 1.0,
       "maxStatements": 1,
       "budget": {
@@ -32,23 +32,23 @@
     {
       "operation": "auth.refresh_rotate",
       "sampleCount": 50,
-      "p50Ms": 4.868,
-      "p95Ms": 5.332,
-      "maxMs": 6.41,
-      "p50Statements": 4.0,
-      "maxStatements": 4,
+      "p50Ms": 0.249,
+      "p95Ms": 0.274,
+      "maxMs": 0.352,
+      "p50Statements": 5.0,
+      "maxStatements": 5,
       "budget": {
         "p95Ms": 25.0,
-        "maxStatements": 4
+        "maxStatements": 5
       },
       "withinBudget": true
     },
     {
       "operation": "auth.rate_limit.consume",
       "sampleCount": 50,
-      "p50Ms": 0.052,
-      "p95Ms": 0.072,
-      "maxMs": 0.185,
+      "p50Ms": 0.051,
+      "p95Ms": 0.062,
+      "maxMs": 0.132,
       "p50Statements": 3.0,
       "maxStatements": 3,
       "budget": {
@@ -60,21 +60,7 @@
     {
       "operation": "users.profile.get",
       "sampleCount": 50,
-      "p50Ms": 0.032,
-      "p95Ms": 0.04,
-      "maxMs": 0.054,
-      "p50Statements": 1.0,
-      "maxStatements": 1,
-      "budget": {
-        "p95Ms": 10.0,
-        "maxStatements": 1
-      },
-      "withinBudget": true
-    },
-    {
-      "operation": "users.preferences.get",
-      "sampleCount": 50,
-      "p50Ms": 0.033,
+      "p50Ms": 0.031,
       "p95Ms": 0.036,
       "maxMs": 0.05,
       "p50Statements": 1.0,
@@ -86,11 +72,25 @@
       "withinBudget": true
     },
     {
+      "operation": "users.preferences.get",
+      "sampleCount": 50,
+      "p50Ms": 0.031,
+      "p95Ms": 0.034,
+      "maxMs": 0.048,
+      "p50Statements": 1.0,
+      "maxStatements": 1,
+      "budget": {
+        "p95Ms": 10.0,
+        "maxStatements": 1
+      },
+      "withinBudget": true
+    },
+    {
       "operation": "users.sessions.list",
       "sampleCount": 50,
-      "p50Ms": 0.147,
-      "p95Ms": 0.166,
-      "maxMs": 0.228,
+      "p50Ms": 0.143,
+      "p95Ms": 0.155,
+      "maxMs": 0.219,
       "p50Statements": 2.0,
       "maxStatements": 2,
       "budget": {
@@ -102,9 +102,9 @@
     {
       "operation": "users.assets.workflows.list",
       "sampleCount": 50,
-      "p50Ms": 0.063,
-      "p95Ms": 0.077,
-      "maxMs": 0.115,
+      "p50Ms": 0.06,
+      "p95Ms": 0.092,
+      "maxMs": 0.117,
       "p50Statements": 2.0,
       "maxStatements": 2,
       "budget": {

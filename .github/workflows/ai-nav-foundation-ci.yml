@@ -27,6 +27,8 @@ jobs:
   verify-foundation:
     runs-on: windows-latest
     timeout-minutes: 30
+    env:
+      AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
     defaults:
       run:
         working-directory: ai-nav-fullstack
