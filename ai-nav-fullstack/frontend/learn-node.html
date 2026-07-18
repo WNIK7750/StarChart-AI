@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>学习节点介绍 · AI 知识导航</title>
 <link rel="icon" type="image/png" href="assets/img/logo.png">
+<link rel="stylesheet" href="assets/css/accessibility.css">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -100,14 +101,20 @@ button { font-family: inherit; cursor: pointer; border: 0; background: none; col
 .toc-item { display: flex; align-items: flex-start; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); transition: background .15s; }
 .toc-item:last-child { border-bottom: 0; }
 .toc-item:hover { background: var(--bg-subtle); }
+.toc-main { display: flex; align-items: flex-start; gap: 16px; flex: 1; min-width: 0; color: inherit; }
 .toc-num { font-family: var(--font-mono); font-size: 12px; color: var(--text-quaternary); width: 40px; flex: 0 0 auto; }
 .toc-title { flex: 1; min-width: 0; }
 .toc-title strong { display: block; font-size: 14px; font-weight: 600; }
 .toc-title span { display: block; margin-top: 4px; font-size: 12px; color: #8A8A98; line-height: 1.55; }
 .toc-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+.toc-complete-btn { flex: 0 0 auto; height: 30px; padding: 0 10px; border: 1px solid var(--border-subtle); border-radius: 7px; background: #fff; color: var(--text-tertiary); font-size: 12px; font-weight: 700; }
+.toc-complete-btn:hover { border-color: #16a36a; color: #087a4d; }
+.toc-complete-btn.is-complete { border-color: rgba(22,163,106,.3); background: #f0faf5; color: #087a4d; }
+.toc-complete-btn:disabled { opacity: .55; cursor: wait; }
 .resource-link { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); transition: background .15s; }
 .resource-link:last-child { border-bottom: 0; }
 .resource-link:hover { background: var(--bg-subtle); }
+.resource-link.is-unavailable { opacity: .64; cursor: not-allowed; background: transparent; }
 .resource-link-icon { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; font-weight: 800; }
 .resource-link-info { flex: 1; min-width: 0; }
 .resource-link-name { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; font-weight: 600; margin-bottom: 2px; }
@@ -116,9 +123,20 @@ button { font-family: inherit; cursor: pointer; border: 0; background: none; col
 .resource-badge.primary { color: #5B3DF5; background: rgba(124,92,255,.10); border-color: rgba(124,92,255,.18); }
 .resource-badge.cn { color: #047857; background: rgba(20,184,166,.10); border-color: rgba(20,184,166,.18); }
 .resource-badge.external { color: #B45309; background: rgba(251,146,60,.12); border-color: rgba(251,146,60,.22); }
+.resource-badge.unavailable { color: #B42318; background: #FFF1F0; border-color: #FFD6D2; }
 .resource-link-arrow { color: var(--text-quaternary); transition: transform .15s; }
 .resource-link:hover .resource-link-arrow { color: var(--brand-primary); transform: translateX(4px); }
 .empty-state { padding: 20px; color: var(--text-tertiary); font-size: 13px; background: #fff; border: 1px solid var(--border-subtle); border-radius: 10px; }
+.node-load-error { grid-column: 1 / -1; padding: 28px; border: 1px solid #f0c6c6; border-radius: 8px; background: #fff8f8; }
+.node-load-error strong { display: block; margin-bottom: 6px; font-size: 16px; }
+.node-load-error p { margin-bottom: 16px; color: var(--text-tertiary); font-size: 13px; }
+.node-load-error button { height: 34px; padding: 0 13px; border: 1px solid #d0d7de; border-radius: 7px; background: #fff; font-size: 12px; font-weight: 700; }
+.detail-head.is-error { grid-template-columns: 1fr; }
+.detail-head.is-error .cover,
+.detail-head.is-error .side-col,
+.detail-head.is-error .detail-stats,
+.detail-head.is-error .detail-actions,
+.detail-head.is-error .material-meta { display: none; }
 .reveal { opacity: 0; transform: translateY(16px); transition: opacity 800ms cubic-bezier(.16,1,.3,1), transform 800ms cubic-bezier(.16,1,.3,1); }
 .reveal.in { opacity: 1; transform: translateY(0); }
 .footer { padding: 64px 0 40px; border-top: 1px solid var(--border-subtle); margin-top: 80px; }
@@ -141,6 +159,9 @@ button { font-family: inherit; cursor: pointer; border: 0; background: none; col
   .detail-stats { flex-wrap: wrap; gap: 16px; }
   .tabs { gap: 20px; overflow-x: auto; }
   .toc-item, .resource-link { padding: 14px; }
+  .toc-main { flex-wrap: wrap; gap: 8px 12px; }
+  .toc-title { flex-basis: calc(100% - 52px); }
+  .toc-meta { margin-left: 52px; }
   .footer-inner { flex-direction: column; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -160,7 +181,7 @@ button { font-family: inherit; cursor: pointer; border: 0; background: none; col
       <button class="icon-btn btn" title="搜索" aria-label="搜索">⌕</button>
       <button class="icon-btn btn" title="切换主题" aria-label="切换主题">◐</button>
       <button class="icon-btn btn" title="切换语言" aria-label="切换语言">中</button>
-      <a class="btn btn-primary" data-start-learning href="#" target="_blank" rel="noopener">开始学习 →</a>
+      <a class="btn btn-primary" data-start-learning href="#" target="_blank" rel="noopener noreferrer">开始学习 →</a>
     </div>
   </div>
 </header>
@@ -201,8 +222,8 @@ button { font-family: inherit; cursor: pointer; border: 0; background: none; col
         </div>
       </div>
       <div class="detail-actions">
-        <a class="btn btn-primary btn-lg" data-start-learning href="#" target="_blank" rel="noopener">开始学习 →</a>
-        <a class="btn btn-lg" data-main-material href="#" target="_blank" rel="noopener">查看主资料 ↗</a>
+        <a class="btn btn-primary btn-lg" data-start-learning href="#" target="_blank" rel="noopener noreferrer">开始学习 →</a>
+        <a class="btn btn-lg" data-main-material href="#" target="_blank" rel="noopener noreferrer">查看主资料 ↗</a>
       </div>
       <div class="material-meta">
         <span data-material-title>主学习资料加载中</span>
@@ -231,20 +252,20 @@ button { font-family: inherit; cursor: pointer; border: 0; background: none; col
   <section class="detail-content">
     <div>
       <div class="tabs reveal" role="tablist">
-        <button class="tab active" data-tab="overview" type="button">概览</button>
-        <button class="tab" data-tab="toc" type="button">目录</button>
-        <button class="tab" data-tab="resources" type="button">资料</button>
+        <button class="tab active" id="tab-overview" data-tab="overview" type="button" role="tab" aria-controls="panel-overview" aria-selected="true">概览</button>
+        <button class="tab" id="tab-toc" data-tab="toc" type="button" role="tab" aria-controls="panel-toc" aria-selected="false">目录</button>
+        <button class="tab" id="tab-resources" data-tab="resources" type="button" role="tab" aria-controls="panel-resources" aria-selected="false">资料</button>
       </div>
 
-      <div class="tab-panel" data-panel="overview">
+      <div class="tab-panel" id="panel-overview" data-panel="overview" role="tabpanel" aria-labelledby="tab-overview">
         <div class="content-placeholder reveal" data-overview></div>
       </div>
 
-      <div class="tab-panel" data-panel="toc" style="display:none;">
+      <div class="tab-panel" id="panel-toc" data-panel="toc" role="tabpanel" aria-labelledby="tab-toc" hidden>
         <div class="toc-list reveal" data-outline></div>
       </div>
 
-      <div class="tab-panel" data-panel="resources" style="display:none;">
+      <div class="tab-panel" id="panel-resources" data-panel="resources" role="tabpanel" aria-labelledby="tab-resources" hidden>
         <div class="resource-list reveal" data-resources></div>
       </div>
     </div>
@@ -272,35 +293,6 @@ button { font-family: inherit; cursor: pointer; border: 0; background: none; col
   </div>
 </footer>
 
-<script>
-const navbar = document.getElementById('navbar');
-let lastScroll = 0;
-window.addEventListener('scroll', () => {
-  const cur = window.scrollY;
-  if (cur > 80 && cur > lastScroll) navbar.classList.add('hidden');
-  else navbar.classList.remove('hidden');
-  lastScroll = cur;
-}, { passive: true });
-
-const revealIo = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) { e.target.classList.add('in'); revealIo.unobserve(e.target); }
-  });
-}, { threshold: 0.1, rootMargin: '0px 0px -80px 0px' });
-document.querySelectorAll('.reveal').forEach(el => revealIo.observe(el));
-
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    document.querySelectorAll('.tab-panel').forEach(panel => {
-      panel.style.display = panel.dataset.panel === tab.dataset.tab ? '' : 'none';
-    });
-    const activePanel = document.querySelector(`.tab-panel[data-panel="${tab.dataset.tab}"]`);
-    activePanel?.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
-  });
-});
-</script>
-<script type="module" src="assets/js/v2-api.js"></script>
+<script type="module" src="assets/js/learn-node-page.js"></script>
 </body>
 </html>

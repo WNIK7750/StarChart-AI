@@ -43,3 +43,6 @@ Thumbs.db
 
 # Agent 本地运行数据
 agent/chroma_db/
+
+# 用户上传运行时文件
+ai-nav-fullstack/uploads/
