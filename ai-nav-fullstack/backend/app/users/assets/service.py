@@ -1,4 +1,5 @@
 from functools import lru_cache
+from collections.abc import Callable
 from typing import Any
 
 from app.core.security import random_uid
@@ -10,13 +11,18 @@ from app.users.common import UsersError
 
 
 class AssetsService:
-    def __init__(self, repository: AssetsRepository, audit: AuditService | None = None):
+    def __init__(
+        self,
+        repository: AssetsRepository,
+        audit: AuditService | None = None,
+        tool_catalog_provider: Callable[[], dict] = get_tool_catalog,
+    ):
         self.repository = repository
         self.audit = audit or get_audit_service()
+        self.tool_catalog_provider = tool_catalog_provider
 
-    @staticmethod
-    def _tool_map() -> dict[str, dict]:
-        return {tool["id"]: tool for tool in get_tool_catalog()["tools"]}
+    def _tool_map(self) -> dict[str, dict]:
+        return {tool["id"]: tool for tool in self.tool_catalog_provider()["tools"]}
 
     def _decorate(self, workflow: dict) -> dict:
         tools = self._tool_map()

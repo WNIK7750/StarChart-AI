@@ -119,7 +119,11 @@ class UsersServicesTest(unittest.TestCase):
         self.connection_factory = connection_factory
         self.accounts = AccountService(SQLiteAccountRepository(connection_factory))
         self.audit = AuditService(SQLiteAuditRepository(connection_factory))
-        self.assets = AssetsService(SQLiteAssetsRepository(connection_factory), self.audit)
+        self.assets = AssetsService(
+            SQLiteAssetsRepository(connection_factory),
+            self.audit,
+            tool_catalog_provider=lambda: {"tools": []},
+        )
         self.profiles = ProfileService(SQLiteProfileRepository(connection_factory))
         self.preferences = PreferencesService(SQLitePreferencesRepository(connection_factory))
         self.privacy = PrivacyService(SQLitePrivacyRepository(connection_factory))
@@ -309,6 +313,7 @@ class UsersServicesTest(unittest.TestCase):
         ]
         with (
             patch("app.agent.service.search_tool_cards", return_value=cards),
+            patch("app.agent.service.search_learning_cards", return_value=[]),
             patch("app.agent.service.suggest_workflow", return_value=[]),
         ):
             response = draft_agent_response(AgentChatRequest(message="recommend"), agent)
