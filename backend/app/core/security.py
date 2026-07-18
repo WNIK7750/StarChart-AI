@@ -6,7 +6,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from app.core.config import SECRET_KEY
+from app.core.config import PASSWORD_HASH_ROUNDS, SECRET_KEY
 
 
 def utc_now() -> datetime:
@@ -21,26 +21,46 @@ def random_uid(prefix: str) -> str:
     return f"{prefix}_{secrets.token_urlsafe(18)}"
 
 
-def hash_password(password: str) -> str:
+def _password_hash_parts(password_hash: str) -> tuple[str, int, bytes, bytes] | None:
+    try:
+        algo, rounds, salt_b64, digest_b64 = password_hash.split("$", 3)
+        return (
+            algo,
+            int(rounds),
+            base64.urlsafe_b64decode(salt_b64.encode("ascii")),
+            base64.urlsafe_b64decode(digest_b64.encode("ascii")),
+        )
+    except Exception:
+        return None
+
+
+def hash_password(password: str, rounds: int = PASSWORD_HASH_ROUNDS) -> str:
     salt = secrets.token_bytes(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 180_000)
-    return "pbkdf2_sha256$180000${}${}".format(
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, rounds)
+    return "pbkdf2_sha256${}${}${}".format(
+        rounds,
         base64.urlsafe_b64encode(salt).decode("ascii"),
         base64.urlsafe_b64encode(digest).decode("ascii"),
     )
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    try:
-        algo, rounds, salt_b64, digest_b64 = password_hash.split("$", 3)
-        if algo != "pbkdf2_sha256":
-            return False
-        salt = base64.urlsafe_b64decode(salt_b64.encode("ascii"))
-        expected = base64.urlsafe_b64decode(digest_b64.encode("ascii"))
-        actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, int(rounds))
-        return hmac.compare_digest(actual, expected)
-    except Exception:
+    parts = _password_hash_parts(password_hash)
+    if not parts:
         return False
+    algo, rounds, salt, expected = parts
+    if algo != "pbkdf2_sha256":
+        return False
+    actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, rounds)
+    return hmac.compare_digest(actual, expected)
+
+
+def needs_password_rehash(password_hash: str) -> bool:
+    parts = _password_hash_parts(password_hash)
+    if not parts:
+        return True
+    algo, rounds, _, _ = parts
+    return algo != "pbkdf2_sha256" or rounds < PASSWORD_HASH_ROUNDS
 
 
 def hash_token(token: str) -> str:

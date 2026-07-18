@@ -1,0 +1,92 @@
+{
+  "auth.login": [
+    "accessToken",
+    "expiresIn",
+    "refreshToken",
+    "tokenType",
+    "user"
+  ],
+  "auth.login.user": [
+    "accountStatus",
+    "createdAt",
+    "email",
+    "emailVerified",
+    "lastLoginAt",
+    "phone",
+    "phoneVerified",
+    "userUid",
+    "username"
+  ],
+  "auth.me": [
+    "user"
+  ],
+  "auth.me.user": [
+    "accountStatus",
+    "createdAt",
+    "email",
+    "emailVerified",
+    "lastLoginAt",
+    "phone",
+    "phoneVerified",
+    "userUid",
+    "username"
+  ],
+  "auth.refresh": [
+    "accessToken",
+    "expiresIn",
+    "refreshToken",
+    "tokenType"
+  ],
+  "users.preferences.get": [
+    "preferences"
+  ],
+  "users.preferences.item": [
+    "agentMemoryEnabled",
+    "cnFirst",
+    "freeFirst",
+    "language",
+    "preferenceJson",
+    "showExternalResources",
+    "theme",
+    "updatedAt",
+    "version"
+  ],
+  "users.profile.get": [
+    "profile"
+  ],
+  "users.profile.item": [
+    "avatarUrl",
+    "bio",
+    "displayName",
+    "learningLevel",
+    "roleTitle",
+    "targetDirection",
+    "updatedAt",
+    "version"
+  ],
+  "users.sessions.item": [
+    "createdAt",
+    "deviceName",
+    "expiresAt",
+    "ipAddress",
+    "isCurrent",
+    "isRevoked",
+    "lastSeenAt",
+    "revokedReason",
+    "riskLevel",
+    "sessionUid",
+    "userAgent"
+  ],
+  "users.sessions.list": [
+    "items",
+    "meta"
+  ],
+  "users.sessions.meta": [
+    "contractVersion",
+    "hasNext",
+    "page",
+    "pageSize",
+    "source",
+    "totalCount"
+  ]
+}

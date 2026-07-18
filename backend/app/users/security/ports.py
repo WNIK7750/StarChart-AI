@@ -1,0 +1,9 @@
+from typing import Protocol
+
+
+class SecurityRepository(Protocol):
+    def update_password(self, user_id: int, current_password: str, new_password: str) -> bool: ...
+
+    def list_security_questions(self, user_id: int) -> list[dict]: ...
+
+    def replace_security_questions(self, user_id: int, current_password: str, questions: list[tuple[int, str, str]]) -> list[dict] | None: ...

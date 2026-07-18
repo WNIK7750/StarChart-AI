@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "source": {
+    "integrity": "ok",
+    "foreignKeyErrors": 0,
+    "migrationCount": 17
+  },
+  "backup": {
+    "integrity": "ok",
+    "foreignKeyErrors": 0,
+    "migrationCount": 17
+  },
+  "restore": {
+    "integrity": "ok",
+    "foreignKeyErrors": 0,
+    "migrationCount": 17,
+    "preRestoreBackup": null
+  },
+  "canaryRestored": true,
+  "migrationChecksumsMatch": true,
+  "migrationCount": 17
+}

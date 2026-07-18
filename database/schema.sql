@@ -125,6 +125,8 @@ CREATE TABLE IF NOT EXISTS learning_materials (
   cover_theme TEXT NOT NULL DEFAULT 'g-purple',
   description TEXT NOT NULL,
   overview TEXT NOT NULL,
+  link_status TEXT NOT NULL DEFAULT 'unchecked'
+    CHECK (link_status IN ('unchecked', 'healthy', 'degraded', 'unavailable')),
   sort_order INTEGER NOT NULL DEFAULT 0,
   is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -177,6 +179,8 @@ CREATE TABLE IF NOT EXISTS learning_node_links (
   link_type TEXT NOT NULL DEFAULT 'reference',
   access_type TEXT NOT NULL DEFAULT 'external' CHECK (access_type IN ('cn', 'external')),
   accent_color TEXT NOT NULL DEFAULT '#7C5CFF',
+  link_status TEXT NOT NULL DEFAULT 'unchecked'
+    CHECK (link_status IN ('unchecked', 'healthy', 'degraded', 'unavailable')),
   sort_order INTEGER NOT NULL DEFAULT 0,
   is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -225,6 +229,14 @@ CREATE TABLE IF NOT EXISTS ai_tools (
   is_free INTEGER NOT NULL DEFAULT 0 CHECK (is_free IN (0, 1)),
   is_latest INTEGER NOT NULL DEFAULT 0 CHECK (is_latest IN (0, 1)),
   sort_order INTEGER NOT NULL DEFAULT 0,
+  aliases_json TEXT NOT NULL DEFAULT '[]',
+  icon_path TEXT NOT NULL DEFAULT '',
+  icon_fallbacks_json TEXT NOT NULL DEFAULT '[]',
+  publication_status TEXT NOT NULL DEFAULT 'published'
+    CHECK (publication_status IN ('draft', 'published', 'archived')),
+  link_status TEXT NOT NULL DEFAULT 'unchecked'
+    CHECK (link_status IN ('unchecked', 'healthy', 'degraded', 'unavailable')),
+  last_checked_at TEXT,
   is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -235,6 +247,43 @@ CREATE TABLE IF NOT EXISTS ai_tools (
 CREATE INDEX IF NOT EXISTS idx_ai_tools_category ON ai_tools(category_code);
 CREATE INDEX IF NOT EXISTS idx_ai_tools_subcategory ON ai_tools(category_code, subcategory_name);
 CREATE INDEX IF NOT EXISTS idx_ai_tools_latest ON ai_tools(is_latest, sort_order);
+
+CREATE TABLE IF NOT EXISTS tool_placements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tool_slug TEXT NOT NULL,
+  category_code TEXT NOT NULL,
+  subcategory_name TEXT NOT NULL,
+  heat INTEGER NOT NULL DEFAULT 0 CHECK (heat BETWEEN 0 AND 100),
+  tag TEXT NOT NULL DEFAULT '',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (tool_slug) REFERENCES ai_tools(slug),
+  FOREIGN KEY (category_code, subcategory_name) REFERENCES tool_subcategories(category_code, name),
+  UNIQUE (tool_slug, category_code, subcategory_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_tool_placements_category
+ON tool_placements(category_code, subcategory_name, sort_order);
+
+CREATE INDEX IF NOT EXISTS idx_tool_placements_tool
+ON tool_placements(tool_slug, sort_order);
+
+CREATE TABLE IF NOT EXISTS tool_latest_slots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tool_slug TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  provider TEXT NOT NULL DEFAULT '',
+  label TEXT NOT NULL DEFAULT '',
+  mark TEXT NOT NULL DEFAULT 'AI',
+  logo_class TEXT NOT NULL DEFAULT 'logo-chat',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (tool_slug) REFERENCES ai_tools(slug),
+  UNIQUE (tool_slug)
+);
 
 CREATE TABLE IF NOT EXISTS tool_workflows (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -350,6 +399,7 @@ CREATE TABLE IF NOT EXISTS user_sessions (
   user_agent TEXT,
   ip_address TEXT,
   country_region TEXT,
+  is_persistent INTEGER NOT NULL DEFAULT 0 CHECK (is_persistent IN (0, 1)),
   is_revoked INTEGER NOT NULL DEFAULT 0 CHECK (is_revoked IN (0, 1)),
   revoked_at TEXT,
   expires_at TEXT NOT NULL,
@@ -447,6 +497,19 @@ ON user_login_logs(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_user_login_logs_identifier_time
 ON user_login_logs(login_identifier, created_at);
 
+CREATE TABLE IF NOT EXISTS user_auth_rate_limits (
+  scope TEXT NOT NULL,
+  subject_hash TEXT NOT NULL,
+  window_key INTEGER NOT NULL,
+  request_count INTEGER NOT NULL DEFAULT 0 CHECK (request_count >= 0),
+  expires_at INTEGER NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (scope, subject_hash)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_auth_rate_limits_expiry
+ON user_auth_rate_limits(expires_at);
+
 CREATE TABLE IF NOT EXISTS user_audit_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   actor_user_id INTEGER,
@@ -467,6 +530,146 @@ ON user_audit_logs(actor_user_id, created_at);
 
 CREATE INDEX IF NOT EXISTS idx_user_audit_logs_target
 ON user_audit_logs(target_user_id, created_at);
+
+CREATE TABLE IF NOT EXISTS user_privacy_consent_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_uid TEXT NOT NULL UNIQUE,
+  user_id INTEGER NOT NULL,
+  consent_type TEXT NOT NULL CHECK (consent_type IN ('privacy_policy', 'agent_memory')),
+  policy_version TEXT NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('granted', 'revoked')),
+  source TEXT NOT NULL CHECK (source IN ('settings', 'registration', 'login', 'admin', 'migration')),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES user_accounts(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_privacy_consent_current
+ON user_privacy_consent_events(user_id, consent_type, id DESC);
+
+CREATE TABLE IF NOT EXISTS user_data_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  request_uid TEXT NOT NULL UNIQUE,
+  user_id INTEGER NOT NULL,
+  request_type TEXT NOT NULL CHECK (request_type IN ('export', 'deletion')),
+  status TEXT NOT NULL CHECK (status IN ('pending', 'processing', 'completed', 'cancelled', 'rejected')),
+  reason_code TEXT,
+  scheduled_for TEXT,
+  retention_until TEXT,
+  completed_at TEXT,
+  cancelled_at TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES user_accounts(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_data_requests_user_time
+ON user_data_requests(user_id, request_type, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_user_data_requests_lifecycle
+ON user_data_requests(request_type, status, scheduled_for, retention_until);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_data_requests_active_deletion
+ON user_data_requests(user_id)
+WHERE request_type = 'deletion' AND status IN ('pending', 'processing');
+
+CREATE TABLE IF NOT EXISTS user_saved_workflows (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workflow_uid TEXT NOT NULL UNIQUE,
+  user_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  source_type TEXT NOT NULL CHECK (source_type IN ('agent', 'builtin', 'manual')),
+  source_ref TEXT,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'archived')),
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+  idempotency_key TEXT NOT NULL,
+  archived_at TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES user_accounts(id),
+  UNIQUE (user_id, idempotency_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_saved_workflows_list
+ON user_saved_workflows(user_id, status, updated_at DESC, id DESC);
+
+CREATE TABLE IF NOT EXISTS user_saved_workflow_steps (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  step_uid TEXT NOT NULL UNIQUE,
+  workflow_id INTEGER NOT NULL,
+  step_order INTEGER NOT NULL CHECK (step_order > 0),
+  name TEXT NOT NULL,
+  objective TEXT NOT NULL,
+  tool_slug TEXT,
+  tool_name_snapshot TEXT,
+  tool_href_snapshot TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (workflow_id) REFERENCES user_saved_workflows(id) ON DELETE CASCADE,
+  UNIQUE (workflow_id, step_order)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_saved_workflow_steps_workflow
+ON user_saved_workflow_steps(workflow_id, step_order);
+
+CREATE TABLE IF NOT EXISTS user_learning_progress (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  node_slug TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'not_started'
+    CHECK (status IN ('not_started', 'in_progress', 'completed', 'skipped')),
+  progress_percent INTEGER NOT NULL DEFAULT 0 CHECK (progress_percent BETWEEN 0 AND 100),
+  started_at TEXT,
+  completed_at TEXT,
+  last_studied_at TEXT,
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES user_accounts(id),
+  FOREIGN KEY (node_slug) REFERENCES roadmap_nodes(slug),
+  UNIQUE (user_id, node_slug)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_learning_progress_user
+ON user_learning_progress(user_id, status, last_studied_at DESC);
+
+CREATE TABLE IF NOT EXISTS user_learning_activity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  activity_uid TEXT NOT NULL UNIQUE,
+  user_id INTEGER NOT NULL,
+  node_slug TEXT,
+  target_type TEXT NOT NULL
+    CHECK (target_type IN ('learning_node', 'learning_material', 'learning_link')),
+  target_key TEXT NOT NULL,
+  activity_type TEXT NOT NULL
+    CHECK (activity_type IN ('view_node', 'start_material', 'open_resource', 'complete_section')),
+  metadata_json TEXT,
+  idempotency_key TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES user_accounts(id),
+  FOREIGN KEY (node_slug) REFERENCES roadmap_nodes(slug),
+  UNIQUE (user_id, idempotency_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_learning_activity_user_time
+ON user_learning_activity(user_id, created_at DESC, id DESC);
+
+CREATE TABLE IF NOT EXISTS user_favorites (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  favorite_uid TEXT NOT NULL UNIQUE,
+  user_id INTEGER NOT NULL,
+  target_type TEXT NOT NULL
+    CHECK (target_type IN ('learning_node', 'learning_material', 'learning_link', 'tool', 'workflow')),
+  target_key TEXT NOT NULL,
+  title_snapshot TEXT NOT NULL,
+  description_snapshot TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES user_accounts(id),
+  UNIQUE (user_id, target_type, target_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_favorites_user
+ON user_favorites(user_id, target_type, created_at DESC);
 
 INSERT OR IGNORE INTO roles(code, name, description, is_system) VALUES
 ('user', '普通用户', '默认登录用户，可管理自己的资料、偏好和会话。', 1),

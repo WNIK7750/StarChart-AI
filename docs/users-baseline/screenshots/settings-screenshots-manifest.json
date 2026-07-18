@@ -1,0 +1,144 @@
+{
+  "baseUrl": "http://127.0.0.1:8094",
+  "flow": "settings load -> desktop avatar/session recovery -> preference consent save -> privacy consent/export/deletion cancellation -> workflow unavailable/archive -> responsive screenshots",
+  "browserAvailability": "Opera Browser Connector is available for manual browser QA; this repeatable settings matrix uses Playwright.",
+  "captures": [
+    {
+      "name": "desktop-1440",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "identity": {
+        "url": "http://127.0.0.1:8094/settings.html#preferences",
+        "title": "用户设置 · AI 知识导航"
+      },
+      "layout": {
+        "bodyScrollWidth": 1440,
+        "bodyClientWidth": 1440,
+        "documentScrollWidth": 1440,
+        "overflowX": false,
+        "activeSection": "preferences",
+        "visibleText": "AI 知识导航\n学习区\n工具区\n退出\nQA Settings\n@qa_settings_mrm9004v\n公开资料\n账号\n安全与密保\n登录设备\n偏好\n隐私与数据\n学习空间\n工作流\n偏好\n\n这些偏好会被后续学习区和 Agent 读取。\n\n资源与 Agent\n 国内资源优先\n 免费资源优先\n 显示外网资源\n 允许 Agent 记住偏好\n保存中...\n正在保存偏好...",
+        "saveMessage": "正在保存偏好..."
+      },
+      "interactions": {
+        "retryVerified": true,
+        "avatarUploadVerified": true,
+        "oldAvatarCleanupVerified": true,
+        "confirmationVerified": true,
+        "privacyVerified": true,
+        "workflowVerified": true,
+        "labelsVerified": true,
+        "ariaCurrentVerified": true,
+        "savingStateVerified": true,
+        "expectedNetworkErrors": 2
+      },
+      "messages": [],
+      "screenshotPath": "D:\\Web期末作业\\ai-nav2\\ai-nav-fullstack\\docs\\users-baseline\\screenshots\\settings-desktop-1440.png"
+    },
+    {
+      "name": "tablet-768",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "identity": {
+        "url": "http://127.0.0.1:8094/settings.html#preferences",
+        "title": "用户设置 · AI 知识导航"
+      },
+      "layout": {
+        "bodyScrollWidth": 768,
+        "bodyClientWidth": 768,
+        "documentScrollWidth": 768,
+        "overflowX": false,
+        "activeSection": "preferences",
+        "visibleText": "AI 知识导航\n学习区\n工具区\n退出\nQA Settings\n@qa_settings_mrm9004v\n公开资料\n账号\n安全与密保\n登录设备\n偏好\n隐私与数据\n学习空间\n工作流\n偏好\n\n这些偏好会被后续学习区和 Agent 读取。\n\n资源与 Agent\n 国内资源优先\n 免费资源优先\n 显示外网资源\n 允许 Agent 记住偏好\n保存偏好\n偏好已保存。",
+        "saveMessage": "偏好已保存。"
+      },
+      "interactions": {
+        "retryVerified": "not-run",
+        "avatarUploadVerified": "not-run",
+        "oldAvatarCleanupVerified": "not-run",
+        "confirmationVerified": "not-run",
+        "privacyVerified": "not-run",
+        "workflowVerified": "not-run",
+        "labelsVerified": true,
+        "ariaCurrentVerified": true,
+        "savingStateVerified": true,
+        "expectedNetworkErrors": 0
+      },
+      "messages": [],
+      "screenshotPath": "D:\\Web期末作业\\ai-nav2\\ai-nav-fullstack\\docs\\users-baseline\\screenshots\\settings-tablet-768.png"
+    },
+    {
+      "name": "mobile-390",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "identity": {
+        "url": "http://127.0.0.1:8094/settings.html#preferences",
+        "title": "用户设置 · AI 知识导航"
+      },
+      "layout": {
+        "bodyScrollWidth": 390,
+        "bodyClientWidth": 390,
+        "documentScrollWidth": 390,
+        "overflowX": false,
+        "activeSection": "preferences",
+        "visibleText": "AI 知识导航\n学习区\n工具区\n退出\nQA Settings\n@qa_settings_mrm9004v\n公开资料\n账号\n安全与密保\n登录设备\n偏好\n隐私与数据\n学习空间\n工作流\n偏好\n\n这些偏好会被后续学习区和 Agent 读取。\n\n资源与 Agent\n 国内资源优先\n 免费资源优先\n 显示外网资源\n 允许 Agent 记住偏好\n保存偏好\n偏好已保存。",
+        "saveMessage": "偏好已保存。"
+      },
+      "interactions": {
+        "retryVerified": "not-run",
+        "avatarUploadVerified": "not-run",
+        "oldAvatarCleanupVerified": "not-run",
+        "confirmationVerified": "not-run",
+        "privacyVerified": "not-run",
+        "workflowVerified": "not-run",
+        "labelsVerified": true,
+        "ariaCurrentVerified": true,
+        "savingStateVerified": true,
+        "expectedNetworkErrors": 0
+      },
+      "messages": [],
+      "screenshotPath": "D:\\Web期末作业\\ai-nav2\\ai-nav-fullstack\\docs\\users-baseline\\screenshots\\settings-mobile-390.png"
+    },
+    {
+      "name": "mobile-360",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "identity": {
+        "url": "http://127.0.0.1:8094/settings.html#preferences",
+        "title": "用户设置 · AI 知识导航"
+      },
+      "layout": {
+        "bodyScrollWidth": 360,
+        "bodyClientWidth": 360,
+        "documentScrollWidth": 360,
+        "overflowX": false,
+        "activeSection": "preferences",
+        "visibleText": "AI 知识导航\n学习区\n工具区\n退出\nQA Settings\n@qa_settings_mrm9004v\n公开资料\n账号\n安全与密保\n登录设备\n偏好\n隐私与数据\n学习空间\n工作流\n偏好\n\n这些偏好会被后续学习区和 Agent 读取。\n\n资源与 Agent\n 国内资源优先\n 免费资源优先\n 显示外网资源\n 允许 Agent 记住偏好\n保存偏好\n偏好已保存。",
+        "saveMessage": "偏好已保存。"
+      },
+      "interactions": {
+        "retryVerified": "not-run",
+        "avatarUploadVerified": "not-run",
+        "oldAvatarCleanupVerified": "not-run",
+        "confirmationVerified": "not-run",
+        "privacyVerified": "not-run",
+        "workflowVerified": "not-run",
+        "labelsVerified": true,
+        "ariaCurrentVerified": true,
+        "savingStateVerified": true,
+        "expectedNetworkErrors": 0
+      },
+      "messages": [],
+      "screenshotPath": "D:\\Web期末作业\\ai-nav2\\ai-nav-fullstack\\docs\\users-baseline\\screenshots\\settings-mobile-360.png"
+    }
+  ],
+  "passed": true
+}

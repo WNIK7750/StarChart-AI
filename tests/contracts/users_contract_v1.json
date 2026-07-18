@@ -1,0 +1,16 @@
+{
+  "account": ["account"],
+  "accountItem": ["accountStatus", "email", "phone", "updatedAt", "userUid", "username"],
+  "profile": ["profile"],
+  "profileItem": ["avatarUrl", "bio", "displayName", "learningLevel", "roleTitle", "targetDirection", "updatedAt"],
+  "preferences": ["preferences"],
+  "preferencesItem": ["agentMemoryEnabled", "cnFirst", "freeFirst", "language", "preferenceJson", "showExternalResources", "theme", "updatedAt"],
+  "sessions": ["items"],
+  "sessionMeta": ["contractVersion", "hasNext", "page", "pageSize", "source", "totalCount"],
+  "sessionItem": ["createdAt", "deviceName", "expiresAt", "ipAddress", "isRevoked", "lastSeenAt", "sessionUid", "userAgent"],
+  "errorDetail": ["code", "message"],
+  "authLogin": ["accessToken", "expiresIn", "refreshToken", "tokenType", "user"],
+  "authRefresh": ["accessToken", "expiresIn", "refreshToken", "tokenType"],
+  "authMe": ["user"],
+  "authPublicUser": ["accountStatus", "createdAt", "email", "emailVerified", "lastLoginAt", "phone", "phoneVerified", "userUid", "username"]
+}

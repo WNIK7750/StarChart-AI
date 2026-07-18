@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>用户设置 · AI 知识导航</title>
 <link rel="icon" type="image/png" href="assets/img/logo.png">
+<link rel="stylesheet" href="assets/css/accessibility.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#fafafb;color:#24292f;line-height:1.5;font-size:14px}
-a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}button{border:0;background:none;cursor:pointer}
+a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}button{border:0;background:none;cursor:pointer}a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid rgba(9,105,218,.32);outline-offset:2px}
 .settings-top{position:sticky;top:0;z-index:20;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid #d8dee4;background:rgba(246,248,250,.88);backdrop-filter:blur(12px)}
 .brand{display:flex;align-items:center;gap:9px;font-weight:700}.brand img{width:26px;height:26px;border-radius:6px}.top-links{display:flex;align-items:center;gap:8px}.top-links a,.top-links button{height:32px;display:inline-flex;align-items:center;padding:0 10px;border-radius:7px;background:#fff;border:1px solid #d0d7de;font-weight:650;font-size:13px}
 .layout{width:min(1120px,calc(100vw - 36px));margin:24px auto 56px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:28px}
@@ -17,17 +18,25 @@ a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}b
 .section{display:none}.section.active{display:block}.section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;padding-bottom:12px;border-bottom:1px solid #d8dee4;margin-bottom:18px}.section-head h1{font-size:22px}.section-head p{margin-top:3px;color:#57606a;font-size:13px}
 .panel{background:#fff;border:1px solid #d8dee4;border-radius:8px;margin-bottom:16px}.panel h2{font-size:15px;padding:12px 16px;border-bottom:1px solid #d8dee4}.panel-body{padding:16px;display:grid;gap:12px}.grid-2{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:26px;align-items:start}
 .field{display:grid;gap:6px}.field label{font-weight:650;color:#24292f;font-size:13px}.field input,.field textarea,.field select{width:100%;min-height:34px;border:1px solid #d0d7de;border-radius:7px;padding:0 10px;background:#fff;outline:none}.field textarea{min-height:84px;padding:9px 10px;resize:vertical}.field input:focus,.field textarea:focus,.field select:focus{border-color:#0969da;box-shadow:0 0 0 3px rgba(9,105,218,.12)}.hint{font-size:12px;color:#57606a}
-.btn{height:34px;justify-self:start;padding:0 12px;border-radius:7px;background:#24292f;color:#fff;font-weight:700;font-size:13px}.btn.subtle{background:#f6f8fa;color:#24292f}.btn.danger{background:#fff1f1;color:#cf222e}.message{min-height:18px;font-size:12px;color:#0969da}.error{color:#cf222e}
+.btn{height:34px;justify-self:start;padding:0 12px;border-radius:7px;background:#24292f;color:#fff;font-weight:700;font-size:13px}.btn.subtle{background:#f6f8fa;color:#24292f}.btn.danger{background:#fff1f1;color:#cf222e}.btn:disabled{cursor:not-allowed;opacity:.56}.message{min-height:18px;display:flex;align-items:center;gap:8px;font-size:12px;color:#0969da}.message.error{color:#cf222e}.message .retry-btn,.state-block .retry-btn{height:28px;padding:0 9px;border:1px solid #d0d7de;border-radius:6px;background:#fff;color:#24292f;font-weight:700}.panel-body[aria-busy="true"]{opacity:.72}.state-block{display:flex;align-items:center;justify-content:space-between;gap:12px}.state-block.loading{justify-content:flex-start}.state-dot{width:7px;height:7px;flex:0 0 auto;border-radius:50%;background:#0969da;animation:state-pulse 1s ease-in-out infinite}@keyframes state-pulse{50%{opacity:.3}}
 .avatar-box{display:grid;justify-items:center;gap:10px}.avatar-lg{width:136px;height:136px;border-radius:50%;object-fit:cover;background:#f6f8fa;border:1px solid #d8dee4}.upload{position:relative;height:32px;display:inline-flex;align-items:center;padding:0 10px;border-radius:7px;background:#f6f8fa;border:1px solid #d8dee4;font-weight:650;font-size:13px}.upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
-.question-list{display:grid;gap:12px}.question-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}.session-list,.empty-list{display:grid;gap:10px}.session-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid rgba(15,15,25,.08);border-radius:9px;background:#fafafb}.session-item span{display:block;color:#6e6e7a;font-size:12px;margin-top:4px}.reserved{padding:14px;border:1px dashed rgba(15,15,25,.16);border-radius:10px;background:#fff;color:#6e6e7a}
+  .question-list{display:grid;gap:12px}.question-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}.session-list,.empty-list,.learning-list{display:grid;gap:10px}.session-item,.learning-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid rgba(15,15,25,.08);border-radius:8px;background:#fafafb}.session-item span,.learning-item span{display:block;color:#6e6e7a;font-size:12px;margin-top:4px}.learning-item a{font-weight:700}.learning-item em{font-style:normal;font-size:12px;font-weight:700;color:#0969da}.learning-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.learning-summary div{padding:12px;border:1px solid #d8dee4;border-radius:8px;background:#fafafb}.learning-summary strong{display:block;font-size:20px}.learning-summary span{color:#57606a;font-size:12px}.reserved{padding:14px;border:1px dashed rgba(15,15,25,.16);border-radius:8px;background:#fff;color:#6e6e7a}
 .crop-overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(31,35,40,.28);backdrop-filter:blur(10px)}.crop-overlay.open{display:flex}.crop-dialog{width:min(430px,100%);background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 18px 46px rgba(31,35,40,.18)}.crop-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #d8dee4}.crop-body{padding:16px;display:grid;gap:12px}.crop-canvas{width:100%;aspect-ratio:1;background:#f6f8fa;border:1px solid #d8dee4;border-radius:8px;touch-action:none}.crop-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (max-width:860px){.layout{grid-template-columns:1fr}.sidebar{position:static}.side-nav{grid-template-columns:repeat(2,1fr);border-right:0;padding-right:0}.grid-2{grid-template-columns:1fr}.question-row{grid-template-columns:1fr}.settings-top{padding:0 16px}}
+.confirm-dialog{width:min(430px,calc(100vw - 32px));padding:0;border:1px solid #d0d7de;border-radius:8px;background:#fff;color:#24292f;box-shadow:0 18px 46px rgba(31,35,40,.2)}.confirm-dialog::backdrop{background:rgba(31,35,40,.36);backdrop-filter:blur(4px)}.confirm-body{padding:18px;display:grid;gap:10px}.confirm-body h2{font-size:18px}.confirm-body p{color:#57606a}.confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}.confirm-actions .btn{justify-self:auto}
+@media (max-width:860px){.layout{grid-template-columns:1fr}.sidebar{position:static}.side-nav{grid-template-columns:repeat(2,1fr);border-right:0;padding-right:0}.grid-2{grid-template-columns:1fr}.question-row{grid-template-columns:1fr}.settings-top{padding:0 16px}.learning-summary{grid-template-columns:1fr}.btn,.side-nav a,.top-links a,.top-links button,.upload{min-height:42px;height:auto}.side-nav a{padding-block:7px}}
+@media (max-width:480px){.layout{width:calc(100vw - 24px);margin-top:16px;gap:20px}.settings-top{padding:0 12px}.brand{font-size:0}.top-links{gap:5px}.top-links a,.top-links button{padding-inline:8px}.panel-body{padding:13px}.confirm-actions{display:grid;grid-template-columns:1fr 1fr}.confirm-actions .btn{width:100%}}
 </style>
 </head>
 <body>
 <header class="settings-top">
   <a class="brand" href="index.html"><img src="assets/img/logo.png" alt="">AI 知识导航</a>
-  <div class="top-links"><a href="learn.html">学习区</a><a href="tools.html">工具区</a><button data-logout type="button">退出</button></div>
+  <nav class="top-links" aria-label="主导航">
+    <a href="index.html">主页</a>
+    <a href="learn.html">学习</a>
+    <a href="tools.html">工具</a>
+    <a href="assistant.html">助手</a>
+    <button data-logout type="button">退出</button>
+  </nav>
 </header>
 
 <main class="layout">
@@ -36,12 +45,13 @@ a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}b
       <img class="avatar-sm" data-avatar-small alt="头像">
       <div><strong data-user-display>用户设置</strong><span data-user-name>@user</span></div>
     </div>
-    <nav class="side-nav">
+    <nav class="side-nav" aria-label="设置分区">
       <a href="#profile" data-section-link>公开资料</a>
       <a href="#account" data-section-link>账号</a>
       <a href="#security" data-section-link>安全与密保</a>
       <a href="#sessions" data-section-link>登录设备</a>
       <a href="#preferences" data-section-link>偏好</a>
+      <a href="#privacy" data-section-link>隐私与数据</a>
       <a href="#learning" data-section-link>学习空间</a>
       <a href="#workflows" data-section-link>工作流</a>
     </nav>
@@ -68,10 +78,13 @@ a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}b
     </div>
 
     <div class="section" data-section="account">
-      <div class="section-head"><div><h1>账号</h1><p>用户名必须唯一，且不能使用系统保留词或敏感词。</p></div></div>
-      <div class="panel"><h2>用户名</h2><form class="panel-body" data-account-form>
+      <div class="section-head"><div><h1>账号</h1><p>管理登录标识与绑定联系方式。</p></div></div>
+      <div class="panel"><h2>账号标识与绑定</h2><form class="panel-body" data-account-form>
         <div class="field"><label>用户名</label><input name="username" required minlength="3" maxlength="32"></div>
-        <button class="btn" type="submit">保存用户名</button><div class="message" data-account-message></div>
+        <div class="field"><label>邮箱（可选）</label><input name="email" type="email" autocomplete="email" maxlength="254"><p class="hint" data-account-email-status></p></div>
+        <div class="field"><label>手机号（可选）</label><input name="phone" type="tel" autocomplete="tel" maxlength="24" placeholder="中国大陆手机号或 + 国际区号"><p class="hint" data-account-phone-status></p></div>
+        <div class="field"><label>当前密码</label><input name="currentPassword" type="password" autocomplete="current-password" minlength="8"><p class="hint">修改邮箱或手机号时必须填写；仅修改用户名可留空。</p></div>
+        <button class="btn" type="submit">保存账号</button><div class="message" data-account-message></div>
       </form></div>
     </div>
 
@@ -92,7 +105,7 @@ a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}b
 
     <div class="section" data-section="sessions">
       <div class="section-head"><div><h1>登录设备</h1><p>查看和撤销当前账号的登录会话。</p></div></div>
-      <div class="panel"><h2>设备列表</h2><div class="panel-body"><div class="session-list" data-session-list></div></div></div>
+      <div class="panel"><h2>设备列表</h2><div class="panel-body"><button class="btn danger" data-revoke-other-sessions type="button">退出其他设备</button><div class="session-list" data-session-list></div></div></div>
     </div>
 
     <div class="section" data-section="preferences">
@@ -107,29 +120,57 @@ a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}b
     </div>
 
     <div class="section" data-section="learning">
-      <div class="section-head"><div><h1>学习空间</h1><p>保留真实接口位置，后续接入学习记录、收藏和推荐。</p></div></div>
-      <div class="panel"><h2>学习记录</h2><div class="panel-body"><div class="reserved" data-progress-box>正在读取...</div></div></div>
-      <div class="panel"><h2>收藏</h2><div class="panel-body"><div class="reserved" data-favorites-box>正在读取...</div></div></div>
+      <div class="section-head"><div><h1>学习空间</h1><p>查看真实学习进度、最近阅读和收藏内容。</p></div></div>
+      <div class="panel"><h2>学习概览</h2><div class="panel-body"><div class="learning-summary" data-learning-summary>正在读取...</div></div></div>
+      <div class="panel"><h2>继续学习</h2><div class="panel-body"><div class="learning-list" data-resume-box>正在读取...</div></div></div>
+      <div class="panel"><h2>节点进度</h2><div class="panel-body"><div class="learning-list" data-progress-box>正在读取...</div></div></div>
+      <div class="panel"><h2>最近阅读</h2><div class="panel-body"><div class="learning-list" data-recent-box>正在读取...</div></div></div>
+      <div class="panel"><h2>收藏</h2><div class="panel-body"><div class="learning-list" data-favorites-box>正在读取...</div></div></div>
+    </div>
+
+    <div class="section" data-section="privacy">
+      <div class="section-head"><div><h1>隐私与数据</h1><p>查看当前协议与同意状态。</p></div></div>
+      <div class="panel"><h2>服务协议与隐私政策</h2><form class="panel-body" data-privacy-consent-form>
+        <p class="hint"><a href="#" data-settings-legal>点击查看具体协议</a></p>
+        <label><input name="privacyPolicy" type="checkbox"> 我同意当前版本的服务协议与隐私政策</label>
+        <p class="hint" data-privacy-policy-version>正在读取政策版本...</p>
+        <div class="message" data-privacy-consent-message></div>
+      </form></div>
     </div>
 
     <div class="section" data-section="workflows">
       <div class="section-head"><div><h1>工作流</h1><p>为 Agent 模块预留专属工作流管理入口。</p></div></div>
-      <div class="panel"><h2>我的工作流</h2><div class="panel-body"><div class="reserved" data-workflows-box>正在读取...</div></div></div>
+      <div class="panel"><h2>我的工作流</h2><div class="panel-body"><div class="empty-list" data-workflows-box>正在读取...</div></div></div>
     </div>
   </section>
 </main>
 
-<div class="crop-overlay" data-crop-panel>
+<div class="crop-overlay" data-crop-panel role="dialog" aria-modal="true" aria-labelledby="cropTitle" aria-hidden="true">
   <div class="crop-dialog">
-    <div class="crop-head"><strong>调整头像</strong><button data-crop-close type="button">×</button></div>
+    <div class="crop-head"><strong id="cropTitle">调整头像</strong><button data-crop-close type="button" aria-label="关闭头像裁剪">×</button></div>
     <div class="crop-body">
       <canvas class="crop-canvas" data-crop-canvas width="512" height="512"></canvas>
-      <input data-crop-zoom type="range" min="1" max="3" step="0.01" value="1">
+      <input data-crop-zoom type="range" min="1" max="3" step="0.01" value="1" aria-label="头像缩放比例">
       <div class="crop-actions"><button class="btn subtle" data-crop-close type="button">取消</button><button class="btn" data-crop-confirm type="button">使用头像</button></div>
       <div class="message" data-crop-message></div>
     </div>
   </div>
 </div>
+
+<dialog class="confirm-dialog" data-confirm-dialog aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+  <div class="confirm-body">
+    <h2 id="confirmTitle" data-confirm-title>确认操作</h2>
+    <p id="confirmMessage" data-confirm-message></p>
+    <div class="confirm-actions">
+      <button class="btn subtle" data-confirm-cancel type="button">取消</button>
+      <button class="btn danger" data-confirm-accept type="button">确认</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog class="confirm-dialog" data-settings-legal-dialog aria-labelledby="settingsLegalTitle">
+  <div class="confirm-body"><h2 id="settingsLegalTitle">服务协议与隐私政策</h2><p><strong>版本：2026-07-01。</strong>使用账号服务时，请遵守法律法规，不得利用本站干扰服务、侵害他人权益或提交违法内容。本站可为安全、维护或合规需要限制异常账号与会话。</p><p>为提供账号、学习记录与个性化功能，本站会处理账号资料、头像、登录设备与会话信息，以及你主动产生的学习进度、收藏和工作流数据；这些信息仅用于身份验证、功能交付、安全审计与故障排查，不出售个人信息。</p><p>密码以不可逆安全散列保存，刷新令牌通过 HttpOnly Cookie 管理。数据按业务与安全需要保留；你可在本页查询同意状态、导出数据、申请注销或撤回同意。撤回后需在登录时重新同意当前版本。</p><div class="confirm-actions"><button class="btn" data-settings-legal-close type="button">我已了解</button></div></div>
+</dialog>
 
 <script type="module" src="assets/js/settings.js"></script>
 </body>
