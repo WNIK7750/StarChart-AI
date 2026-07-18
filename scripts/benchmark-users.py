@@ -12,8 +12,12 @@ from app.users.authentication.repositories.sqlite import SQLiteAuthenticationRep
 from app.users.authentication.service import AuthenticationService, RequestContext
 from app.users.authentication.rate_limit import SQLiteAuthRateLimitRepository
 from app.users.assets.repositories.sqlite import SQLiteAssetsRepository
+from app.users.audit.repositories.sqlite import SQLiteAuditRepository
+from app.users.audit.service import AuditService
 from app.users.preferences.repositories.sqlite import SQLitePreferencesRepository
 from app.users.preferences.service import PreferencesService
+from app.users.privacy.repositories.sqlite import SQLitePrivacyRepository
+from app.users.privacy.service import PrivacyService
 from app.users.profile.repositories.sqlite import SQLiteProfileRepository
 from app.users.profile.service import ProfileService
 from app.users.sessions.repositories.sqlite import SQLiteSessionsRepository
@@ -23,9 +27,9 @@ from app.users.sessions.service import SessionsService
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE_DIR = ROOT / "docs" / "users-baseline"
 BUDGETS = {
-    "auth.login": {"p95Ms": 250.0, "maxStatements": 7},
+    "auth.login": {"p95Ms": 250.0, "maxStatements": 8},
     "auth.current_user_from_token": {"p95Ms": 10.0, "maxStatements": 1},
-    "auth.refresh_rotate": {"p95Ms": 25.0, "maxStatements": 4},
+    "auth.refresh_rotate": {"p95Ms": 25.0, "maxStatements": 5},
     "auth.rate_limit.consume": {"p95Ms": 15.0, "maxStatements": 3},
     "users.profile.get": {"p95Ms": 10.0, "maxStatements": 1},
     "users.preferences.get": {"p95Ms": 10.0, "maxStatements": 1},
@@ -163,7 +167,9 @@ def main() -> None:
         user_id, anchor_connection = seed(database_path)
         counter = QueryCounter()
         factory = connect_factory(database_path, counter)
-        auth = AuthenticationService(SQLiteAuthenticationRepository(factory))
+        audit = AuditService(SQLiteAuditRepository(factory))
+        privacy = PrivacyService(SQLitePrivacyRepository(factory))
+        auth = AuthenticationService(SQLiteAuthenticationRepository(factory), audit, privacy)
         profile = ProfileService(SQLiteProfileRepository(factory))
         preferences = PreferencesService(SQLitePreferencesRepository(factory))
         sessions = SessionsService(SQLiteSessionsRepository(factory))
