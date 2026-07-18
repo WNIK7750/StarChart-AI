@@ -1,0 +1,9 @@
+{
+  "roadmap": ["domains", "difficultyLevels", "nodes", "edges", "domainNodes", "viewBox", "meta"],
+  "roadmapEdge": ["fromSlug", "toSlug", "pathD", "lineType", "relationType"],
+  "node": ["node", "mainMaterial", "overview", "outline", "resources", "tags", "stats", "navigation", "relations", "meta"],
+  "section": ["sectionId", "sectionUid", "chapterNo", "sectionNo", "title", "description", "durationMinutes", "sourceUrl"],
+  "relations": ["prerequisites", "recommendedNext", "related"],
+  "userNodeState": ["nodeSlug", "progress", "sections", "summary", "meta"],
+  "sectionProgress": ["section", "progress", "summary"]
+}
