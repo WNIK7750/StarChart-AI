@@ -10,8 +10,12 @@ from app.core.security import hash_password, hash_token
 from app.db.database import apply_migrations, dict_factory
 from app.users.authentication.repositories.sqlite import SQLiteAuthenticationRepository
 from app.users.authentication.service import AuthenticationService, RequestContext
+from app.users.audit.repositories.sqlite import SQLiteAuditRepository
+from app.users.audit.service import AuditService
 from app.users.preferences.repositories.sqlite import SQLitePreferencesRepository
 from app.users.preferences.service import PreferencesService
+from app.users.privacy.repositories.sqlite import SQLitePrivacyRepository
+from app.users.privacy.service import PrivacyService
 from app.users.profile.repositories.sqlite import SQLiteProfileRepository
 from app.users.profile.service import ProfileService
 from app.users.sessions.repositories.sqlite import SQLiteSessionsRepository
@@ -119,11 +123,14 @@ def auth_users_openapi() -> dict:
 
 
 def response_samples(database_path: Path, user_id: int) -> dict:
+    connect = connection_factory(database_path)
+    audit = AuditService(SQLiteAuditRepository(connect))
+    privacy = PrivacyService(SQLitePrivacyRepository(connect))
     services = {
-        "auth": AuthenticationService(SQLiteAuthenticationRepository(connection_factory(database_path))),
-        "profile": ProfileService(SQLiteProfileRepository(connection_factory(database_path))),
-        "preferences": PreferencesService(SQLitePreferencesRepository(connection_factory(database_path))),
-        "sessions": SessionsService(SQLiteSessionsRepository(connection_factory(database_path))),
+        "auth": AuthenticationService(SQLiteAuthenticationRepository(connect), audit, privacy),
+        "profile": ProfileService(SQLiteProfileRepository(connect)),
+        "preferences": PreferencesService(SQLitePreferencesRepository(connect)),
+        "sessions": SessionsService(SQLiteSessionsRepository(connect)),
     }
     context = RequestContext(ip_address="127.0.0.1", user_agent="contract-freeze")
     login = services["auth"].login({"identifier": "contract_user", "password": "Current123", "deviceName": "contract", "privacyAccepted": True}, context)
