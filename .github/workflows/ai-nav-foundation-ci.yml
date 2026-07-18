@@ -1,4 +1,4 @@
-name: AI Nav Non-Agent Foundation CI
+name: AI 知识导航地基验收
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
       - "ai-nav-fullstack/tests/**"
       - ".github/workflows/ai-nav-foundation-ci.yml"
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "ai-nav-fullstack/backend/**"
       - "ai-nav-fullstack/database/**"
@@ -40,12 +40,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install backend dependencies
+      - name: 安装后端依赖
         shell: pwsh
         run: |
           python -m venv .venv
           .\.venv\Scripts\python.exe -m pip install --upgrade pip
           .\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-      - name: Verify non-Agent foundation
+      - name: 验证公共功能地基
         shell: pwsh
         run: .\scripts\verify-foundation.ps1
+      - name: 验证 Agent 地基
+        shell: pwsh
+        run: .\scripts\verify-agent.ps1

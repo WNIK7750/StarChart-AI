@@ -3,7 +3,10 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 $env:PYTHONPATH = "backend"
-& .\.venv\Scripts\python.exe -m unittest discover -s tests -v
+& .\.venv\Scripts\python.exe -m unittest -v `
+  tests.test_learning_services `
+  tests.test_content_governance `
+  tests.test_platform_navigation
 if ($LASTEXITCODE -ne 0) { throw "Learning unit tests failed." }
 
 $pythonFiles = Get-ChildItem backend -Recurse -Filter *.py | ForEach-Object FullName
