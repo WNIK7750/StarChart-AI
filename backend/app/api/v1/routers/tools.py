@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query
 
-from app.services.tool_catalog import (
+from app.tools.service import (
+    catalog_snapshot,
     latest_tools,
     list_categories,
     list_tools,
@@ -9,6 +10,11 @@ from app.services.tool_catalog import (
 )
 
 router = APIRouter(prefix="/tools", tags=["tools"])
+
+
+@router.get("/catalog")
+def get_tool_catalog_snapshot():
+    return catalog_snapshot()
 
 
 @router.get("/categories")

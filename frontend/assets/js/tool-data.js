@@ -1,7 +1,7 @@
 // Tool facts: one canonical record per tool; category display entries live in placements.
 (function () {
   window.AINavToolData = {
-  "version": 2,
+    "version": 3,
   "categories": [
     {
       "id": "chat",
@@ -591,6 +591,7 @@
       "aliases": [],
       "description": "字节系中文写作与纠错工具，适合日常办公表达。",
       "mark": "HS",
+      "publicationStatus": "archived",
       "url": "https://www.writingo.net/",
       "icon": "assets/icons/tools/火山写作.svg",
       "iconFallbacks": [
@@ -617,7 +618,7 @@
       "aliases": [],
       "description": "短文案、脚本和视频创作辅助工具，适合内容运营。",
       "mark": "WC",
-      "url": "https://www.animiz.cn/ai/",
+      "url": "https://www.animiz.cn/",
       "icon": "assets/icons/tools/万彩-ai.ico",
       "iconFallbacks": [
         "https://icons.duckduckgo.com/ip3/www.animiz.cn.ico",
@@ -1279,11 +1280,11 @@
       "aliases": [],
       "description": "腾讯云智能编程工具，适合云开发和 IDE 辅助。",
       "mark": "CB",
-      "url": "https://copilot.tencent.com/",
+      "url": "https://cloud.tencent.com.cn/product/acc",
       "icon": "assets/icons/tools/codebuddy.svg",
       "iconFallbacks": [
-        "https://icons.duckduckgo.com/ip3/copilot.tencent.com.ico",
-        "https://copilot.tencent.com/favicon.ico"
+        "https://icons.duckduckgo.com/ip3/cloud.tencent.com.cn.ico",
+        "https://cloud.tencent.com.cn/favicon.ico"
       ]
     },
     {
@@ -1551,6 +1552,7 @@
       "aliases": [],
       "description": "AI 故事化演示和文档生成平台。",
       "mark": "TM",
+      "publicationStatus": "archived",
       "url": "https://tome.app/",
       "icon": "assets/icons/tools/tome.png",
       "iconFallbacks": [
@@ -2634,9 +2636,9 @@
     {
       "toolId": "sentry",
       "categoryId": "code",
-      "subcategory": "????",
+      "subcategory": "测试运维",
       "heat": 61,
-      "tag": "??"
+      "tag": "监控"
     },
     {
       "toolId": "microsoft-copilot",

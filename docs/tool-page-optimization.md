@@ -1,182 +1,90 @@
-# 工具页优化方案与地基规划
+# 工具区优化与维护指南
 
-> 目标：在不改变前端样式、不改变用户使用体验的前提下，整理工具页的运行结构、数据边界和后续 Agent 可复用的数据地基。
+## 1. 定位
 
-## 1. 当前优化边界
+Tools 是模块化单体中的一个内聚功能域，为 Web、站内搜索和未来 Agent 提供统一的工具事实、分类关系、运营位与检索能力。
 
-本轮优化遵守以下边界：
+本项目体量下不拆分 catalog、category、collection、link 或 capability 微服务。默认结构保持：
 
-- 不修改工具页视觉样式，不调整 CSS 变量、布局尺寸、动画表现和交互节奏。
-- 不改变用户路径：顶部搜索、Hero 搜索、分类跳转、左侧分区、工具卡片跳转、最新推荐滚动保持原体验。
-- 不新增虚假数据，不把展示列表和工具事实数据混在一起。
-- 优先降低维护风险：把工具页运行逻辑从 HTML 内联脚本中分离出来，避免多个同名渲染函数互相覆盖。
+```text
+router -> service -> repository -> SQLite
+```
 
-## 2. 页面结构目标
+只有出现真实外部系统或多种存储实现时，才增加适配器或 port。
 
-工具页应保持清晰分层：
+## 2. 所有权
 
-| 层级 | 文件/模块 | 职责 |
+| 内容 | 所有者 | 消费方 |
 | --- | --- | --- |
-| 页面结构 | `frontend/tools.html` | 承载 HTML 结构、CSS 样式和静态容器 |
-| 工具事实数据 | `frontend/assets/js/tool-data.js` | 维护工具唯一事实：名称、官网、描述、图标、分类关系等 |
-| 页面展示列表 | `frontend/assets/js/tool-page-lists.js` | 维护工具页运营列表，例如最新推荐 |
-| 页面运行逻辑 | `frontend/assets/js/tools-page.js` | 渲染工具页、分类、分页、图标兜底、页面内筛选 |
-| 全站搜索 | `frontend/assets/js/site-search.js` | 维护全站统一搜索入口 |
-| 数据审计 | `scripts/audit-tool-data.mjs` | 检查重复工具、缺失图标、孤儿图标、推荐列表缺失等 |
+| 工具名称、别名、描述、官网、图标、免费标记 | Tools | Web、Search、Agent |
+| 分类和子分类 | Tools | Web、Search、Agent |
+| 工具在分类中的 placement、热度和标签 | Tools | Web、Search、Agent |
+| 最新上架运营位 | Tools | Web、Agent |
+| 用户的免费优先、国内优先偏好 | Users | Tools/Web 只读消费 |
+| 推荐解释、对话、计划和确认 | Agent | Web |
 
-## 3. 数据管理原则
+Agent 不读取工具页 DOM、不导入前端迁移快照、不查询 Tools 表。它通过 `app.tools.service` 的只读能力获取事实，并在 Agent 自己的编排层生成解释。
 
-工具数据必须遵循“一处事实、多处引用”：
+## 3. 当前运行链路
 
-- 一个工具只能有一份事实记录。
-- 工具名称、官网 URL、图标路径、描述、厂商、能力标签、访问性等信息统一维护。
-- 是否出现在某个分区、是否进入最新推荐、是否进入热门推荐，属于展示关系或运营列表，不写回工具事实本身。
-- 工具页、搜索页、后续 Agent 都应读取同一份工具目录数据。
+- 数据库是运行时唯一事实源。
+- `backend/app/tools` 负责读取、聚合、搜索和工作流候选。
+- `backend/app/api/v1/routers/tools.py` 只做 HTTP 参数与响应映射。
+- `frontend/assets/js/tools-page.js` 是工具页唯一渲染入口。
+- `frontend/assets/js/site-search.js` 优先读取 Tools API，不维护第二份工具目录。
+- `tool-data.js` 和 `tool-page-lists.js` 只保留为历史目录迁移输入及对账基线，不被运行时页面加载。
 
-## 4. 本轮结构优化
+## 4. 数据结构
 
-本轮已经将工具页运行逻辑外置为：
+- `ai_tools`：工具事实和兼容字段。
+- `tool_categories` / `tool_subcategories`：分类事实。
+- `tool_placements`：多分类展示关系、热度和标签。
+- `tool_latest_slots`：最新上架运营位。
 
-```text
-frontend/assets/js/tools-page.js
+暂不继续拆 aliases、icons、links、capabilities 子表。当前 JSON 字段和 placement 标签足以支撑项目规模；后续只有在独立维护、查询或权限需求出现时再规范化。
+
+## 5. 目录更新流程
+
+已执行的迁移必须保持不可变。`010_tool_catalog_source_of_truth.sql` 是初始全量迁移，不能重新生成覆盖。
+
+更新工具目录时：
+
+1. 修改迁移输入快照并运行静态审计。
+2. 使用一个高于现有版本的新文件生成迁移，例如：
+
+```powershell
+python scripts/generate-tool-catalog-migration.py --output database/migrations/013_tool_catalog_refresh.sql
 ```
 
-它负责：
+3. 检查生成 diff，确认失活、placement 和最新运营位变化符合预期。
+4. 在临时数据库执行全部迁移。
+5. 运行 `verify-tools.ps1` 和运行时字段级对账。
 
-- 从 `window.AINavToolData` 读取工具事实。
-- 从 `window.AINavToolPageLists` 读取最新推荐列表。
-- 根据分类和展示关系渲染工具分区。
-- 维持每个分区 12 个工具一页的分页体验。
-- 维持左侧分区导航、子分类筛选、顶部/页面搜索、免费优先筛选。
-- 使用本地图标优先，失败后走 favicon 兜底，最后回退到文字标识。
+生成器拒绝覆盖已有迁移，也不再把 136/138 固定为永久业务规则。
 
-`tools.html` 保留页面结构与样式，运行逻辑通过外部脚本加载，减少 HTML 内联代码负担。
+## 6. 前端规则
 
-## 5. 当前仍需继续处理的问题
+- 分类、卡片、最新运营位和免费状态来自 `/api/v1/tools/catalog`。
+- API 不可用时显示明确错误和重试，不静默加载旧快照。
+- URL 中的 `q` 参数由工具页在 catalog 就绪后应用，不能依赖固定延时派发事件。
+- 页面中的多个同义筛选入口必须共享一个状态并同步 `aria-pressed`。
+- “免费优先”只依据 Tools 的 `isFree` 事实，不把“国产”或“中文”混入免费语义。
 
-### 5.1 前端遗留代码
+## 7. Agent 演进边界
 
-`tools.html` 中仍有历史内联运行代码被归档为非执行脚本块。它不再参与运行，但后续验证稳定后应彻底删除，避免维护者误读。
+当前保留 `search_tools`、`workflow_suggestions` 和紧凑 Agent context 作为只读地基。后续 Agent 阶段可以增加稳定 schema、引用与评估集，但遵循：
 
-### 5.2 后端不是工具目录唯一数据源
+- Tools 返回事实和确定性排序，不保存会话。
+- Agent 负责意图理解、组合、解释和确认。
+- 用户工作流保存走 Users Assets，不写回 Tools。
+- 不为了未来可能性提前创建多个空服务或 provider 层。
 
-当前前端工具页主要依赖 `tool-data.js`。这比散落在 HTML 中好很多，但还不是企业级最终形态。
+## 8. 验收
 
-后续应让后端数据库成为唯一事实来源，前端通过 API 获取工具目录。
-
-### 5.3 搜索字段还不够 Agent 化
-
-当前工具搜索主要依赖名称、描述、分类。后续需要补充：
-
-- `aliases`：别名、英文名、中文别称、拼音。
-- `keywords`：能力关键词。
-- `capabilities`：结构化能力标签。
-- `input_types` / `output_types`：输入输出类型。
-- `best_for`：适用场景。
-- `cn_accessible`：中国内网可访问性。
-- `pricing_type`：免费、订阅、按量、开源等。
-- `risk_flags`：隐私、版权、商用限制、外网依赖等。
-
-## 6. 后续数据库建议
-
-建议把工具目录重构成以下结构：
-
-| 表 | 职责 |
-| --- | --- |
-| `ai_tools` | 工具唯一事实表 |
-| `tool_categories` | 一级分类 |
-| `tool_subcategories` | 二级分类 |
-| `tool_placements` | 工具在分类/子分类中的展示关系 |
-| `tool_aliases` | 工具别名与搜索词 |
-| `tool_keywords` | 工具能力关键词 |
-| `tool_icons` | 图标资产、来源和兜底策略 |
-| `tool_collections` | 最新推荐、热门推荐、Agent 精选等运营列表 |
-| `tool_collection_items` | 运营列表与工具的关系 |
-| `tool_links` | 官网、文档、教程、国内镜像等链接 |
-| `tool_capabilities` | 工具能力结构化标签 |
-
-关键原则：工具事实、分类关系、运营推荐列表必须分开。
-
-## 7. 后续 API 建议
-
-工具页和 Agent 后续应共用这些 API：
-
-```text
-GET /api/v1/tools/catalog
-GET /api/v1/tools/search?q=豆包
-GET /api/v1/tools/categories
-GET /api/v1/tools/collections/latest
-GET /api/v1/tools/{slug}
+```powershell
+.\scripts\verify-tools.ps1
+$env:AI_NAV_BASE_URL='http://127.0.0.1:8094'
+node scripts/audit-tool-data.mjs
 ```
 
-前端工具页只负责展示，Agent 只负责推理和调用，二者都不直接维护独立工具数据。
-
-## 8. Agent 地基要求
-
-后续 Agent 不应该抓取工具页 DOM，也不应该读取页面内临时数组。
-
-Agent 应使用稳定的工具目录服务：
-
-- 工具检索：按名称、别名、能力、场景、中文可访问性检索。
-- 工作流生成：根据任务目标组合工具。
-- 站内跳转：根据工具、学习节点、工作流 ID 返回明确链接。
-- 解释能力：说明为什么推荐某工具、适合什么场景、不适合什么场景。
-- 容错能力：工具缺失、链接不可用、外网不可访问时给替代方案。
-
-## 9. 推荐推进顺序
-
-1. 清理工具页遗留内联脚本，只保留外置运行脚本。
-2. 扩充 `tool-data.js` 中的别名、关键词、可访问性和能力字段。
-3. 把 `audit-tool-data.mjs` 纳入每次提交前检查。
-4. 重构数据库工具目录表。
-5. 编写后端 catalog/search/collections API。
-6. 让工具页改为读取后端 API，并保留本地 JSON 作为开发兜底。
-7. 让 Agent 读取同一套工具目录 API，开始做工具推荐和工作流生成。
-
-## 10. 当前验收标准
-
-工具页优化后应满足：
-
-- 页面视觉无明显变化。
-- 顶部导航、左侧导航、分类筛选、分页、搜索和工具跳转可用。
-- 工具卡片没有空链接。
-- 图标没有加载失败。
-- 工具数据审计通过。
-- 后续维护者能从文档、数据文件和运行脚本中清楚判断每一层职责。
-## 11. Agent 地基当前落地状态
-
-本轮已把工具页从“前端展示数据”推进到“后端可复用工具知识服务”：
-
-| 层级 | 文件/模块 | 职责 |
-| --- | --- | --- |
-| 工具目录服务 | `backend/app/services/tool_catalog.py` | 读取统一工具事实源，构建工具索引、搜索排序、推荐、工作流候选 |
-| 工具 API | `backend/app/api/v1/routers/tools.py` | 提供分类、列表、搜索、最新推荐、工作流和 Agent 上下文接口 |
-| Agent 工具适配 | `backend/app/agent/tools/catalog_tools.py` | 把工具搜索结果转换为 Agent 可用的站内安全卡片 |
-| Agent 占位服务 | `backend/app/agent/service.py` | 在未接入 LLM 前，先能基于工具目录返回卡片和工作流步骤 |
-| Agent 输出守卫 | `backend/app/agent/evaluator.py` | 限制 Agent 卡片链接只能指向已允许的站内页面 |
-| 前端搜索 | `frontend/assets/js/site-search.js` | 优先调用后端 `/tools/search`，后端不可用时回退本地索引 |
-
-新增/稳定接口：
-
-```text
-GET /api/v1/tools/search?q=企业级&limit=7
-GET /api/v1/tools/agent-context?q=论文&limit=5
-GET /api/v1/tools/workflows?q=代码
-GET /api/v1/tools/latest?limit=8
-GET /api/v1/tools/categories
-GET /api/v1/tools
-```
-
-低耦合约束：
-
-- Agent 不读取 `tools.html` DOM，不依赖 `tools-page.js` 的渲染函数，只通过 `backend/app/services/tool_catalog.py` 和工具 API 获取结构化工具知识。
-- 工具页不嵌入 Agent 推理逻辑，前端只调用 `/api/v1/tools/search` 等接口并保留本地兜底。
-- 后续接入 LLM 时，只替换或扩展 `backend/app/agent/service.py` 内的编排层，不改工具页展示层。
-- Agent 输出链接经过 `backend/app/agent/evaluator.py` 过滤，只允许跳转到站内白名单页面，避免模型输出污染导航。
-
-当前边界：
-
-- 路由层不再维护工具事实，避免 API 和前端数据分裂。
-- 搜索排序在服务层集中维护，前端只负责展示。
-- Agent 不抓 DOM，不复制前端逻辑，只调用工具目录适配层。
-- 现在仍以 `tool-data.js` 作为过渡期事实源；后续应迁移到数据库表，并保持同样的服务接口不变。
+验收覆盖迁移完整性、生成器确定性、不可变基线、字段级运行时对账、图标与 URL、搜索、免费筛选、前端语法和浏览器交互。

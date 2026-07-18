@@ -8,8 +8,7 @@ INSERT INTO navigation_items(code, label, href, sort_order) VALUES
 ('home', '主页', 'index.html', 10),
 ('learn', '学习', 'learn.html', 20),
 ('tools', '工具', 'tools.html', 30),
-('assistant', '助手', '#assistant', 40),
-('about', '关于', '#about', 50);
+('assistant', '助手', 'assistant.html', 40);
 
 INSERT INTO difficulty_levels(code, name, color, sort_order) VALUES
 ('intro', '入门', '#16C76F', 10),
