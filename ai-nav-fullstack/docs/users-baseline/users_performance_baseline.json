@@ -1,0 +1,144 @@
+{
+  "passed": true,
+  "operations": [
+    {
+      "operation": "auth.login",
+      "sampleCount": 10,
+      "p50Ms": 76.736,
+      "p95Ms": 78.109,
+      "maxMs": 90.169,
+      "p50Statements": 7.0,
+      "maxStatements": 7,
+      "budget": {
+        "p95Ms": 250.0,
+        "maxStatements": 7
+      },
+      "withinBudget": true
+    },
+    {
+      "operation": "auth.current_user_from_token",
+      "sampleCount": 50,
+      "p50Ms": 0.045,
+      "p95Ms": 0.063,
+      "maxMs": 0.217,
+      "p50Statements": 1.0,
+      "maxStatements": 1,
+      "budget": {
+        "p95Ms": 10.0,
+        "maxStatements": 1
+      },
+      "withinBudget": true
+    },
+    {
+      "operation": "auth.refresh_rotate",
+      "sampleCount": 50,
+      "p50Ms": 4.868,
+      "p95Ms": 5.332,
+      "maxMs": 6.41,
+      "p50Statements": 4.0,
+      "maxStatements": 4,
+      "budget": {
+        "p95Ms": 25.0,
+        "maxStatements": 4
+      },
+      "withinBudget": true
+    },
+    {
+      "operation": "auth.rate_limit.consume",
+      "sampleCount": 50,
+      "p50Ms": 0.052,
+      "p95Ms": 0.072,
+      "maxMs": 0.185,
+      "p50Statements": 3.0,
+      "maxStatements": 3,
+      "budget": {
+        "p95Ms": 15.0,
+        "maxStatements": 3
+      },
+      "withinBudget": true
+    },
+    {
+      "operation": "users.profile.get",
+      "sampleCount": 50,
+      "p50Ms": 0.032,
+      "p95Ms": 0.04,
+      "maxMs": 0.054,
+      "p50Statements": 1.0,
+      "maxStatements": 1,
+      "budget": {
+        "p95Ms": 10.0,
+        "maxStatements": 1
+      },
+      "withinBudget": true
+    },
+    {
+      "operation": "users.preferences.get",
+      "sampleCount": 50,
+      "p50Ms": 0.033,
+      "p95Ms": 0.036,
+      "maxMs": 0.05,
+      "p50Statements": 1.0,
+      "maxStatements": 1,
+      "budget": {
+        "p95Ms": 10.0,
+        "maxStatements": 1
+      },
+      "withinBudget": true
+    },
+    {
+      "operation": "users.sessions.list",
+      "sampleCount": 50,
+      "p50Ms": 0.147,
+      "p95Ms": 0.166,
+      "maxMs": 0.228,
+      "p50Statements": 2.0,
+      "maxStatements": 2,
+      "budget": {
+        "p95Ms": 15.0,
+        "maxStatements": 2
+      },
+      "withinBudget": true
+    },
+    {
+      "operation": "users.assets.workflows.list",
+      "sampleCount": 50,
+      "p50Ms": 0.063,
+      "p95Ms": 0.077,
+      "maxMs": 0.115,
+      "p50Statements": 2.0,
+      "maxStatements": 2,
+      "budget": {
+        "p95Ms": 15.0,
+        "maxStatements": 2
+      },
+      "withinBudget": true
+    }
+  ],
+  "queryPlans": [
+    {
+      "operation": "users.sessions.list",
+      "expectedIndex": "idx_user_sessions_user",
+      "plan": [
+        "SEARCH user_sessions USING INDEX idx_user_sessions_user (user_id=?)",
+        "USE TEMP B-TREE FOR LAST 2 TERMS OF ORDER BY"
+      ],
+      "passed": true
+    },
+    {
+      "operation": "users.assets.workflows.list",
+      "expectedIndex": "idx_user_saved_workflows_list",
+      "plan": [
+        "SEARCH user_saved_workflows USING INDEX idx_user_saved_workflows_list (user_id=? AND status=?)"
+      ],
+      "passed": true
+    },
+    {
+      "operation": "auth.rate_limit.expiry",
+      "expectedIndex": "idx_user_auth_rate_limits_expiry",
+      "plan": [
+        "SEARCH user_auth_rate_limits USING INDEX idx_user_auth_rate_limits_expiry (expires_at<?)"
+      ],
+      "passed": true
+    }
+  ]
+}

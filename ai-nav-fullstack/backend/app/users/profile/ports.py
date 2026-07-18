@@ -1,0 +1,9 @@
+from typing import Protocol
+
+
+class ProfileRepository(Protocol):
+    def get_profile(self, user_id: int) -> dict | None: ...
+
+    def update_profile(self, user_id: int, values: dict, expected_version: int) -> tuple[dict | None, bool]: ...
+
+    def update_avatar(self, user_id: int, avatar_url: str) -> tuple[str | None, dict]: ...

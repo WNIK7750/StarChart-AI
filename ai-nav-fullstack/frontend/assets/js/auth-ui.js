@@ -1,14 +1,28 @@
 import {
-  apiGet,
-  apiPost,
   clearAuthTokens,
   getAccessToken,
-  getRefreshToken,
   saveAuthTokens,
 } from "./api.js";
+import {
+  confirmSecurityPasswordReset,
+  getCurrentUser,
+  getUserProfile,
+  loginUser,
+  logoutUser,
+  registerUser,
+  startSecurityPasswordReset,
+  verifySecurityPasswordReset,
+} from "./users-api.js";
+import {
+  getRecentAvatarUrl,
+  hasRememberedPrivacyConsent,
+  rememberPrivacyConsent,
+  rememberRecentAvatar,
+} from "./auth-local-state.js";
 
 const AUTH_STYLE_ID = "ai-nav-auth-style";
 const AUTH_PANEL_ID = "authPanel";
+const DEFAULT_AUTH_AVATAR = "assets/img/logo.png";
 
 let resetState = {
   uid: "",
@@ -31,13 +45,14 @@ function injectStyles() {
   style.textContent = `
     .auth-overlay{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(10,10,15,.32);backdrop-filter:blur(12px)}
     .auth-overlay.open{display:flex}
-    .auth-dialog{width:min(420px,100%);max-height:min(720px,calc(100vh - 48px));overflow:auto;border:1px solid #d8dee4;border-radius:10px;background:#fff;box-shadow:0 16px 40px rgba(31,35,40,.16)}
-    .auth-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #d8dee4}
-    .auth-head strong{font-size:18px}.auth-close{width:30px;height:30px;border-radius:7px;background:#f6f8fa}
-    .auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 16px 0}.auth-tabs button{height:36px;border-radius:8px;background:#f6f8fa;color:#57606a;font-weight:750}.auth-tabs button.active{background:#24292f;color:#fff}
-    .auth-form{display:none;padding:14px 16px 18px}.auth-form.active{display:grid;gap:12px}
-    .auth-field{display:grid;gap:6px}.auth-field label{font-size:13px;color:#57606a;font-weight:650}.auth-field input{width:100%;min-height:38px;border:1px solid #d0d7de;border-radius:8px;padding:0 10px;font:inherit;background:#fff;outline:none}.auth-field input:focus{border-color:#0969da;box-shadow:0 0 0 3px rgba(9,105,218,.12)}
-    .auth-submit{height:40px;border-radius:8px;background:#24292f;color:#fff;font-weight:750}.auth-ghost{height:36px;border-radius:8px;background:#f6f8fa;color:#24292f;font-weight:700}.auth-error{min-height:18px;color:#cf222e;font-size:12px;line-height:1.5}.auth-note{color:#57606a;font-size:12px;line-height:1.7}.auth-line{display:flex;align-items:center;justify-content:space-between;gap:12px}.auth-link{color:#0969da;font-weight:700}
+    .auth-dialog{width:min(460px,100%);max-height:min(780px,calc(100vh - 32px));overflow:auto;border:1px solid rgba(255,255,255,.86);border-radius:24px;background:linear-gradient(145deg,#f8fbff,#ecf7ff);box-shadow:0 30px 80px rgba(25,52,92,.28)}
+    .auth-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 8px}.auth-head strong{font-size:19px;letter-spacing:-.02em}.auth-close{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.72);color:#425466;font-size:22px}
+    .auth-avatar{width:68px;height:68px;margin:0 auto 12px;display:grid;place-items:center;overflow:hidden;border:3px solid #fff;border-radius:50%;background:#fff;box-shadow:0 10px 25px rgba(74,124,196,.24)}.auth-avatar img{width:100%;height:100%;object-fit:cover}
+    .auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 20px;padding:5px;border-radius:14px;background:rgba(255,255,255,.6)}.auth-tabs button{height:38px;border-radius:10px;background:transparent;color:#6d7d8d;font-weight:750}.auth-tabs button.active{background:#fff;color:#1e2b39;box-shadow:0 3px 10px rgba(38,67,100,.1)}
+    .auth-form{display:none;padding:16px 20px 22px}.auth-form.active{display:grid;gap:13px}.auth-field{display:grid;gap:6px}.auth-field label{font-size:13px;color:#526577;font-weight:700}.auth-field input{width:100%;min-height:46px;border:1px solid rgba(119,151,181,.22);border-radius:14px;padding:0 14px;font:inherit;background:rgba(255,255,255,.9);outline:none}.auth-field input:focus{border-color:#299eea;box-shadow:0 0 0 4px rgba(41,158,234,.13)}
+    .auth-submit{height:46px;border-radius:14px;background:linear-gradient(135deg,#66bfff,#55aef1);color:#fff;font-size:16px;font-weight:800;box-shadow:0 10px 22px rgba(52,157,235,.26)}.auth-submit:hover{filter:brightness(.98)}.auth-ghost{height:38px;border-radius:10px;background:rgba(255,255,255,.7);color:#33475b;font-weight:700}.auth-error{min-height:18px;color:#c9435c;font-size:12px;line-height:1.5}.auth-note{color:#66798b;font-size:12px;line-height:1.7}.auth-line{display:flex;align-items:center;justify-content:space-between;gap:12px}.auth-link{color:#2388d2;font-weight:750}
+    .auth-options{display:flex;justify-content:space-between;gap:12px;align-items:center;color:#6b7c8d;font-size:13px}.auth-check{display:inline-flex;align-items:center;gap:7px;cursor:pointer}.auth-check input{width:17px;height:17px;accent-color:#249cf0}.auth-consent{display:flex;align-items:flex-start;gap:8px;color:#657789;font-size:12px;line-height:1.6}.auth-consent input{width:17px;height:17px;flex:0 0 auto;margin-top:2px;accent-color:#249cf0}.auth-consent button{display:inline;color:#167fd0;font-weight:750;text-decoration:underline;text-underline-offset:2px}.auth-consent button:hover{color:#075f9f}
+    .auth-legal{margin:0 20px 20px;padding:18px;border:0;border-radius:16px;background:#fff;color:#31485c;box-shadow:0 12px 35px rgba(37,66,96,.18)}.auth-legal::backdrop{background:rgba(9,23,42,.35);backdrop-filter:blur(4px)}.auth-legal h2{font-size:17px}.auth-legal p{margin-top:10px;font-size:13px;line-height:1.75;color:#5c7184}.auth-legal .auth-ghost{width:100%;margin-top:14px}
     .reset-questions{display:grid;gap:12px}
     .user-menu{position:relative}.user-menu-btn{height:34px;display:inline-flex;align-items:center;gap:7px;padding:0 7px;border-radius:8px;background:transparent;color:#24292f;font-weight:700;white-space:nowrap;transition:background .16s,color .16s}.user-menu-btn:hover{background:rgba(31,35,40,.06)}.user-menu-btn.login-only{min-width:66px;justify-content:center;padding:0 12px;background:#24292f;color:#fff;font-weight:750;border-radius:8px}.user-menu-btn.login-only:hover{background:#32383f}.user-avatar{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#7c5cff,#5ee0ff);font-size:12px;overflow:hidden;border:1px solid rgba(31,35,40,.10)}.user-avatar img{width:100%;height:100%;object-fit:cover}
     .user-popover{position:absolute;right:0;top:40px;width:276px;z-index:80;display:none;border:1px solid #d8dee4;border-radius:8px;background:#fff;box-shadow:0 12px 28px rgba(31,35,40,.12);overflow:hidden;font-size:13px;line-height:1.35}.user-menu.open .user-popover{display:block}
@@ -55,23 +70,27 @@ function authPanel() {
   panel.className = "auth-overlay";
   panel.innerHTML = `
     <div class="auth-dialog" role="dialog" aria-modal="true" aria-label="账号">
-      <div class="auth-head"><strong>账号</strong><button class="auth-close" data-auth-close type="button">×</button></div>
+      <div class="auth-head"><strong>账号</strong><button class="auth-close" data-auth-close type="button" aria-label="关闭登录窗口">×</button></div>
+      <div class="auth-avatar" aria-hidden="true"><img data-auth-avatar src="${DEFAULT_AUTH_AVATAR}" alt=""></div>
       <div class="auth-tabs" data-auth-tabs>
         <button class="active" data-auth-tab="login" type="button">登录</button>
         <button data-auth-tab="register" type="button">注册</button>
       </div>
-      <form class="auth-form active" data-auth-form="login">
+      <form class="auth-form active" data-auth-form="login" novalidate>
         <div class="auth-field"><label>用户名 / 邮箱 / 手机</label><input name="identifier" autocomplete="username" required></div>
         <div class="auth-field"><label>密码</label><input name="password" type="password" autocomplete="current-password" required minlength="8"></div>
-        <div class="auth-line"><button class="auth-link" data-auth-tab="reset-start" type="button">忘记密码？</button></div>
+        <div class="auth-options"><label class="auth-check"><input name="rememberMe" type="checkbox"> 保持登录</label><button class="auth-link" data-auth-tab="reset-start" type="button">忘记密码？</button></div>
+        <label class="auth-consent"><input name="privacyAccepted" type="checkbox" required><span>我已阅读并同意 <button data-auth-legal type="button">《服务协议与隐私政策》</button></span></label>
         <button class="auth-submit" type="submit">登录</button>
         <div class="auth-error" data-auth-error="login"></div>
       </form>
-      <form class="auth-form" data-auth-form="register">
+      <form class="auth-form" data-auth-form="register" novalidate>
         <div class="auth-field"><label>用户名</label><input name="username" autocomplete="username" required minlength="3" maxlength="32"></div>
         <div class="auth-field"><label>邮箱（可选）</label><input name="email" type="email" autocomplete="email"></div>
+        <div class="auth-field"><label>手机号（可选）</label><input name="phone" type="tel" autocomplete="tel" maxlength="24" placeholder="中国大陆手机号或 + 国际区号"></div>
         <div class="auth-field"><label>展示名（可选）</label><input name="displayName" maxlength="40"></div>
         <div class="auth-field"><label>密码</label><input name="password" type="password" autocomplete="new-password" required minlength="8"></div>
+        <label class="auth-consent"><input name="privacyAccepted" type="checkbox" required><span>我已阅读并同意 <button data-auth-legal type="button">《服务协议与隐私政策》</button></span></label>
         <button class="auth-submit" type="submit">创建账号</button>
         <div class="auth-error" data-auth-error="register"></div>
         <p class="auth-note">注册后会自动创建用户资料、偏好和普通用户角色；不会写入虚假学习数据。</p>
@@ -94,14 +113,43 @@ function authPanel() {
         <button class="auth-submit" type="submit">重置密码</button>
         <div class="auth-error" data-auth-error="reset-confirm"></div>
       </form>
+      <dialog class="auth-legal" data-auth-legal-dialog aria-labelledby="authLegalTitle">
+        <h2 id="authLegalTitle">服务协议与隐私政策</h2>
+        <p><strong>版本：2026-07-01。</strong>使用账号服务时，请遵守法律法规，不得利用本站干扰服务、侵害他人权益或提交违法内容。本站可为安全、维护或合规需要限制异常账号与会话。</p>
+        <p>为提供账号、学习记录与个性化功能，本站会处理账号资料、头像、登录设备与会话信息，以及你主动产生的学习进度、收藏和工作流数据；这些信息仅用于身份验证、功能交付、安全审计与故障排查，不出售个人信息。</p>
+        <p>密码以不可逆安全散列保存，刷新令牌通过 HttpOnly Cookie 管理。数据按业务与安全需要保留；你可在“设置 · 隐私与数据”查询同意状态、导出数据、申请注销或撤回同意。撤回后需在登录时重新同意当前版本。</p>
+        <button class="auth-ghost" data-auth-legal-close type="button">我已了解</button>
+      </dialog>
     </div>`;
   document.body.appendChild(panel);
   return panel;
 }
 
 function openAuth(mode = "login") {
+  renderAuthDialogAvatar();
   authPanel().classList.add("open");
   setAuthTab(mode);
+  restoreConsentChoice();
+}
+
+function restoreConsentChoice() {
+  const accepted = hasRememberedPrivacyConsent();
+  authPanel().querySelectorAll('[name="privacyAccepted"]').forEach((input) => { input.checked = accepted; });
+}
+
+function safeAvatarUrl(value) {
+  if (!value) return DEFAULT_AUTH_AVATAR;
+  try {
+    const url = new URL(value, document.baseURI);
+    return url.origin === window.location.origin ? url.href : DEFAULT_AUTH_AVATAR;
+  } catch {
+    return DEFAULT_AUTH_AVATAR;
+  }
+}
+
+function renderAuthDialogAvatar() {
+  const image = authPanel().querySelector("[data-auth-avatar]");
+  image.src = safeAvatarUrl(getRecentAvatarUrl());
 }
 
 function setAuthTab(mode) {
@@ -135,12 +183,14 @@ function renderLoggedOut() {
     const root = document.createElement("div");
     root.className = "user-menu";
     root.dataset.authRoot = "1";
-    root.innerHTML = '<button class="user-menu-btn login-only" type="button" data-auth-trigger="login">登入</button>';
+    root.innerHTML = '<button class="user-menu-btn login-only" type="button" data-auth-trigger="login">登录</button>';
     container.appendChild(root);
   });
 }
 
 function renderLoggedIn(user, avatarUrl = "", profile = {}) {
+  rememberRecentAvatar(avatarUrl);
+  renderAuthDialogAvatar();
   findActionContainers().forEach((container) => {
     container.querySelectorAll("[data-auth-trigger]").forEach((item) => item.remove());
     const existing = container.querySelector("[data-auth-root]");
@@ -182,8 +232,8 @@ async function refreshAuthUI() {
   }
   try {
     const [{ user }, profileResult] = await Promise.all([
-      apiGet("/auth/me"),
-      apiGet("/users/me/profile").catch(() => ({ profile: {} })),
+      getCurrentUser(),
+      getUserProfile().catch(() => ({ profile: {} })),
     ]);
     renderLoggedIn(user, profileResult.profile?.avatarUrl || "", profileResult.profile || {});
   } catch {
@@ -194,17 +244,25 @@ async function refreshAuthUI() {
 
 async function handleLoginOrRegister(form, mode) {
   const body = Object.fromEntries(new FormData(form).entries());
+  body.privacyAccepted = body.privacyAccepted === "on";
+  if (mode === "login") body.rememberMe = body.rememberMe === "on";
+  if (!body.privacyAccepted) throw new Error("请先阅读并同意服务协议与隐私政策");
   const data = mode === "register"
-    ? await apiPost("/auth/register", body)
-    : await apiPost("/auth/login", { ...body, deviceName: "浏览器" });
+    ? await registerUser(body)
+    : await loginUser({ ...body, deviceName: "浏览器" });
+  rememberPrivacyConsent(true);
   saveAuthTokens(data);
+  form.querySelectorAll('input[type="password"]').forEach((input) => { input.value = ""; });
   authPanel().classList.remove("open");
+  await import("./anonymous-learning-state.js")
+    .then(({ mergeAnonymousLearningState }) => mergeAnonymousLearningState())
+    .catch((error) => console.warn("Anonymous learning state import unavailable:", error));
   await refreshAuthUI();
 }
 
 async function handleResetStart(form) {
   const body = Object.fromEntries(new FormData(form).entries());
-  const data = await apiPost("/auth/password-reset/security/start", body);
+  const data = await startSecurityPasswordReset(body);
   resetState = { uid: data.resetUid, token: "" };
   const box = authPanel().querySelector("[data-reset-questions]");
   box.innerHTML = (data.questions || []).map((item, index) => `
@@ -217,7 +275,7 @@ async function handleResetStart(form) {
 
 async function handleResetVerify(form) {
   const answers = Array.from(form.querySelectorAll("[data-answer]")).map((input) => input.value);
-  const data = await apiPost("/auth/password-reset/security/verify", {
+  const data = await verifySecurityPasswordReset({
     resetUid: resetState.uid,
     answers,
   });
@@ -227,7 +285,7 @@ async function handleResetVerify(form) {
 
 async function handleResetConfirm(form) {
   const body = Object.fromEntries(new FormData(form).entries());
-  await apiPost("/auth/password-reset/security/confirm", {
+  await confirmSecurityPasswordReset({
     resetToken: resetState.token,
     newPassword: body.newPassword,
   });
@@ -255,8 +313,7 @@ async function handleAuthSubmit(event) {
 
 async function logout() {
   try {
-    const refreshToken = getRefreshToken();
-    if (refreshToken) await apiPost("/auth/logout", { refreshToken });
+    await logoutUser();
   } catch {
     // Local logout should still succeed when the server-side session is already invalid.
   }
@@ -273,6 +330,8 @@ export async function initAuthUI() {
     const trigger = target.closest("[data-auth-trigger]");
     if (trigger) openAuth(trigger.dataset.authTrigger || "login");
     if (target.closest("[data-auth-close]")) authPanel().classList.remove("open");
+    if (target.closest("[data-auth-legal]")) authPanel().querySelector("[data-auth-legal-dialog]").showModal();
+    if (target.closest("[data-auth-legal-close]")) authPanel().querySelector("[data-auth-legal-dialog]").close();
     const tab = target.closest("[data-auth-tab]");
     if (tab) setAuthTab(tab.dataset.authTab);
     const menuButton = target.closest("[data-user-menu]");
@@ -285,5 +344,11 @@ export async function initAuthUI() {
     }
   });
   document.querySelectorAll("[data-auth-form]").forEach((form) => form.addEventListener("submit", handleAuthSubmit));
+  authPanel().querySelectorAll('[name="privacyAccepted"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      const form = input.closest("[data-auth-form]");
+      if (input.checked && form) form.querySelector("[data-auth-error]").textContent = "";
+    });
+  });
   await refreshAuthUI();
 }

@@ -1,0 +1,177 @@
+{
+  "summary": {
+    "pass": 28,
+    "knownRisk": 0,
+    "fail": 0
+  },
+  "findings": [
+    {
+      "id": "USR-SEC-001",
+      "title": "Production rejects default or short signing secrets",
+      "status": "pass",
+      "evidence": "Development retains an explicit local fallback, while production startup rejects the default or secrets shorter than 32 characters."
+    },
+    {
+      "id": "USR-SEC-002",
+      "title": "CORS uses an explicit configurable allowlist",
+      "status": "pass",
+      "evidence": "CORS origins are environment-configurable, wildcard origins are rejected, and methods/headers are explicitly bounded."
+    },
+    {
+      "id": "USR-SEC-003",
+      "title": "Refresh token is not persisted by frontend JavaScript",
+      "status": "pass",
+      "evidence": "frontend/assets/js/api.js keeps only a compatibility reader and removes old refresh-token localStorage values."
+    },
+    {
+      "id": "USR-SEC-003B",
+      "title": "Refresh cookie is HttpOnly, SameSite, and Secure-configurable",
+      "status": "pass",
+      "evidence": "auth router sets ai_nav_refresh_token as HttpOnly and uses config-driven SameSite/Secure settings."
+    },
+    {
+      "id": "USR-SEC-004",
+      "title": "Auth and users routers contain no SQL",
+      "status": "pass",
+      "evidence": "Router SQL keyword scan."
+    },
+    {
+      "id": "USR-SEC-005",
+      "title": "Users request DTOs forbid extra fields",
+      "status": "pass",
+      "evidence": "Auth/users request models inherit the shared StrictModel."
+    },
+    {
+      "id": "USR-SEC-006",
+      "title": "Password change and reset revoke active sessions",
+      "status": "pass",
+      "evidence": "Security/authentication repositories revoke sessions after password changes."
+    },
+    {
+      "id": "USR-SEC-007",
+      "title": "Password hashes are versioned and upgraded after successful reauth",
+      "status": "pass",
+      "evidence": "Password hash rounds are configurable, login upgrades legacy hashes, and sensitive security-question reauth also refreshes stale hashes."
+    },
+    {
+      "id": "USR-SEC-008",
+      "title": "Login failures are counted and temporarily locked without account-state disclosure",
+      "status": "pass",
+      "evidence": "Login service applies a configurable temporary lock while preserving the same external INVALID_CREDENTIALS error."
+    },
+    {
+      "id": "USR-SEC-009",
+      "title": "Sessions identify the current device and support revoking other devices",
+      "status": "pass",
+      "evidence": "Sessions API marks current sessions from the refresh cookie, returns risk state, and exposes revoke-others."
+    },
+    {
+      "id": "USR-SEC-010",
+      "title": "Avatar ingestion validates image content and rolls back stored files",
+      "status": "pass",
+      "evidence": "Avatar processing is owned by Users/profile, validates declared and decoded formats plus pixel count, writes atomically, and removes new files when profile persistence fails."
+    },
+    {
+      "id": "USR-SEC-011",
+      "title": "Learning, Tools, and Agent consume preferences through the Users facade",
+      "status": "pass",
+      "evidence": "Consumers read projected preference contexts from Users; Agent rejects copied client preference state and consumer adapters contain no direct user-table access."
+    },
+    {
+      "id": "USR-SEC-012",
+      "title": "Backend permission dependency enforces RBAC for protected domain commands",
+      "status": "pass",
+      "evidence": "Authorization service returns stable 403 decisions and FastAPI dependencies protect Agent and private learning-state routes."
+    },
+    {
+      "id": "USR-SEC-013",
+      "title": "Sensitive user commands use registered audit events and allowlisted metadata",
+      "status": "pass",
+      "evidence": "Users write routes emit registered audit events whose metadata is filtered by event allowlists and sensitive-key denial."
+    },
+    {
+      "id": "USR-SEC-014",
+      "title": "Account deletion uses staged retention and controlled anonymization",
+      "status": "pass",
+      "evidence": "Deletion requests are unique and staged through grace, soft-delete, recovery retention, and admin-authorized anonymization without deleting public domain facts."
+    },
+    {
+      "id": "USR-SEC-015",
+      "title": "Agent memory requires current versioned consent",
+      "status": "pass",
+      "evidence": "Append-only consent events carry policy versions; stale consent is rejected and Agent context checks the current consent rather than the legacy preference flag."
+    },
+    {
+      "id": "USR-SEC-016",
+      "title": "User data export requires reauthentication and excludes authentication secrets",
+      "status": "pass",
+      "evidence": "Export requires the current password, emits an audit event, and its response projections omit password, refresh-token, and security-answer hashes."
+    },
+    {
+      "id": "USR-SEC-017",
+      "title": "Workflow assets use user ownership, stable references, versions, and idempotency",
+      "status": "pass",
+      "evidence": "Users owns versioned workflow assets; idempotency is scoped to the user and external tool references are not cascade-coupled."
+    },
+    {
+      "id": "USR-SEC-018",
+      "title": "Agent workflow writes require confirmation and use the Users command facade",
+      "status": "pass",
+      "evidence": "Agent cannot write asset tables directly; save commands require explicit confirmation, an idempotency key, and registered Users audit events."
+    },
+    {
+      "id": "USR-SEC-019",
+      "title": "Agent context is minimal and unavailable targets remain visible",
+      "status": "pass",
+      "evidence": "Agent receives only preferences, capability flags, and an asset summary; retired targets are represented as unavailable without deleting the saved workflow."
+    },
+    {
+      "id": "USR-SEC-020",
+      "title": "Users access logs are structured and exclude request PII and secrets",
+      "status": "pass",
+      "evidence": "Observed requests log only a sanitized request ID, route operation, status, latency, and error code; request bodies, identity fields, headers, and secrets are not read."
+    },
+    {
+      "id": "USR-SEC-021",
+      "title": "Operational metrics are aggregated and administrator-authorized",
+      "status": "pass",
+      "evidence": "The metrics endpoint requires users:manage and returns operation counters and threshold alerts without labels containing user identity."
+    },
+    {
+      "id": "USR-SEC-022",
+      "title": "Database backups and restores are integrity-checked and atomically replaced",
+      "status": "pass",
+      "evidence": "Online backups and restored files are verified, replacement is atomic, prior targets are preserved, and rehearsal confirms migration checksums plus a restored canary."
+    },
+    {
+      "id": "USR-SEC-023",
+      "title": "Database startup uses lifespan and deployment health probes",
+      "status": "pass",
+      "evidence": "Database initialization runs in FastAPI lifespan, the database path is injectable, liveness has no dependency, and readiness verifies database access plus applied migrations."
+    },
+    {
+      "id": "USR-SEC-024",
+      "title": "Authentication compatibility DDL is versioned and transactional",
+      "status": "pass",
+      "evidence": "Legacy auth schema repair is migration 008 with checksum tracking; conditional column work runs under the migration lock and ad hoc startup DDL has been removed."
+    },
+    {
+      "id": "USR-SEC-025",
+      "title": "Authentication endpoints use persistent hashed rate limits and trusted proxy boundaries",
+      "status": "pass",
+      "evidence": "Rate limits are atomically persisted with HMAC subject keys and Retry-After; forwarded addresses are ignored unless the direct peer belongs to an explicit trusted proxy CIDR."
+    },
+    {
+      "id": "USR-SEC-026",
+      "title": "Frontend access-token refresh is single-flight and cookie-based",
+      "status": "pass",
+      "evidence": "Concurrent 401 responses share one refresh promise using the HttpOnly cookie, retry once, and clear local access state when refresh fails."
+    },
+    {
+      "id": "USR-SEC-027",
+      "title": "Every Users command declares audit, replay, and concurrency controls",
+      "status": "pass",
+      "evidence": "The route-derived registry covers every Users/Auth command with semantic audit, replay, and concurrency controls; authentication lifecycle events are allowlisted and emitted without secrets."
+    }
+  ]
+}
