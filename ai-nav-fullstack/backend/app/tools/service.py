@@ -1,16 +1,10 @@
 from __future__ import annotations
 
-import json
 import re
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
-from app.core.config import FRONTEND_DIR
-
-
-TOOL_DATA_PATH = FRONTEND_DIR / "assets" / "js" / "tool-data.js"
-TOOL_LISTS_PATH = FRONTEND_DIR / "assets" / "js" / "tool-page-lists.js"
+from app.tools.repository import SQLiteToolCatalogRepository
 
 QUERY_EXPANSIONS: dict[str, str] = {
     "企业": "企业 公司 团队 商业化 安全 隐私 合规 私有化 权限 协作 enterprise business security privacy compliance copilot tabnine sentry glean notion",
@@ -56,15 +50,6 @@ INTENT_TOOL_BOOSTS = [
 ]
 
 STOP_TERMS = {"的", "了", "呢", "吗", "啊", "吧", "和", "与", "及", "或", "在", "是", "有", "用", "找", "搜", "查看", "我要", "想", "做", "个", "一个", "一种", "什么", "如何", "怎么"}
-
-
-def _read_window_assignment(path: Path, variable: str) -> dict[str, Any]:
-    source = path.read_text(encoding="utf-8")
-    pattern = re.compile(rf"window\.{re.escape(variable)}\s*=\s*(\{{.*?\}})\s*;", re.S)
-    match = pattern.search(source)
-    if not match:
-        raise RuntimeError(f"Cannot find window.{variable} in {path}")
-    return json.loads(match.group(1))
 
 
 def compact(value: str | None) -> str:
@@ -142,6 +127,10 @@ def _to_public_tool(tool: dict[str, Any], placements: list[dict[str, Any]], cate
         "url": tool.get("url", ""),
         "icon": tool.get("icon", ""),
         "iconFallbacks": tool.get("iconFallbacks", []),
+        "isFree": bool(tool.get("isFree")),
+        "publicationStatus": tool.get("publicationStatus", "published"),
+        "linkStatus": tool.get("linkStatus", "unchecked"),
+        "lastCheckedAt": tool.get("lastCheckedAt"),
         "categories": category_names,
         "subcategories": subcategories,
         "tags": tags,
@@ -152,8 +141,7 @@ def _to_public_tool(tool: dict[str, Any], placements: list[dict[str, Any]], cate
 
 @lru_cache(maxsize=1)
 def get_tool_catalog() -> dict[str, Any]:
-    data = _read_window_assignment(TOOL_DATA_PATH, "AINavToolData")
-    lists = _read_window_assignment(TOOL_LISTS_PATH, "AINavToolPageLists")
+    data = SQLiteToolCatalogRepository().load_catalog()
     categories = _category_maps(data.get("categories", []))
     tools = [_to_public_tool(tool, data.get("placements", []), categories) for tool in data.get("tools", [])]
     search_items = [
@@ -179,13 +167,25 @@ def get_tool_catalog() -> dict[str, Any]:
         "categories": data.get("categories", []),
         "placements": data.get("placements", []),
         "tools": tools,
-        "latestTools": lists.get("latestTools", []),
+        "latestTools": data.get("latestTools", []),
         "searchItems": search_items,
     }
 
 
 def clear_tool_catalog_cache() -> None:
     get_tool_catalog.cache_clear()
+
+
+def catalog_snapshot() -> dict[str, Any]:
+    catalog = get_tool_catalog()
+    return {
+        "version": catalog["version"],
+        "categories": catalog["categories"],
+        "tools": catalog["tools"],
+        "placements": catalog["placements"],
+        "latestTools": catalog["latestTools"],
+        "meta": {"source": "tools.database", "contractVersion": 1},
+    }
 
 
 def meaningful_direct_terms(query: dict[str, Any]) -> list[str]:
@@ -325,7 +325,7 @@ def list_tools(category: str | None = None, subcategory: str | None = None, q: s
     if subcategory and subcategory != "全部":
         tools = [tool for tool in tools if subcategory in tool["subcategories"]]
     if free_only:
-        tools = [tool for tool in tools if "免费" in tool["tags"]]
+        tools = [tool for tool in tools if tool["isFree"]]
     if q:
         allowed = {result["tool"]["id"] for result in search_tools(q, limit=200)}
         tools = [tool for tool in tools if tool["id"] in allowed]

@@ -1,7 +1,11 @@
+import { apiGet } from "./api.js";
+import { safeHttpHref } from "./url-safety.js";
+import { feedbackKindForError, feedbackMarkup, renderFeedback } from "./ui-feedback.js";
+
 // Tool page runtime: render catalog data without owning tool facts.
-(function () {
-  var toolSource = window.AINavToolData || { categories: [], tools: [], placements: [] };
-  var pageLists = window.AINavToolPageLists || { latestTools: [] };
+export function initToolsPage() {
+  var toolSource = { categories: [], tools: [], placements: [] };
+  var pageLists = { latestTools: [] };
   var toolsById = {};
   var toolMeta = {};
   var state = {
@@ -51,7 +55,8 @@
         url: tool.url,
         icon: tool.icon,
         icons: icons,
-        aliases: tool.aliases || []
+        aliases: tool.aliases || [],
+        linkStatus: tool.linkStatus || 'unchecked'
       };
       toolMeta[tool.name] = meta;
       toolMeta[normalizeToolName(tool.name)] = meta;
@@ -83,7 +88,9 @@
           sub: place.subcategory,
           heat: Number(place.heat) || 0,
           tag: place.tag || '',
-          mark: tool.mark || 'AI'
+          mark: tool.mark || 'AI',
+          isFree: Boolean(tool.isFree),
+          linkStatus: tool.linkStatus || 'unchecked'
         };
       });
       var category = {
@@ -102,18 +109,21 @@
     });
   }
 
-  var categories = buildCategories();
+  var categories = [];
 
   function latestTools() {
     return (pageLists.latestTools || []).map(function (item) {
-      var tool = window.AINavFindTool ? (window.AINavFindTool(item.toolName) || window.AINavFindTool(item.displayName)) : null;
+      var tool = (toolSource.tools || []).find(function (candidate) {
+        return candidate.name === item.toolName || candidate.name === item.displayName;
+      });
       return {
         displayName: item.displayName,
         provider: item.provider || (tool && tool.categoryName) || '',
         label: item.label || (tool && tool.tag) || '',
         mark: item.mark || (tool && tool.mark) || 'AI',
         logoClass: item.logoClass || (tool && tool.logoClass) || 'logo-chat',
-        toolName: item.toolName || item.displayName
+        toolName: item.toolName || item.displayName,
+        linkStatus: (tool && tool.linkStatus) || 'unchecked'
       };
     });
   }
@@ -124,7 +134,8 @@
 
   function toolUrl(name) {
     var meta = metaFor(name);
-    return meta.url || ('https://www.baidu.com/s?wd=' + encodeURIComponent(name + ' 官网'));
+    if (meta.linkStatus === 'unavailable') return '';
+    return safeHttpHref(meta.url, '');
   }
 
   function iconCandidates(name) {
@@ -197,7 +208,8 @@
     if (!track) return;
     track.innerHTML = latestTools().concat(latestTools()).map(function (item) {
       var refName = item.toolName || item.displayName;
-      return '<a class="latest-card" href="' + escapeAttr(toolUrl(refName)) + '" target="_blank" rel="noopener noreferrer">' +
+      var href = item.linkStatus === 'unavailable' ? '' : toolUrl(refName);
+      return '<a class="latest-card' + (!href ? ' is-unavailable' : '') + '" href="' + escapeAttr(href || '#') + '" ' + (!href ? 'aria-disabled="true"' : 'target="_blank" rel="noopener noreferrer"') + '>' +
         logoHtml(refName, item.mark, item.logoClass, 'latest-logo') +
         '<div><strong>' + escapeText(item.displayName) + '</strong><span>' + escapeText(item.provider) + '</span><em>' + escapeText(item.label) + '</em></div></a>';
     }).join('');
@@ -255,9 +267,11 @@
   }
 
   function toolCard(tool) {
-    return '<a href="' + escapeAttr(toolUrl(tool.name)) + '" target="_blank" rel="noopener noreferrer" class="tool-card" data-tool="' + escapeAttr(tool.name) + '">' +
+    var href = toolUrl(tool.name);
+    var unavailable = !href;
+    return '<a href="' + escapeAttr(href || '#') + '" ' + (unavailable ? 'aria-disabled="true"' : 'target="_blank" rel="noopener noreferrer"') + ' class="tool-card' + (unavailable ? ' is-unavailable' : '') + '" data-tool="' + escapeAttr(tool.name) + '">' +
       '<div class="tool-main">' + logoHtml(tool.name, tool.mark, tool.category.logo) +
-      '<div class="tool-info"><strong>' + escapeText(tool.name) + '</strong><p>' + escapeText(tool.desc) + '</p></div></div>' +
+      '<div class="tool-info"><strong>' + escapeText(tool.name) + '</strong><p>' + escapeText(tool.desc) + '</p>' + (unavailable ? '<span class="link-maintenance">链接维护中</span>' : '') + '</div></div>' +
       '<div class="tool-meta"><span class="tag">' + escapeText(tool.sub) + '</span><span class="tool-arrow">›</span></div></a>';
   }
 
@@ -275,7 +289,14 @@
   }
 
   function toolMatchesFreeFlag(tool) {
-    return /免费|开源|国产|中文|free|open/i.test(tool.tag + tool.desc + tool.sub);
+    return tool.isFree || /免费|开源|\bfree\b|\bopen(?:\s*source)?\b/i.test(tool.tag);
+  }
+
+  function syncFreeControls() {
+    document.querySelectorAll('[data-hot="free"]').forEach(function (btn) {
+      btn.classList.toggle('active', state.freeOnly);
+      btn.setAttribute('aria-pressed', state.freeOnly ? 'true' : 'false');
+    });
   }
 
   function filteredSectionTools(cat, activeSub) {
@@ -321,7 +342,10 @@
     var pager = section.querySelector('.section-pager');
 
     setSectionPage(catId, activeSub, currentPage);
-    if (grid) grid.innerHTML = pageTools.map(toolCard).join('');
+    if (grid) {
+      grid.classList.toggle('is-paged', totalPages > 1);
+      grid.innerHTML = pageTools.map(toolCard).join('');
+    }
     if (totalPages > 1) {
       if (!pager) {
         section.insertAdjacentHTML('beforeend', '<div class="section-pager"></div>');
@@ -363,10 +387,13 @@
       setSectionPage(cat.id, activeSub, currentPage);
       return '<section class="category-section" id="section-' + escapeAttr(cat.id) + '">' +
         '<div class="category-top"><div class="category-title"><h2>' + escapeText(cat.name) + '</h2><p>' + escapeText(cat.desc) + '</p></div><div class="category-count">' + tools.length + ' 个工具</div></div>' +
-        '<div class="section-subnav">' + tabs + '</div><div class="category-tools">' + pageTools.map(toolCard).join('') + '</div>' + pager + '</section>';
+        '<div class="section-subnav">' + tabs + '</div><div class="category-tools' + (totalPages > 1 ? ' is-paged' : '') + '">' + pageTools.map(toolCard).join('') + '</div>' + pager + '</section>';
     }).join('');
 
-    container.innerHTML = html || '<div class="empty">没有找到匹配工具，换个关键词试试。</div>';
+    container.innerHTML = html || feedbackMarkup({
+      title: '没有找到匹配工具',
+      message: '可以换一个关键词，或清除免费和分类筛选。',
+    });
     container.querySelectorAll('[data-sub-cat]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         setSubcategory(btn.dataset.subCat, btn.dataset.sub);
@@ -402,11 +429,13 @@
 
   function bindGlobalInteractions() {
     var progressBar = $('progressBar');
+    var floatingTools = document.querySelector('.float-tools');
     if (progressBar) {
       window.addEventListener('scroll', function () {
         var root = document.documentElement;
         var denominator = root.scrollHeight - root.clientHeight;
         progressBar.style.width = (denominator ? root.scrollTop / denominator * 100 : 0) + '%';
+        if (floatingTools) floatingTools.classList.toggle('is-visible', root.scrollTop > 400);
       }, { passive: true });
     }
 
@@ -445,15 +474,18 @@
       });
     });
 
-    var freeBtn = document.querySelector('[data-hot="free"]');
-    if (freeBtn) {
+    document.querySelectorAll('[data-hot="free"]').forEach(function (freeBtn) {
+      if (freeBtn.dataset.boundFreeFilter === '1') return;
+      freeBtn.dataset.boundFreeFilter = '1';
       freeBtn.addEventListener('click', function () {
         state.freeOnly = !state.freeOnly;
         state.page = 1;
+        syncFreeControls();
         renderTools();
         if ($('directory')) $('directory').scrollIntoView({ behavior: 'smooth' });
       });
-    }
+    });
+    syncFreeControls();
 
     document.querySelectorAll('[data-query]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -492,8 +524,46 @@
     }
   }
 
-  renderLatest();
-  renderTools();
-  hydrateWorkflowIcons();
-  bindGlobalInteractions();
-})();
+  function start(source) {
+    toolSource = source;
+    pageLists = { latestTools: source.latestTools || [] };
+    categories = buildCategories();
+    var initialQuery = new URLSearchParams(window.location.search).get('q');
+    if (initialQuery) {
+      state.query = initialQuery.trim();
+      if ($('searchInput')) $('searchInput').value = state.query;
+    }
+    renderLatest();
+    renderTools();
+    hydrateWorkflowIcons();
+    bindGlobalInteractions();
+    if (state.query && $('directory')) {
+      requestAnimationFrame(function () {
+        $('directory').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }
+
+  function showCatalogError(error) {
+    var grid = $('toolsSections');
+    var latest = $('latestTrack');
+    if (latest) latest.innerHTML = '';
+    if (grid) {
+      renderFeedback(grid, {
+        kind: feedbackKindForError(error),
+        title: error && error.code === 'API_OFFLINE' ? '当前处于离线状态' : '工具目录暂时无法加载',
+        message: '请检查网络后重试。',
+        actionLabel: '重新加载',
+        actionKey: 'retry-catalog',
+        onAction: function () { location.reload(); }
+      });
+      var directorySection = grid.closest('.reveal');
+      if (directorySection) directorySection.classList.add('in');
+    }
+    bindGlobalInteractions();
+  }
+
+  apiGet('/tools/catalog')
+    .then(start)
+    .catch(showCatalogError);
+}
