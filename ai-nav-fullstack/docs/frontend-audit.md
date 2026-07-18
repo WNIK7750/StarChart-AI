@@ -1,79 +1,71 @@
-# 前端入口排查报告
+# 前端入口与运行责任审计
 
-更新时间：2026-07-11
+更新时间：2026-07-15
 
-## 结论
+## 1. 当前结论
 
-本次工具页首刷缺少大量工具的原因不是数据丢失，而是同一个生产页面存在两条渲染链路：
+非 Agent 页面已经完成第一轮运行入口收口：每个页面只有一个显式入口脚本，公共页面壳层、Learning 页面渲染、Tools 页面渲染和 Users 页面逻辑按功能域组织。旧的 `home.js/learn.js/node.js/roadmap.js/tools.js/layout.js` 双轨脚本已删除。
 
-1. `frontend/tools.html` 内联脚本维护完整工具目录，渲染结果接近设计稿。
-2. `frontend/assets/js/v2-api.js` 在 `tools.html` 加载后又调用后端 `/api/v1/tools*` 接口重绘 `#toolsSections`。
+本轮不建设 Agent。`assistant.html` 继续使用冻结兼容入口 `v2-api.js` 与现有 `assistant-page.js`，待其他模块归档后再处理。
 
-后端种子数据少于 `tools.html` 内联目录，所以页面会被覆盖成“工具数量很少”的版本。现已将工具页 API 自动覆盖改为显式开启：只有 `body[data-api-tools="true"]` 时才会使用 API 重绘工具页。
+## 2. 生产页面入口
 
-## 生产前端文件分类
+| 页面 | 唯一入口 | 页面责任 |
+| --- | --- | --- |
+| `index.html` | `home-page.js` | 首页交互、学习地图和首页工具摘要 |
+| `learn.html` | `learn-page.js` | 学习地图、资源和用户学习摘要 |
+| `learn-node.html` | `learn-node-page.js` | 节点详情、内容标签和学习状态 |
+| `tools.html` | `tools-entry.js` | 工具目录、搜索、分类和工作流展示 |
+| `settings.html` | `settings.js` | Users 设置、隐私、资产和学习历史 |
+| `assistant.html` | 冻结双入口 | 暂缓，不纳入本轮前端重构 |
 
-| 文件 | 类型 | 当前是否作为生产入口 | 主要职责 | 依赖关系 | 备注 |
-|---|---|---:|---|---|---|
-| `frontend/index.html` | v2 生产页面 | 是 | 首页、路线图、首页工具区 | 内联脚本 + `assets/js/v2-api.js` | `v2-api.js` 负责导航、用户区、搜索、路线图与首页工具接口补水 |
-| `frontend/learn.html` | v2 生产页面 | 是 | 学习路线页 | 内联脚本 + `assets/js/v2-api.js` | 学习数据由后端接口补水 |
-| `frontend/learn-node.html` | v2 生产页面 | 是 | 学习节点介绍页 | 内联脚本 + `assets/js/v2-api.js` | 节点详情由后端接口补水 |
-| `frontend/tools.html` | v2 生产页面 | 是 | 工具导航页完整目录 | 内联完整数据 + `assets/js/v2-api.js` | 工具目录以本页内联数据为准；`v2-api.js` 只保留导航、搜索、用户区能力 |
-| `frontend/settings.html` | v2 生产页面 | 是 | 用户设置中心 | `assets/js/settings.js` | 用户资料、头像、安全设置等 |
-| `frontend/assets/js/v2-api.js` | v2 共享增强脚本 | 是 | API 客户端、导航、搜索、用户区、学习页补水 | `api.js`、`auth-ui.js`、`site-search.js` | 已避免默认覆盖工具页完整目录 |
-| `frontend/assets/js/site-search.js` | v2 共享搜索 | 是 | 顶部搜索、推荐、结果下拉、跳转定位 | `api.js` | 首页和工具页搜索同一能力 |
-| `frontend/assets/js/auth-ui.js` | v2 共享用户区 | 是 | 登录弹窗、头像菜单、会话状态 | `api.js` | 顶部头像与用户菜单 |
-| `frontend/assets/js/settings.js` | 设置页脚本 | 是 | 设置页表单、头像裁剪、密保 | `api.js` | 仅 `settings.html` 使用 |
+`tests/test_frontend_entries.mjs` 强制检查五个非 Agent 页面只有一个外部脚本入口、没有内联运行脚本，并确认旧双轨文件不存在。
 
-## 历史或备用前端文件
+## 3. 共享模块
 
-| 文件/目录 | 类型 | 当前状态 | 关系与风险 |
-|---|---|---|---|
-| `frontend/assets/js/tools.js` | 旧模块化工具页脚本 | 当前生产页未引用 | 也会写 `#toolsSections`，若重新引入会再次与 `tools.html` 内联渲染冲突 |
-| `frontend/assets/js/home.js` | 旧模块化首页脚本 | 当前生产页未引用 | 属于早期前后端分离尝试 |
-| `frontend/assets/js/learn.js` | 旧模块化学习页脚本 | 当前生产页未引用 | 属于早期前后端分离尝试 |
-| `frontend/assets/js/node.js` | 旧模块化节点页脚本 | 当前生产页未引用 | 属于早期前后端分离尝试 |
-| `frontend/assets/js/layout.js` | 旧共享布局脚本 | 当前生产页未引用 | 被旧模块化脚本依赖 |
-| `frontend/assets/js/roadmap.js` | 路线图模块脚本 | 间接使用 | 当前主要通过 `v2-api.js` 处理路线图 |
-| `frontend - 副本/` | 备份目录 | 非生产入口 | 保留旧页面备份，不应作为服务入口 |
-| 根目录 `index.html` | 旧版单页 | 非生产入口 | 与 fullstack 版本无直接依赖，容易造成误判 |
-| `design/` | 设计稿与实验稿 | 非生产入口 | 用作视觉参考，不应由后端直接服务 |
-| `design/v2/` | v2 设计稿 | 非生产入口 | 当前生产页主要从这里迁移而来 |
+| 模块 | 所有权 |
+| --- | --- |
+| `api.js` | HTTP、认证刷新和统一错误模型 |
+| `page-shell.js` | 导航、认证 UI、站内搜索、导航栏和通用动效 |
+| `learning-api.js` | Learning HTTP 适配器 |
+| `learning-pages.js` | 首页、学习总览和节点详情的数据渲染 |
+| `learning-state.js` | Users 所有的学习状态交互 |
+| `tools-page.js` | Tools 目录的唯一 DOM 渲染者 |
+| `users-api.js` | Users/Auth HTTP 适配器 |
 
-## 工具页当前规则
+页面入口只负责组合这些模块，不维护领域事实。Tools 页面和站内搜索均读取后端 Tools API；Learning 页面均读取 Learning API。
 
-| 项目 | 当前规则 |
-|---|---|
-| 首刷数据源 | `frontend/assets/js/tool-data.js` 的工具事实数据 + `frontend/assets/js/tool-page-lists.js` 的页面展示列表 |
-| API 覆盖 | 默认关闭；仅 `body[data-api-tools="true"]` 时开启 |
-| 工具链接 | 工具本体在 `tool-data.js` 统一维护，卡片使用 `target="_blank"` 打开官方链接 |
-| 工具图标 | 优先读取 `assets/icons/tools/` 本地图标，外部 favicon 只作为兜底 |
-| 可见数量 | 每个分区分页显示 12 个，分区统计显示该分区完整数量 |
+## 4. 本轮修复
 
-## 工具数据分层
+- 移除首页、学习总览和节点页的内联运行脚本。
+- 将通用导航、认证、搜索、滚动和 reveal/spotlight 行为集中到 `page-shell.js`。
+- 将原 `v2-api.js` 的 Learning 渲染迁入 `learning-pages.js`。
+- Tools 改为通过统一 `apiGet` 读取目录，不再直接调用 `fetch`。
+- 统一 API 客户端增加 10 秒默认超时、调用方取消、离线/网络错误码；只有 GET 会对网络错误或 502/503/504 重试一次，写请求和上传不自动重放。
+- 增加共享 loading、empty、error、offline 反馈与重试动作；Learning 和 Tools 使用同一语义与安全文本渲染。
+- 动态站内链接必须同源，资料和工具外链只允许 HTTP/HTTPS；所有新窗口链接使用 `noopener noreferrer`。
+- 追加导航完整性迁移，助手指向真实 `assistant.html`，移除没有内容承载的 About 空入口。
+- 修复节点标签从 `style.display` 迁移到 `hidden` 时的状态冲突，并补齐 tab/tabpanel ARIA 与键盘左右切换。
+- 五个非 Agent 页面加载共享可见焦点与 `prefers-reduced-motion` 基线。
+- Opera Browser Connector 已补充真实 Opera 页面读取与截图；Playwright 已覆盖 360、768、1440 三档视口下的五页自动交互矩阵，无水平溢出、框架错误遮罩或未解释控制台错误。
+- 节点标签通过键盘左右切换并同步焦点、`aria-selected` 和可见面板；减少动画模式下动画与过渡最长为 `0.01ms`，平滑滚动关闭。
 
-| 文件 | 维护内容 | 不应维护 |
-|---|---|---|
-| `frontend/assets/js/tool-data.js` | 工具本体事实：名称、别名、描述、官网 URL、本地图标、图标兜底、唯一 ID | 是否推荐、最新推荐、页面运营位 |
-| `frontend/assets/js/tool-data.js` 的 `placements` | 工具出现在哪个分类、子分类、热度和标签 | 重复维护工具名称、描述、官网和图标 |
-| `frontend/assets/js/tool-page-lists.js` | 工具页展示列表，如最新滚动推荐 | 工具本体事实 |
+## 5. 仍需完成
 
-当前工具数据已经去重为 135 个唯一工具、137 条分类展示关系。比如 `豆包` 只维护一条工具本体，但可以通过 `placements` 出现在需要的分类中。
+- toast/dialog 已按真实使用点复核：破坏性确认仅属于设置页，Learning/Tools 已复用共享状态反馈，当前不增加全局框架。
+- 继续将大型页面内联 CSS 渐进迁移到页面样式文件；不为迁移而重做视觉。
+- 其他模块归档完成前保持 Agent 页面冻结。
 
-## 工具资产维护命令
+## 6. 验证
 
-| 命令 | 作用 |
-|---|---|
-| `node scripts/audit-tool-data.mjs` | 检查工具数据、展示关系、最新推荐、本地图标是否完整，以及是否存在重复工具或孤儿图标 |
-| `node scripts/sync-tool-icons.mjs` | 为缺失或错误的图标生成统一 SVG 兜底，并回写 `tool-data.js` 的图标路径 |
+```powershell
+.\scripts\verify-foundation.ps1
 
-当前图标目录为 `frontend/assets/icons/tools/`，保持“一条工具本体对应一个图标文件”。如果后续替换官方图标，优先覆盖 `tool-data.js` 中该工具 `icon` 指向的文件，避免同一工具出现多套图标。
+# 模块级定位命令
+.\scripts\verify-frontend.ps1
+.\scripts\verify-learning.ps1
+.\scripts\verify-tools.ps1
+.\scripts\verify-users.ps1
+```
 
-## 后续维护建议
-
-| 优先级 | 建议 | 原因 |
-|---|---|---|
-| 高 | 将 `tools.html` 的 `categories/latestTools/toolMeta` 拆到独立数据文件或后端种子表 | 防止页面脚本继续膨胀，也方便后续后台管理 |
-| 高 | 删除或归档旧模块化脚本的生产引用可能性 | 防止再次出现多个脚本写同一个容器 |
-| 中 | 后端工具表补齐到与 `tools.html` 同量级后，再开启 `data-api-tools="true"` | 真正完成前后端分离时需要数据库成为唯一真实来源 |
-| 中 | 为工具图标准备本地缓存或后端代理 | 外部 favicon 服务会偶发 404 或被浏览器策略拦截 |
+Playwright 已覆盖首页桌面、学习页移动端、RAG 节点目录切换、工具页移动端搜索和工具目录故障态；所有场景均无非预期控制台错误和水平溢出。

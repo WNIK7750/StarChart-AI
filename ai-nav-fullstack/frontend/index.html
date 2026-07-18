@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 知识导航 · 主页概念稿 v2</title>
 <link rel="icon" type="image/png" href="assets/img/logo.png">
+<link rel="stylesheet" href="assets/css/accessibility.css">
 <style>
 /* ============================================================
    AI 知识导航 · 主页 v2 亮色概念稿
@@ -1090,8 +1091,7 @@ img, svg { max-width: 100%; display: block; }
       <a href="#" class="active">主页</a>
       <a href="learn.html">学习</a>
       <a href="tools.html">工具</a>
-      <a href="#assistant">助手</a>
-      <a href="#about">关于</a>
+      <a href="assistant.html">助手</a>
     </nav>
     <div class="nav-actions">
       <button class="icon-btn" title="搜索 (⌘K)" aria-label="搜索">⌕</button>
@@ -1119,7 +1119,7 @@ img, svg { max-width: 100%; display: block; }
       <span class="word"><span class="grad-text">探索 AI 世界</span></span>
     </h1>
     <p class="hero-sub">
-      精选学习路径 · 18+ 国内可访问的 AI 工具 · 站内学习助手 · 一键直达。
+      精选学习路径 · 百余款已收录 AI 工具 · 站内学习助手 · 一键直达。
       所有节点都在这里，从基础到前沿，不迷路。
     </p>
 
@@ -1150,19 +1150,19 @@ img, svg { max-width: 100%; display: block; }
 <div class="container">
   <div class="stats reveal">
     <div class="stat">
-      <div class="stat-num" data-target="12">0<span class="plus">+</span></div>
+      <div class="stat-num" data-stat="learning" data-target="16">16<span class="plus">+</span></div>
       <div class="stat-label">精选学习节点</div>
     </div>
     <div class="stat">
-      <div class="stat-num" data-target="18">0</div>
+      <div class="stat-num" data-stat="tools" data-target="134">134</div>
       <div class="stat-label">AI 工具导航</div>
     </div>
     <div class="stat">
-      <div class="stat-num" data-target="5">0</div>
+      <div class="stat-num" data-stat="domains" data-target="5">5</div>
       <div class="stat-label">学习方向</div>
     </div>
     <div class="stat">
-      <div class="stat-num" data-target="3">0</div>
+      <div class="stat-num" data-target="3">3</div>
       <div class="stat-label">核心入口</div>
     </div>
   </div>
@@ -1185,7 +1185,7 @@ img, svg { max-width: 100%; display: block; }
         <div class="bento-content">
           <div class="bento-num">§ 02 / LEARN</div>
           <h3 class="bento-title">学习路径</h3>
-          <p class="bento-desc">12 个精选节点，从 AI 通识到 Agent 设计</p>
+          <p class="bento-desc">完整知识节点，从 AI 通识到 Agent 设计</p>
         </div>
         <!-- 概念图：知识地图节点 -->
         <svg class="bento-illu" viewBox="0 0 320 320" fill="none">
@@ -1243,7 +1243,7 @@ img, svg { max-width: 100%; display: block; }
         <div class="bento-content">
           <div class="bento-num">§ 04 / TOOLS</div>
           <h3 class="bento-title">AI 工具导航</h3>
-          <p class="bento-desc">18 款精选工具 · 国内可访问优先</p>
+          <p class="bento-desc">百余款精选工具 · 国内可访问优先</p>
         </div>
         <!-- 概念图：网格化工具图标墙 -->
         <svg class="bento-illu" viewBox="0 0 200 200" fill="none">
@@ -1290,7 +1290,7 @@ img, svg { max-width: 100%; display: block; }
       </a>
 
       <!-- AI 助手 (小卡) -->
-      <a href="#assistant" class="bento-card b-assistant" data-spotlight>
+      <a href="assistant.html" class="bento-card b-assistant" data-spotlight>
         <div class="bento-content">
           <div class="bento-num">§ 05 / ASSIST</div>
           <h3 class="bento-title" style="font-size:var(--text-h3)">AI 学习助手</h3>
@@ -1592,38 +1592,38 @@ img, svg { max-width: 100%; display: block; }
         <div class="section-num">§ 04 / Preview</div>
         <h2 class="section-title">精选 AI 工具<br><span class="accent">国内可访问优先</span></h2>
       </div>
-      <p class="section-desc">悬停可暂停滚动 · 点击进入工具导航页查看完整 18 款</p>
+      <p class="section-desc">悬停可暂停滚动 · 点击进入工具导航页查看完整目录</p>
     </div>
   </div>
 
   <div class="tools-marquee reveal">
     <div class="tools-marquee-track">
       <!-- 第一组 -->
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#7C5CFF">K</div><div><div class="marquee-name">Kimi</div><div class="marquee-maker">月之暗面</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#FF7AC6">通</div><div><div class="marquee-name">通义千问</div><div class="marquee-maker">阿里巴巴</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">文</div><div><div class="marquee-name">文心一言</div><div class="marquee-maker">百度</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#FFD56B">豆</div><div><div class="marquee-name">豆包</div><div class="marquee-maker">字节跳动</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#4ADE80">智</div><div><div class="marquee-name">智谱清言</div><div class="marquee-maker">智谱AI</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#7C5CFF">DS</div><div><div class="marquee-name">DeepSeek</div><div class="marquee-maker">深度求索</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">CB</div><div><div class="marquee-name">CodeBuddy</div><div class="marquee-maker">腾讯云</div></div><div class="marquee-cat">CODE</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#FF7AC6">Cu</div><div><div class="marquee-name">Cursor</div><div class="marquee-maker">Cursor Inc.</div></div><div class="marquee-cat">CODE</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#FFD56B">MJ</div><div><div class="marquee-name">Midjourney</div><div class="marquee-maker">Midjourney</div></div><div class="marquee-cat">IMAGE</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#4ADE80">万</div><div><div class="marquee-name">通义万相</div><div class="marquee-maker">阿里巴巴</div></div><div class="marquee-cat">IMAGE</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#FB923C">P</div><div><div class="marquee-name">Perplexity</div><div class="marquee-maker">Perplexity</div></div><div class="marquee-cat">SEARCH</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">天</div><div><div class="marquee-name">天工 AI</div><div class="marquee-maker">昆仑万维</div></div><div class="marquee-cat">SEARCH</div></a>
+      <a href="tools.html?q=Kimi#directory" class="marquee-card"><div class="marquee-fav" style="color:#7C5CFF">K</div><div><div class="marquee-name">Kimi</div><div class="marquee-maker">月之暗面</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=通义千问#directory" class="marquee-card"><div class="marquee-fav" style="color:#FF7AC6">通</div><div><div class="marquee-name">通义千问</div><div class="marquee-maker">阿里巴巴</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=文心一言#directory" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">文</div><div><div class="marquee-name">文心一言</div><div class="marquee-maker">百度</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=豆包#directory" class="marquee-card"><div class="marquee-fav" style="color:#FFD56B">豆</div><div><div class="marquee-name">豆包</div><div class="marquee-maker">字节跳动</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=智谱清言#directory" class="marquee-card"><div class="marquee-fav" style="color:#4ADE80">智</div><div><div class="marquee-name">智谱清言</div><div class="marquee-maker">智谱AI</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=DeepSeek#directory" class="marquee-card"><div class="marquee-fav" style="color:#7C5CFF">DS</div><div><div class="marquee-name">DeepSeek</div><div class="marquee-maker">深度求索</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=CodeBuddy#directory" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">CB</div><div><div class="marquee-name">CodeBuddy</div><div class="marquee-maker">腾讯云</div></div><div class="marquee-cat">CODE</div></a>
+      <a href="tools.html?q=Cursor#directory" class="marquee-card"><div class="marquee-fav" style="color:#FF7AC6">Cu</div><div><div class="marquee-name">Cursor</div><div class="marquee-maker">Cursor Inc.</div></div><div class="marquee-cat">CODE</div></a>
+      <a href="tools.html?q=Midjourney#directory" class="marquee-card"><div class="marquee-fav" style="color:#FFD56B">MJ</div><div><div class="marquee-name">Midjourney</div><div class="marquee-maker">Midjourney</div></div><div class="marquee-cat">IMAGE</div></a>
+      <a href="tools.html?q=通义万相#directory" class="marquee-card"><div class="marquee-fav" style="color:#4ADE80">万</div><div><div class="marquee-name">通义万相</div><div class="marquee-maker">阿里巴巴</div></div><div class="marquee-cat">IMAGE</div></a>
+      <a href="tools.html?q=Perplexity#directory" class="marquee-card"><div class="marquee-fav" style="color:#FB923C">P</div><div><div class="marquee-name">Perplexity</div><div class="marquee-maker">Perplexity</div></div><div class="marquee-cat">SEARCH</div></a>
+      <a href="tools.html?q=天工 AI#directory" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">天</div><div><div class="marquee-name">天工 AI</div><div class="marquee-maker">昆仑万维</div></div><div class="marquee-cat">SEARCH</div></a>
       <!-- 第二组（复制以实现无缝循环）-->
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#7C5CFF">K</div><div><div class="marquee-name">Kimi</div><div class="marquee-maker">月之暗面</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#FF7AC6">通</div><div><div class="marquee-name">通义千问</div><div class="marquee-maker">阿里巴巴</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">文</div><div><div class="marquee-name">文心一言</div><div class="marquee-maker">百度</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#FFD56B">豆</div><div><div class="marquee-name">豆包</div><div class="marquee-maker">字节跳动</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#4ADE80">智</div><div><div class="marquee-name">智谱清言</div><div class="marquee-maker">智谱AI</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#7C5CFF">DS</div><div><div class="marquee-name">DeepSeek</div><div class="marquee-maker">深度求索</div></div><div class="marquee-cat">CHAT</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">CB</div><div><div class="marquee-name">CodeBuddy</div><div class="marquee-maker">腾讯云</div></div><div class="marquee-cat">CODE</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#FF7AC6">Cu</div><div><div class="marquee-name">Cursor</div><div class="marquee-maker">Cursor Inc.</div></div><div class="marquee-cat">CODE</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#FFD56B">MJ</div><div><div class="marquee-name">Midjourney</div><div class="marquee-maker">Midjourney</div></div><div class="marquee-cat">IMAGE</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#4ADE80">万</div><div><div class="marquee-name">通义万相</div><div class="marquee-maker">阿里巴巴</div></div><div class="marquee-cat">IMAGE</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#FB923C">P</div><div><div class="marquee-name">Perplexity</div><div class="marquee-maker">Perplexity</div></div><div class="marquee-cat">SEARCH</div></a>
-      <a href="#" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">天</div><div><div class="marquee-name">天工 AI</div><div class="marquee-maker">昆仑万维</div></div><div class="marquee-cat">SEARCH</div></a>
+      <a href="tools.html?q=Kimi#directory" class="marquee-card"><div class="marquee-fav" style="color:#7C5CFF">K</div><div><div class="marquee-name">Kimi</div><div class="marquee-maker">月之暗面</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=通义千问#directory" class="marquee-card"><div class="marquee-fav" style="color:#FF7AC6">通</div><div><div class="marquee-name">通义千问</div><div class="marquee-maker">阿里巴巴</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=文心一言#directory" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">文</div><div><div class="marquee-name">文心一言</div><div class="marquee-maker">百度</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=豆包#directory" class="marquee-card"><div class="marquee-fav" style="color:#FFD56B">豆</div><div><div class="marquee-name">豆包</div><div class="marquee-maker">字节跳动</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=智谱清言#directory" class="marquee-card"><div class="marquee-fav" style="color:#4ADE80">智</div><div><div class="marquee-name">智谱清言</div><div class="marquee-maker">智谱AI</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=DeepSeek#directory" class="marquee-card"><div class="marquee-fav" style="color:#7C5CFF">DS</div><div><div class="marquee-name">DeepSeek</div><div class="marquee-maker">深度求索</div></div><div class="marquee-cat">CHAT</div></a>
+      <a href="tools.html?q=CodeBuddy#directory" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">CB</div><div><div class="marquee-name">CodeBuddy</div><div class="marquee-maker">腾讯云</div></div><div class="marquee-cat">CODE</div></a>
+      <a href="tools.html?q=Cursor#directory" class="marquee-card"><div class="marquee-fav" style="color:#FF7AC6">Cu</div><div><div class="marquee-name">Cursor</div><div class="marquee-maker">Cursor Inc.</div></div><div class="marquee-cat">CODE</div></a>
+      <a href="tools.html?q=Midjourney#directory" class="marquee-card"><div class="marquee-fav" style="color:#FFD56B">MJ</div><div><div class="marquee-name">Midjourney</div><div class="marquee-maker">Midjourney</div></div><div class="marquee-cat">IMAGE</div></a>
+      <a href="tools.html?q=通义万相#directory" class="marquee-card"><div class="marquee-fav" style="color:#4ADE80">万</div><div><div class="marquee-name">通义万相</div><div class="marquee-maker">阿里巴巴</div></div><div class="marquee-cat">IMAGE</div></a>
+      <a href="tools.html?q=Perplexity#directory" class="marquee-card"><div class="marquee-fav" style="color:#FB923C">P</div><div><div class="marquee-name">Perplexity</div><div class="marquee-maker">Perplexity</div></div><div class="marquee-cat">SEARCH</div></a>
+      <a href="tools.html?q=天工 AI#directory" class="marquee-card"><div class="marquee-fav" style="color:#5EE0FF">天</div><div><div class="marquee-name">天工 AI</div><div class="marquee-maker">昆仑万维</div></div><div class="marquee-cat">SEARCH</div></a>
     </div>
   </div>
 </section>
@@ -1633,7 +1633,7 @@ img, svg { max-width: 100%; display: block; }
   <div class="container">
     <div class="cta-eyebrow reveal">§ READY / 开始你的旅程</div>
     <h2 class="reveal">不需要先成为专家，<br><span class="accent">从这里出发就好</span></h2>
-    <p class="reveal">从「什么是 AI」到「部署一个 Agent」，12 个节点带你走完整条路径。所有资源都经过验证，国内可访问。</p>
+    <p class="reveal">从「什么是 AI」到「部署一个 Agent」，完整节点带你走通学习路径，公开资源统一纳入链接治理。</p>
     <div class="cta-actions reveal">
       <a href="learn.html" class="moving-border-btn" style="height:44px;padding:0 24px;font-size:14px">
         进入学习路径 →
@@ -1650,145 +1650,11 @@ img, svg { max-width: 100%; display: block; }
     <div class="footer-links">
       <a href="#">GitHub</a>
       <a href="#">反馈</a>
-      <a href="#about">关于</a>
       <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">回顶部 ↑</a>
     </div>
   </div>
 </footer>
 
-<script>
-// ===== 1. 滚动进度条 =====
-const bar = document.getElementById('progressBar');
-window.addEventListener('scroll', () => {
-  const h = document.documentElement;
-  const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
-  bar.style.width = pct + '%';
-}, { passive: true });
-
-// ===== 2. Floating Navbar 滚动方向切换 =====
-const navbar = document.getElementById('navbar');
-let lastScroll = 0;
-window.addEventListener('scroll', () => {
-  const cur = window.scrollY;
-  if (cur > 80 && cur > lastScroll) {
-    navbar.classList.add('hidden');
-  } else {
-    navbar.classList.remove('hidden');
-  }
-  lastScroll = cur;
-}, { passive: true });
-
-// ===== 3. Text Generate Effect（Hero 标题逐字淡入）=====
-const heroTitle = document.getElementById('heroTitle');
-const words = heroTitle.querySelectorAll('.word');
-words.forEach((w, i) => {
-  setTimeout(() => w.classList.add('in'), 200 + i * 250);
-});
-
-// ===== 4. Placeholders And Vanish Input（搜索框占位符轮播）=====
-const heroSearch = document.getElementById('heroSearch');
-const placeholders = [
-  '试试搜索 DeepSeek、ChatGPT、提示工程...',
-  '搜索 RAG、Agent、Transformer...',
-  '搜索 Kimi、Cursor、Midjourney...',
-  '搜索「免费 AI 编程助手」...',
-  '搜索「学习路线」...',
-];
-let phIdx = 0;
-setInterval(() => {
-  phIdx = (phIdx + 1) % placeholders.length;
-  if (document.activeElement !== heroSearch) {
-    heroSearch.style.transition = 'opacity 0.3s';
-    heroSearch.style.opacity = '0';
-    setTimeout(() => {
-      heroSearch.placeholder = placeholders[phIdx];
-      heroSearch.style.opacity = '1';
-    }, 300);
-  }
-}, 3500);
-
-// ===== 5. Card Spotlight 跟随鼠标径向渐变 =====
-document.querySelectorAll('[data-spotlight]').forEach(card => {
-  card.addEventListener('mousemove', e => {
-    const rect = card.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    card.style.setProperty('--mx', x + '%');
-    card.style.setProperty('--my', y + '%');
-  });
-});
-
-// ===== 5b. Knowledge domain tabs =====
-const domainNodes = {
-  core: ['AI 通识', 'Python', '数学基础'],
-  ml: ['机器学习', '监督学习', '无监督学习', '训练评估', '数学基础'],
-  dl: ['神经网络', 'Embedding', 'Transformer', 'LLM 基础', '微调评测'],
-  app: ['LLM 基础', 'Prompt', 'RAG', 'Agent', 'Embedding'],
-  ops: ['训练评估', '微调评测', 'RAG', 'Agent', '上线治理']
-};
-function applyKnowledgeDomain(domain, color, glow) {
-  const canvas = document.querySelector('.km-canvas');
-  if (!canvas) return;
-  const names = domainNodes[domain] || [];
-  canvas.classList.toggle('has-domain', names.length > 0);
-  canvas.querySelectorAll('.km-node').forEach(node => {
-    const selected = names.some(name => node.textContent.includes(name));
-    node.classList.toggle('domain-selected', selected);
-    node.style.setProperty('--domain-color', color);
-    node.style.setProperty('--domain-glow', glow);
-  });
-}
-document.querySelectorAll('.roadmap-tab[data-domain]').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.roadmap-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    applyKnowledgeDomain(tab.dataset.domain, tab.style.getPropertyValue('--domain-color'), tab.style.getPropertyValue('--domain-glow'));
-  });
-});
-const activeRoadmapTab = document.querySelector('.roadmap-tab.active[data-domain]');
-if (activeRoadmapTab) applyKnowledgeDomain(activeRoadmapTab.dataset.domain, activeRoadmapTab.style.getPropertyValue('--domain-color'), activeRoadmapTab.style.getPropertyValue('--domain-glow'));
-// ===== 6. Reveal 动画（IntersectionObserver）=====
-const io = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.classList.add('in');
-      io.unobserve(e.target);
-    }
-  });
-}, { threshold: 0.1, rootMargin: '0px 0px -80px 0px' });
-document.querySelectorAll('.reveal').forEach(el => io.observe(el));
-
-// ===== 7. Stats 数字 count-up =====
-const statObserver = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      const el = e.target;
-      const target = parseInt(el.dataset.target);
-      const plus = el.querySelector('.plus');
-      let cur = 0;
-      const step = Math.max(1, Math.ceil(target / 30));
-      const timer = setInterval(() => {
-        cur += step;
-        if (cur >= target) { cur = target; clearInterval(timer); }
-        el.firstChild.textContent = cur;
-      }, 40);
-      statObserver.unobserve(el);
-    }
-  });
-}, { threshold: 0.5 });
-document.querySelectorAll('.stat-num[data-target]').forEach(el => statObserver.observe(el));
-
-// ===== 8. SVG 节点 hover =====
-document.querySelectorAll('.node-svg').forEach(node => {
-  node.style.cursor = 'pointer';
-  node.addEventListener('mouseenter', () => {
-    node.querySelector('.node-card-svg')?.classList.add('hover');
-  });
-  node.addEventListener('mouseleave', () => {
-    node.querySelector('.node-card-svg')?.classList.remove('hover');
-  });
-});
-</script>
-  <script type="module" src="assets/js/v2-api.js"></script>
+<script type="module" src="assets/js/home-page.js"></script>
 </body>
 </html>
