@@ -1,8 +1,10 @@
 # AI 知识导航 Agent 设计文档
 
+> 状态说明（2026-07-15）：本文保留早期产品愿景和阶段设想。当前实现事实以 `docs/agent-service-implementation.md`、代码和验证脚本为准；后续开发边界与顺序以 `docs/agent-development-handoff.md` 和 `docs/agent-delivery-roadmap.md` 为准。项目目前采用模块化单体中的确定性只读 Agent，尚未接入 LangGraph、模型 provider、SSE 会话或向量库；本文第 13 节关于“现有能力”的描述属于早期外部原型假设，不代表当前仓库状态。
+
 版本：v0.1  
 日期：2026-07-08  
-适用项目：AI 知识导航前后端分离版  
+适用项目：AI 知识导航
 设计目标：先大胆设计，再分期验证
 
 ## 1. 背景与目标

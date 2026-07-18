@@ -1,8 +1,7 @@
-def load_user_agent_preferences(user_id: int | None) -> dict:
-    """Reserved Agent memory read point.
+from app.users.preferences.facade import UserPreferencesFacade, get_user_preferences_facade
 
-    Long-term memory must stay opt-in and should only load data that belongs to
-    the current authenticated user. This placeholder prevents future Agent code
-    from reading user tables ad hoc.
-    """
-    return {}
+
+def load_user_agent_preferences(user_id: int | None, facade: UserPreferencesFacade | None = None) -> dict:
+    if user_id is None:
+        return {"preferences": {}, "meta": {"source": "anonymous", "contractVersion": 1, "consumer": "agent"}}
+    return (facade or get_user_preferences_facade()).get_context(user_id, "agent")
