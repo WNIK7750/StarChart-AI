@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 学习助手 · AI 知识导航</title>
+  <link rel="icon" type="image/png" href="assets/img/logo.png">
+  <link rel="stylesheet" href="assets/css/assistant.css">
+</head>
+<body data-page="assistant">
+  <header class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="brand"><span class="brand-mark">A+</span><span>AI 知识导航</span></a>
+      <nav class="nav-links" aria-label="主导航">
+        <a href="index.html">主页</a>
+        <a href="learn.html">学习</a>
+        <a href="tools.html">工具</a>
+        <a href="assistant.html" class="active">助手</a>
+      </nav>
+      <div class="nav-actions"><div data-auth-root></div></div>
+    </div>
+  </header>
+
+  <main class="assistant-shell">
+    <aside class="context-panel" aria-label="助手上下文">
+      <h2 class="panel-title">当前上下文</h2>
+      <div class="context-block">
+        <div class="mode-line"><span class="mode-dot"></span><strong>确定性只读模式</strong></div>
+        <p class="read-only">回答来自站内 Learning 与 Tools 数据。任何用户资产写入都需要单独确认。</p>
+      </div>
+      <div class="context-block">
+        <span class="context-label">用户资产</span>
+        <div class="context-value" id="assetSummary">登录后读取最小上下文</div>
+      </div>
+      <div class="context-block">
+        <span class="context-label">快捷任务</span>
+        <div class="quick-list">
+          <button type="button" data-prompt="RAG 怎么学？">规划 RAG 学习入口</button>
+          <button type="button" data-prompt="推荐适合写代码的 AI 工具">查找编程工具</button>
+          <button type="button" data-prompt="帮我做一个论文阅读工作流">生成论文工作流</button>
+        </div>
+      </div>
+    </aside>
+
+    <section class="conversation" aria-label="Agent 对话">
+      <header class="conversation-head">
+        <div><h1>AI 学习助手</h1><p>检索站内知识、工具与工作流候选</p></div>
+        <span class="conversation-status" id="assistantStatus">就绪</span>
+      </header>
+      <div class="messages" id="messages" aria-live="polite">
+        <div class="welcome" id="welcome">
+          <h2>从一个具体问题开始</h2>
+          <p>我会先使用站内事实回答，并展示引用和实际调用的数据来源。</p>
+          <div class="suggestions">
+            <button type="button" data-prompt="RAG 和微调应该先学哪个？">RAG 和微调应该先学哪个？</button>
+            <button type="button" data-prompt="推荐免费优先的代码工具">推荐免费优先的代码工具</button>
+            <button type="button" data-prompt="带我去学习 Transformer">带我去学习 Transformer</button>
+            <button type="button" data-prompt="帮我做一个论文阅读工作流">生成论文阅读工作流</button>
+          </div>
+        </div>
+      </div>
+      <div class="composer-wrap">
+        <form class="composer" id="assistantForm">
+          <textarea id="assistantInput" rows="1" maxlength="4000" placeholder="询问学习路线、工具或工作流" aria-label="向助手提问" required></textarea>
+          <button type="submit" id="sendButton" aria-label="发送">↑</button>
+        </form>
+        <p class="composer-note">当前为确定性检索模式，回答附带站内来源。</p>
+      </div>
+    </section>
+
+    <aside class="evidence-panel" aria-label="回答来源">
+      <h2 class="panel-title">来源与调用</h2>
+      <div class="evidence-empty" id="evidenceEmpty">发送问题后，这里会显示使用的学习节点、工具目录和调用记录。</div>
+      <div class="evidence-list" id="evidenceList"></div>
+      <div class="tool-calls" id="toolCalls" hidden></div>
+    </aside>
+  </main>
+
+  <script type="module" src="assets/js/v2-api.js"></script>
+  <script type="module" src="assets/js/assistant-page.js"></script>
+</body>
+</html>

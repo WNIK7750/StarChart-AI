@@ -1,4 +1,4 @@
-from app.services.tool_catalog import search_tools, workflow_suggestions
+from app.tools.service import search_tools, workflow_suggestions
 
 
 def site_tools_href(category: str | None = None) -> str:
@@ -10,11 +10,14 @@ def search_tool_cards(query: str, limit: int = 5) -> list[dict]:
     return [
         {
             "type": "tool",
+            "sourceKey": item["tool"]["id"],
             "title": item["title"],
             "description": item["tool"]["description"],
             "href": item["tool"]["href"],
             "reason": item["reason"],
             "officialUrl": item["tool"]["url"],
+            "tags": item["tool"].get("tags", []),
+            "isFree": item["tool"].get("isFree", False),
         }
         for item in search_tools(query, limit=limit)
     ]
