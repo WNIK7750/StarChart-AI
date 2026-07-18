@@ -1,6 +1,5 @@
 import { apiGet } from "./api.js";
-import "./tool-data.js";
-import "./tool-page-lists.js";
+import { safeHttpHref, safeInternalHref } from "./url-safety.js";
 
 const SEARCH_STYLE_ID = "ai-nav-site-search-style";
 let searchIndexPromise = null;
@@ -8,7 +7,7 @@ let searchIndexPromise = null;
 const PAGES = [
   { type: "页面", title: "学习路线", description: "AI 知识地图、学习节点和主资料目录。", url: "learn.html#roadmap", keywords: "学习 路线 知识地图 roadmap ai 课程 节点" },
   { type: "页面", title: "工具导航", description: "按场景查找 AI 工具、组合工作流和最新工具。", url: "tools.html#directory", keywords: "工具 导航 tools ai workflow 工作流 推荐" },
-  { type: "页面", title: "AI 学习助手", description: "站内 Agent 问答与工作流生成入口。", url: "index.html#assistant", keywords: "助手 agent 工作流 问答 智能体" },
+  { type: "页面", title: "AI 学习助手", description: "站内 Agent 问答与工作流生成入口。", url: "assistant.html", keywords: "助手 agent 工作流 问答 智能体" },
   { type: "页面", title: "关于本站", description: "项目定位、内容来源和后续规划。", url: "index.html#about", keywords: "关于 项目 说明" },
 ];
 
@@ -162,44 +161,6 @@ function includesAny(text, values) {
   return values.some((value) => text.includes(value));
 }
 
-function toolHeat(tool, placements) {
-  return Math.max(0, ...placements.filter((place) => place.toolId === tool.id).map((place) => place.heat || 0));
-}
-
-function buildLocalToolItems() {
-  const data = window.AINavToolData;
-  if (!data?.tools?.length) return [];
-  const categories = Object.fromEntries((data.categories || []).map((cat) => [cat.id, cat]));
-  const placements = data.placements || [];
-  return data.tools.map((tool) => {
-    const ownPlacements = placements.filter((place) => place.toolId === tool.id);
-    const categoryNames = [...new Set(ownPlacements.map((place) => categories[place.categoryId]?.name).filter(Boolean))];
-    const subcategories = [...new Set(ownPlacements.map((place) => place.subcategory).filter(Boolean))];
-    const tags = [...new Set(ownPlacements.map((place) => place.tag).filter(Boolean))];
-    const heat = toolHeat(tool, placements);
-    return {
-      type: "工具",
-      title: tool.name,
-      description: `${categoryNames.join("、") || "AI 工具"} · ${tool.description}`,
-      url: `tools.html?q=${encodeURIComponent(tool.name)}#directory`,
-      iconUrl: tool.icon,
-      iconFallbacks: tool.iconFallbacks || [],
-      mark: tool.mark,
-      heat,
-      source: "tool",
-      keywords: [
-        tool.name,
-        ...(tool.aliases || []),
-        tool.description,
-        categoryNames.join(" "),
-        subcategories.join(" "),
-        tags.join(" "),
-        tool.url,
-      ].join(" "),
-    };
-  });
-}
-
 function enrichItem(item) {
   const title = compact(item.title);
   const description = compact(item.description);
@@ -211,24 +172,20 @@ function enrichItem(item) {
 
 async function buildSearchIndex() {
   if (!searchIndexPromise) {
-    const localTools = buildLocalToolItems();
-    const requests = localTools.length
-      ? [Promise.resolve({ items: [] }), apiGet("/learning/roadmap")]
-      : [apiGet("/tools", { page_size: 80 }), apiGet("/learning/roadmap")];
+    const requests = [apiGet("/tools/catalog"), apiGet("/learning/roadmap")];
     searchIndexPromise = Promise.allSettled(requests).then(([toolsResult, roadmapResult]) => {
-      const apiTools = toolsResult.status === "fulfilled" ? toolsResult.value.items.map((tool) => ({
+      const apiTools = toolsResult.status === "fulfilled" ? toolsResult.value.tools.map((tool) => ({
         type: "工具",
         title: tool.name,
-        description: `${tool.categoryName || "AI 工具"} · ${tool.description}`,
+        description: `${tool.categories?.join("、") || "AI 工具"} · ${tool.description}`,
         url: `tools.html?q=${encodeURIComponent(tool.name)}#directory`,
-        iconUrl: tool.iconUrl,
+        iconUrl: tool.icon,
         iconFallbacks: tool.iconFallbacks || [],
         mark: tool.mark,
         heat: tool.heat || 0,
         source: "tool",
-        keywords: `${tool.name} ${tool.description} ${tool.categoryName} ${tool.subcategory} ${tool.tag}`,
+        keywords: `${tool.name} ${(tool.aliases || []).join(" ")} ${tool.description} ${(tool.categories || []).join(" ")} ${(tool.subcategories || []).join(" ")} ${(tool.tags || []).join(" ")}`,
       })) : [];
-      const tools = localTools.length ? localTools : apiTools;
       const nodes = roadmapResult.status === "fulfilled" ? roadmapResult.value.nodes.map((node) => ({
         type: "学习",
         title: node.title,
@@ -236,7 +193,7 @@ async function buildSearchIndex() {
         url: `learn-node.html?slug=${encodeURIComponent(node.slug)}#overview`,
         keywords: `${node.title} ${node.subtitle} ${node.slug}`,
       })) : LEARNING;
-      return [...tools, ...nodes, ...PAGES].map(enrichItem);
+      return [...apiTools, ...nodes, ...PAGES].map(enrichItem);
     });
   }
   return searchIndexPromise;
@@ -346,8 +303,10 @@ async function getResults(queryText, limit = 7) {
 function resultIcon(item) {
   if (item.iconUrl) {
     const fallbackText = escapeHtml(item.mark || item.title.slice(0, 2));
-    const fallbacks = escapeHtml(JSON.stringify(item.iconFallbacks || []));
-    return `<img src="${escapeHtml(item.iconUrl)}" alt="" loading="lazy" data-fallbacks="${fallbacks}" onerror="const f=JSON.parse(this.dataset.fallbacks||'[]');const n=f.shift();if(n){this.dataset.fallbacks=JSON.stringify(f);this.src=n}else{this.remove();this.parentElement.textContent='${fallbackText}'}">`;
+    const fallbacks = escapeHtml(JSON.stringify((item.iconFallbacks || [])
+      .map((value) => safeHttpHref(value, ""))
+      .filter(Boolean)));
+    return `<img src="${escapeHtml(safeHttpHref(item.iconUrl))}" alt="" loading="lazy" data-fallbacks="${fallbacks}" onerror="const f=JSON.parse(this.dataset.fallbacks||'[]');const n=f.shift();if(n){this.dataset.fallbacks=JSON.stringify(f);this.src=n}else{this.remove();this.parentElement.textContent='${fallbackText}'}">`;
   }
   return escapeHtml(item.mark || item.title.slice(0, 2).toUpperCase());
 }
@@ -376,7 +335,8 @@ function renderResults(form, results) {
 
 function goToResult(item) {
   if (!item?.url) return;
-  window.location.href = new URL(item.url, window.location.href).href;
+  const href = safeInternalHref(item.url, "");
+  if (href) window.location.href = href;
 }
 
 async function updateResults(form) {
@@ -475,14 +435,7 @@ export function initSiteSearch() {
       goToResult((await getResults(link.textContent))[0]);
     });
   });
-  if (value && location.pathname.endsWith("/tools.html")) {
-    window.setTimeout(() => {
-      const input = document.querySelector("#searchInput, #toolSearch");
-      if (input) input.value = value;
-      document.querySelector("#searchForm")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-      document.querySelector("#directory")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 250);
-  } else if (location.hash) {
+  if (location.hash && !location.pathname.endsWith("/tools.html")) {
     window.setTimeout(() => document.querySelector(location.hash)?.scrollIntoView({ behavior: "smooth", block: "start" }), 180);
   }
 }
