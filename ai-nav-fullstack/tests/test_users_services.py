@@ -20,7 +20,7 @@ from app.agent.schemas import AgentChatRequest
 from app.agent.service import draft_agent_response
 from app.db.database import apply_migrations, dict_factory
 from app.core.security import hash_password, hash_token
-from app.core.config import DEV_SECRET_KEY, validate_runtime_security
+from app.core.config import DEV_SECRET_KEY, PASSWORD_HASH_ROUNDS, validate_runtime_security
 from app.users.account.repositories.sqlite import SQLiteAccountRepository
 from app.users.account.service import AccountService
 from app.users.assets.facade import UserAssetsFacade
@@ -1101,7 +1101,7 @@ class UsersServicesTest(unittest.TestCase):
         self.assertIsNone(self.database_value("SELECT locked_until FROM user_auth_passwords WHERE user_id = ?", (self.alice_id,)))
 
     def test_successful_login_upgrades_legacy_password_hash(self):
-        legacy_hash = hash_password("Current123", rounds=120_000)
+        legacy_hash = hash_password("Current123", rounds=max(1, PASSWORD_HASH_ROUNDS - 1))
         conn = sqlite3.connect(self.database_path)
         try:
             conn.execute("UPDATE user_auth_passwords SET password_hash = ? WHERE user_id = ?", (legacy_hash, self.alice_id))
@@ -1112,7 +1112,7 @@ class UsersServicesTest(unittest.TestCase):
         self.assertEqual("Bearer", logged_in["tokenType"])
         upgraded_hash = self.database_value("SELECT password_hash FROM user_auth_passwords WHERE user_id = ?", (self.alice_id,))
         self.assertNotEqual(legacy_hash, upgraded_hash)
-        self.assertIn("pbkdf2_sha256$180000$", upgraded_hash)
+        self.assertIn(f"pbkdf2_sha256${PASSWORD_HASH_ROUNDS}$", upgraded_hash)
 
     def test_auth_security_reset_flow_revokes_sessions(self):
         self.security.replace_security_questions(
