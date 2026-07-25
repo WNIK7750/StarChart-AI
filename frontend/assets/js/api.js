@@ -2,6 +2,11 @@ const API_BASE = window.API_BASE || "/api/v1";
 const DEFAULT_TIMEOUT_MS = 10000;
 const RETRYABLE_STATUS = new Set([502, 503, 504]);
 const REFRESHABLE_AUTH_CODES = new Set(["AUTH_TOKEN_INVALID", "AUTH_TOKEN_EXPIRED"]);
+let accessToken = "";
+
+// Remove credentials written by releases before access tokens became memory-only.
+localStorage.removeItem("ai_nav_access_token");
+localStorage.removeItem("ai_nav_refresh_token");
 
 export class ApiError extends Error {
   constructor(message, { status, code, payload, path } = {}) {
@@ -21,7 +26,7 @@ function buildApiUrl(path) {
 }
 
 function authHeaders() {
-  const token = localStorage.getItem("ai_nav_access_token");
+  const token = accessToken;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -173,6 +178,55 @@ export async function apiPost(path, body = {}, options = {}) {
   return apiRequest(path, { ...options, method: "POST", body: JSON.stringify(body) });
 }
 
+async function apiStreamRequest(path, body, options = {}, allowRefresh = true) {
+  const response = await fetchWithDeadline(path, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+      ...authHeaders(),
+      ...(options.headers || {}),
+    },
+    body: JSON.stringify(body),
+    signal: options.signal,
+  }, options.timeoutMs || DEFAULT_TIMEOUT_MS);
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    if (isRefreshableAuthFailure(response, data) && allowRefresh && shouldRefresh(path)) {
+      await refreshAccessToken();
+      return apiStreamRequest(path, body, options, false);
+    }
+    const message = data.detail?.message || data.detail || data.message || `API ${response.status}: ${path}`;
+    throw new ApiError(String(message), {
+      status: response.status,
+      code: data.detail?.code,
+      payload: data,
+      path,
+    });
+  }
+  const contentType = response.headers.get("Content-Type") || "";
+  if (!contentType.toLowerCase().startsWith("text/event-stream")) {
+    throw new ApiError("流式响应协议不受支持", {
+      status: response.status,
+      code: "API_STREAM_CONTENT_TYPE_INVALID",
+      path,
+    });
+  }
+  if (!response.body) {
+    throw new ApiError("流式响应正文不可用", {
+      status: response.status,
+      code: "API_STREAM_BODY_MISSING",
+      path,
+    });
+  }
+  return response;
+}
+
+export async function apiPostStream(path, body = {}, options = {}) {
+  return apiStreamRequest(path, body, options, true);
+}
+
 export async function apiPut(path, body = {}, options = {}) {
   return apiRequest(path, { ...options, method: "PUT", body: JSON.stringify(body) });
 }
@@ -213,20 +267,26 @@ async function uploadRequest(path, formData, options, allowRefresh) {
 }
 
 export function saveAuthTokens(data) {
-  if (data.accessToken) localStorage.setItem("ai_nav_access_token", data.accessToken);
-  if (data.refreshToken) localStorage.removeItem("ai_nav_refresh_token");
+  if (data.accessToken) accessToken = data.accessToken;
+  localStorage.removeItem("ai_nav_access_token");
+  localStorage.removeItem("ai_nav_refresh_token");
 }
 
 export function clearAuthTokens() {
+  accessToken = "";
   localStorage.removeItem("ai_nav_access_token");
   localStorage.removeItem("ai_nav_refresh_token");
 }
 
 export function getRefreshToken() {
-  // Compatibility for sessions created before HttpOnly refresh cookies.
-  return localStorage.getItem("ai_nav_refresh_token") || "";
+  return "";
 }
 
 export function getAccessToken() {
-  return localStorage.getItem("ai_nav_access_token") || "";
+  return accessToken;
+}
+
+export async function restoreAuthSession() {
+  if (accessToken) return accessToken;
+  return refreshAccessToken();
 }

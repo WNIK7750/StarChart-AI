@@ -66,6 +66,10 @@ function bindStats() {
 }
 
 await initPageShell("home");
+document.querySelector("[data-scroll-top]")?.addEventListener("click", (event) => {
+  event.preventDefault();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
 bindNavbarScroll();
 bindScrollProgress();
 bindHeroMotion();

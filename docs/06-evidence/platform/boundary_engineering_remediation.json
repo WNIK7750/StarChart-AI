@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-25",
+  "productionClaim": false,
+  "httpBoundaries": {
+    "tests": "5/5 passed",
+    "covered": [
+      "user-learning unauthenticated rejection and injected-user ownership",
+      "cross-user missing responses remain indistinguishable",
+      "privacy export reauthentication and secret-free error responses",
+      "privacy deletion request and cancellation",
+      "Users access request-id sanitization and secret-free structured logs",
+      "public Learning and navigation remain available when Agent Provider construction fails"
+    ]
+  },
+  "engineering": {
+    "ruff": "All checks passed for E4,E7,E9,F",
+    "database": "initialize_database uses explicit closing; Windows rename/delete regression passed without gc.collect",
+    "releaseSelection": {
+      "selectedFiles": 347,
+      "forbiddenFiles": 0,
+      "mode": "allowlisted roots and files"
+    },
+    "ignoredArtifacts": [
+      "logs",
+      "frontend copy",
+      "coverage temporaries",
+      "SQLite sidecars and restore temporaries",
+      "uploads",
+      "IDE and local runtime directories"
+    ]
+  },
+  "qualityGate": {
+    "pythonTests": "176/176 passed",
+    "nodeTests": "34/34 passed",
+    "pythonSyntax": "compileall passed",
+    "javaScriptSyntax": "36/36 files passed node --check",
+    "branchModeTotalCoveragePercent": 85.9,
+    "pipAudit": "No known vulnerabilities found"
+  }
+}

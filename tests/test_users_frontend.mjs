@@ -1,4 +1,21 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const settingsScript = fs.readFileSync("frontend/assets/js/settings.js", "utf8");
+const settingsHtml = fs.readFileSync("frontend/settings.html", "utf8");
+assert.match(settingsScript, /new URLSearchParams\(window\.location\.search\)\.get\("workflow"\)/);
+assert.match(settingsScript, /data-workflow-uid/);
+assert.match(settingsScript, /target\.focus\(\{ preventScroll: true \}\)/);
+assert.match(settingsScript, /target\.scrollIntoView/);
+assert.match(settingsScript, /data-workflow-detail-toggle/);
+assert.match(settingsScript, /workflowStepsMarkup\(item\)/);
+assert.match(settingsScript, /aria-expanded/);
+assert.match(settingsScript, /safeInternalHref\(step\.target\?\.href, ""\)/);
+assert.match(settingsHtml, /\.learning-item\.workflow-target/);
+assert.match(settingsHtml, /\.learning-item\.workflow-target:focus-visible\{outline:2px solid #5f6668/);
+assert.match(settingsHtml, /\.workflow-detail-region\{grid-column:1\/-1\}/);
+assert.match(settingsHtml, /\.learning-item \.workflow-step-number\{[^}]*display:inline-flex;align-items:center;justify-content:center;[^}]*margin:0;[^}]*line-height:1/);
+assert.match(settingsHtml, /核对 Agent 保存的工作流步骤与工具状态/);
 
 const storage = new Map([["ai_nav_access_token", "test-access-token"]]);
 globalThis.window = {
@@ -19,6 +36,8 @@ globalThis.fetch = async (url, options = {}) => {
 };
 
 const users = await import("../frontend/assets/js/users-api.js");
+const { getAccessToken, saveAuthTokens } = await import("../frontend/assets/js/api.js");
+saveAuthTokens({ accessToken: "test-access-token" });
 
 await users.getCurrentUser();
 await users.updateUserProfile({ expectedVersion: 3, displayName: "Alice" });
@@ -66,7 +85,7 @@ assert.equal(requests[13].url, "/api/v1/agent/workflows/save");
 assert.equal(requests[13].options.headers["Idempotency-Key"], "agent-save-001");
 assert.equal(JSON.parse(requests[13].options.body).confirmed, true);
 
-storage.set("ai_nav_access_token", "expired-access-token");
+saveAuthTokens({ accessToken: "expired-access-token" });
 let protectedCalls = 0;
 let refreshCalls = 0;
 globalThis.fetch = async (url, options = {}) => {
@@ -97,7 +116,8 @@ globalThis.fetch = async (url, options = {}) => {
 const refreshedUsers = await Promise.all([users.getCurrentUser(), users.getCurrentUser()]);
 assert.equal(refreshCalls, 1);
 assert.equal(protectedCalls, 4);
-assert.equal(storage.get("ai_nav_access_token"), "renewed-access-token");
+assert.equal(getAccessToken(), "renewed-access-token");
+assert.equal(storage.has("ai_nav_access_token"), false);
 assert.deepEqual(refreshedUsers.map((item) => item.user.userUid), ["usr_refresh", "usr_refresh"]);
 
 const consumers = await import("../frontend/assets/js/user-preference-consumers.js");

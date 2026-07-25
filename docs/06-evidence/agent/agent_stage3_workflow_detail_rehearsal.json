@@ -1,0 +1,65 @@
+{
+  "contractVersion": 1,
+  "scenario": "agent-stage3-read-only-workflow-detail",
+  "verifiedAt": "2026-07-24",
+  "decision": {
+    "standaloneDetailPageRequired": false,
+    "reason": "The existing user-scoped workflow list contract already returns complete ordered steps and tool availability.",
+    "implementation": "Progressive disclosure inside the existing settings workflow list."
+  },
+  "environment": {
+    "url": "http://127.0.0.1:8090/settings.html#workflows",
+    "database": "temporary",
+    "provider": "deterministic",
+    "providerNetworkUsed": false,
+    "realCredentialsLoaded": false
+  },
+  "result": {
+    "passed": true,
+    "targetWorkflowFocused": true,
+    "targetWorkflowAutoExpanded": true,
+    "orderedStepCount": 2,
+    "manualCollapse": true,
+    "manualReopen": true,
+    "nonTargetInitiallyCollapsed": true,
+    "nonTargetManualExpand": true,
+    "unavailableToolRenderedAsText": true,
+    "unsafeToolLinksRendered": 0,
+    "uiWriteRequests": 0,
+    "stepNumberCentering": {
+      "valuesChecked": ["1", "2", "10"],
+      "maximumHorizontalDeltaPx": 0.008,
+      "maximumVerticalDeltaPx": 0,
+      "computedDisplay": "flex",
+      "computedMarginTop": "0px"
+    }
+  },
+  "responsive": {
+    "desktopViewport": "1440x960",
+    "mobileViewport": "390x844",
+    "mobileHorizontalOverflow": false,
+    "mobileTargetFocused": true,
+    "mobileTargetDetailVisible": true
+  },
+  "browserQa": {
+    "operaConnector": {
+      "unauthenticatedRedirect": "pass",
+      "authenticatedIsolation": "unavailable"
+    },
+    "playwrightFallback": {
+      "engine": "Chromium",
+      "consoleErrors": 0,
+      "pageErrors": 0
+    },
+    "screenshots": [
+      "ai-nav-workflow-step-centered-desktop.png",
+      "ai-nav-workflow-step-centered-mobile.png"
+    ]
+  },
+  "boundaries": [
+    "No standalone page, route, API, database migration, or Users Command was added.",
+    "Details reuse the user-scoped list response and remain read-only.",
+    "Tool hrefs are filtered through the existing internal URL safety policy.",
+    "Long-term memory, live Provider, and additional write commands remain disabled."
+  ]
+}

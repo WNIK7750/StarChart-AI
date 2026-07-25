@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "agent-development-completion-audit-v1",
+  "status": "development_complete_production_pending",
+  "date": "2026-07-25",
+  "authoritativeTaskList": "docs/03-domains/agent/agent-development-tasks.md",
+  "offlineDevelopment": {
+    "status": "complete",
+    "stages": [
+      "baseline",
+      "provider_boundary",
+      "streaming_and_sessions",
+      "confirmed_user_workflow",
+      "quality_and_runtime_governance",
+      "experience_and_release_documentation",
+      "short_and_long_conversation_management",
+      "conversation_privacy_lifecycle"
+    ],
+    "agentGatePassed": true,
+    "foundationGatePassed": true,
+    "agentPythonTests": 91,
+    "agentNodeAndSseTests": 3,
+    "migrationCount": 20
+  },
+  "remainingTasks": [
+    {
+      "id": "provider_compliance",
+      "class": "production_release",
+      "requiresExternalState": true
+    },
+    {
+      "id": "controlled_live_provider_validation",
+      "class": "production_release",
+      "requiresExternalState": true
+    },
+    {
+      "id": "shanghai_egress_and_capacity",
+      "class": "production_release",
+      "requiresExternalState": true
+    },
+    {
+      "id": "production_configuration_and_secret_rotation",
+      "class": "production_release",
+      "requiresExternalState": true
+    },
+    {
+      "id": "post_live_full_gate",
+      "class": "production_release",
+      "requiresExternalState": true
+    }
+  ],
+  "evidenceGatedOptionalExtensions": [
+    "automatic_long_term_memory",
+    "cross_process_runtime_state",
+    "second_provider",
+    "vector_retrieval",
+    "state_graph",
+    "multi_agent"
+  ],
+  "unmarkedOfflineTasks": [],
+  "containsUserContent": false,
+  "containsCredentials": false
+}

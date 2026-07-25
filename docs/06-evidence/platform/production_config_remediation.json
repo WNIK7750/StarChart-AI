@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-07-25",
+  "scope": "AUD-CFG-001",
+  "containsSecrets": false,
+  "dotenvDisabledForVerification": true,
+  "baselineRegression": {
+    "resultBeforeFix": "failed",
+    "failure": "TypeError: validate_runtime_security() got an unexpected keyword argument 'database_path'"
+  },
+  "postFix": {
+    "configurationTests": {
+      "passed": 3,
+      "failed": 0
+    },
+    "foundationGate": {
+      "passed": true,
+      "frontendNode": 26,
+      "toolsPython": 6,
+      "learningPython": 19,
+      "learningNode": 2,
+      "usersPython": 47
+    },
+    "agentGate": {
+      "passed": true,
+      "python": 91,
+      "node": 3
+    },
+    "database": {
+      "migrationCount": 20,
+      "integrity": "ok",
+      "foreignKeyErrors": 0,
+      "checksumsMatch": true
+    }
+  },
+  "verifiedControls": [
+    "production rejects RESET_DATABASE_ON_START=1",
+    "production database and upload paths must be outside the source tree",
+    "production CORS accepts only explicit HTTPS origins",
+    "secure refresh cookie and SameSite combinations are validated",
+    "trusted proxy cannot cover the entire address space",
+    "single-worker process-local topology remains enforced",
+    "provider, cost, and retention combinations are validated",
+    "minimal safe production environment imports successfully",
+    "verification processes do not load .env"
+  ]
+}

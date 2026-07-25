@@ -9,8 +9,8 @@
   "sessionMeta": ["contractVersion", "hasNext", "page", "pageSize", "source", "totalCount"],
   "sessionItem": ["createdAt", "deviceName", "expiresAt", "ipAddress", "isRevoked", "lastSeenAt", "sessionUid", "userAgent"],
   "errorDetail": ["code", "message"],
-  "authLogin": ["accessToken", "expiresIn", "refreshToken", "tokenType", "user"],
-  "authRefresh": ["accessToken", "expiresIn", "refreshToken", "tokenType"],
+  "authLogin": ["accessToken", "expiresIn", "tokenType", "user"],
+  "authRefresh": ["accessToken", "expiresIn", "tokenType"],
   "authMe": ["user"],
   "authPublicUser": ["accountStatus", "createdAt", "email", "emailVerified", "lastLoginAt", "phone", "phoneVerified", "userUid", "username"]
 }

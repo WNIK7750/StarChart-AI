@@ -1,7 +1,7 @@
 import sqlite3
 import hashlib
 import re
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 from typing import Iterator
 
@@ -127,7 +127,7 @@ def initialize_database() -> None:
     should_reset = RESET_DATABASE_ON_START and DATABASE_PATH.exists()
     if should_reset:
         DATABASE_PATH.unlink()
-    with sqlite3.connect(DATABASE_PATH) as conn:
+    with closing(sqlite3.connect(DATABASE_PATH)) as conn:
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA busy_timeout = 5000")

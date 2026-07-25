@@ -1,16 +1,52 @@
 def classify_intent(message: str) -> str:
-    text = message.lower()
-    cn = lambda *codes: "".join(chr(code) for code in codes)
-    workflow_keys = [cn(0x5DE5, 0x4F5C, 0x6D41), cn(0x6D41, 0x7A0B), cn(0x65B9, 0x6848), "workflow"]
-    navigation_keys = [cn(0x8DF3, 0x8F6C), cn(0x6253, 0x5F00), cn(0x53BB), cn(0x5728, 0x54EA, 0x91CC), cn(0x94FE, 0x63A5)]
-    tool_keys = [cn(0x5DE5, 0x5177), cn(0x63A8, 0x8350), cn(0x54EA, 0x4E2A, 0x597D)]
-    learning_keys = [cn(0x5B66, 0x4E60, 0x8DEF, 0x7EBF), cn(0x5B66, 0x4E60, 0x8BA1, 0x5212), cn(0x600E, 0x4E48, 0x5B66)]
-    if any(key in text for key in workflow_keys):
-        return "workflow_generation"
-    if any(key in text for key in navigation_keys):
+    text = " ".join(message.lower().split())
+    definition_hints = ("是什么", "什么意思", "介绍", "解释", "原理")
+    navigation_hints = (
+        "跳转",
+        "打开",
+        "前往",
+        "带我去",
+        "去往",
+        "在哪里",
+        "在哪儿",
+        "入口",
+    )
+    learning_hints = (
+        "学习路线",
+        "学习计划",
+        "怎么学",
+        "如何学习",
+        "从哪里学",
+        "入门路径",
+    )
+    workflow_hints = ("工作流", "流程", "workflow")
+    workflow_action_hints = ("帮我", "生成", "创建", "设计", "制定", "做", "给我")
+    tool_choice_hints = (
+        "推荐",
+        "哪个工具",
+        "哪款工具",
+        "什么工具",
+        "工具哪个好",
+        "选择",
+        "帮我找",
+    )
+
+    if any(hint in text for hint in navigation_hints):
         return "navigation"
-    if any(key in text for key in tool_keys):
-        return "tool_recommendation"
-    if any(key in text for key in learning_keys):
+    if any(hint in text for hint in definition_hints):
+        return "qa"
+    if any(hint in text for hint in learning_hints):
         return "learning_plan"
+    if (
+        any(hint in text for hint in workflow_hints)
+        or ("方案" in text and any(hint in text for hint in workflow_action_hints))
+    ):
+        return "workflow_generation"
+    if (
+        "工具" in text and any(hint in text for hint in tool_choice_hints)
+    ) or (
+        "推荐" in text
+        and any(hint in text for hint in (" ai", "ai ", "模型", "软件", "应用", "平台"))
+    ):
+        return "tool_recommendation"
     return "qa"

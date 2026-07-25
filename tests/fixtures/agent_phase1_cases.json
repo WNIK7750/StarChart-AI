@@ -1,0 +1,205 @@
+{
+  "version": "agent-phase1-v1",
+  "routingCases": [
+    {
+      "id": "qa-rag-definition",
+      "message": "RAG是什么",
+      "expectedIntent": "qa",
+      "expectedQuery": "RAG",
+      "expectedCapabilities": ["learning.search", "tools.search"]
+    },
+    {
+      "id": "qa-prompt-introduction",
+      "message": "请介绍提示词工程",
+      "expectedIntent": "qa",
+      "expectedQuery": "提示词工程",
+      "expectedCapabilities": ["learning.search", "tools.search"]
+    },
+    {
+      "id": "qa-dedup-regression",
+      "message": "数据去重是什么",
+      "expectedIntent": "qa",
+      "expectedQuery": "数据去重",
+      "expectedCapabilities": ["learning.search", "tools.search"]
+    },
+    {
+      "id": "qa-workflow-definition",
+      "message": "工作流是什么",
+      "expectedIntent": "qa",
+      "expectedQuery": "工作流",
+      "expectedCapabilities": ["learning.search", "tools.search"]
+    },
+    {
+      "id": "navigation-user-space",
+      "message": "打开用户空间",
+      "expectedIntent": "navigation",
+      "expectedQuery": "用户空间",
+      "expectedCapabilities": ["navigation.read"]
+    },
+    {
+      "id": "navigation-settings-location",
+      "message": "设置页面在哪里",
+      "expectedIntent": "navigation",
+      "expectedQuery": "设置页面",
+      "expectedCapabilities": ["navigation.read"]
+    },
+    {
+      "id": "navigation-tools-directory",
+      "message": "带我去工具目录",
+      "expectedIntent": "navigation",
+      "expectedQuery": "工具目录",
+      "expectedCapabilities": ["navigation.read"]
+    },
+    {
+      "id": "navigation-learning-center",
+      "message": "前往学习中心",
+      "expectedIntent": "navigation",
+      "expectedQuery": "学习中心",
+      "expectedCapabilities": ["navigation.read"]
+    },
+    {
+      "id": "tool-programming",
+      "message": "推荐一个编程工具",
+      "expectedIntent": "tool_recommendation",
+      "expectedQuery": "编程",
+      "expectedCapabilities": ["tools.search"]
+    },
+    {
+      "id": "tool-code-choice",
+      "message": "哪个工具适合写代码",
+      "expectedIntent": "tool_recommendation",
+      "expectedQuery": "写代码",
+      "expectedCapabilities": ["tools.search"]
+    },
+    {
+      "id": "tool-free-image",
+      "message": "帮我找免费的图像工具",
+      "expectedIntent": "tool_recommendation",
+      "expectedQuery": "免费的图像",
+      "expectedCapabilities": ["tools.search"]
+    },
+    {
+      "id": "tool-ai-choice",
+      "message": "我该选择哪款 AI 工具",
+      "expectedIntent": "tool_recommendation",
+      "expectedQuery": "AI",
+      "expectedCapabilities": ["tools.search"]
+    },
+    {
+      "id": "learning-rag",
+      "message": "RAG怎么学",
+      "expectedIntent": "learning_plan",
+      "expectedQuery": "RAG",
+      "expectedCapabilities": ["learning.search"]
+    },
+    {
+      "id": "learning-prompt-engineering",
+      "message": "如何学习提示词工程",
+      "expectedIntent": "learning_plan",
+      "expectedQuery": "提示词工程",
+      "expectedCapabilities": ["learning.search"]
+    },
+    {
+      "id": "learning-rag-route",
+      "message": "给我一条 RAG 学习路线",
+      "expectedIntent": "learning_plan",
+      "expectedQuery": "RAG",
+      "expectedCapabilities": ["learning.search"]
+    },
+    {
+      "id": "workflow-paper-reading",
+      "message": "帮我做论文阅读工作流",
+      "expectedIntent": "workflow_generation",
+      "expectedQuery": "论文阅读",
+      "expectedCapabilities": ["tools.search", "tools.workflow"]
+    },
+    {
+      "id": "workflow-writing",
+      "message": "设计一套写作流程",
+      "expectedIntent": "workflow_generation",
+      "expectedQuery": "写作",
+      "expectedCapabilities": ["tools.search", "tools.workflow"]
+    },
+    {
+      "id": "workflow-data-analysis",
+      "message": "给我一个数据分析方案",
+      "expectedIntent": "workflow_generation",
+      "expectedQuery": "数据分析",
+      "expectedCapabilities": ["tools.search", "tools.workflow"]
+    },
+    {
+      "id": "qa-tool-usage",
+      "message": "如何使用这个工具",
+      "pageContext": {"page": "tools", "toolCategory": "编程"},
+      "expectedIntent": "qa",
+      "expectedQuery": "编程",
+      "expectedCapabilities": ["tools.search"]
+    },
+    {
+      "id": "qa-link-status",
+      "message": "页面链接为什么失效",
+      "expectedIntent": "qa",
+      "expectedQuery": "页面链接为什么失效",
+      "expectedCapabilities": ["learning.search", "tools.search"]
+    }
+  ],
+  "outputCases": [
+    {
+      "id": "output-normal",
+      "answer": "可以先阅读站内的 RAG 学习节点，再查看对应工具卡片。",
+      "expectedAllowed": true
+    },
+    {
+      "id": "output-time-and-ratio",
+      "answer": "建议在 12:30:45 开始，并按 1:2:3 分配时间。",
+      "expectedAllowed": true
+    },
+    {
+      "id": "output-grounded-brand",
+      "answer": "可查看 Beautiful.ai 的站内工具卡片。",
+      "allowedDottedTerms": ["beautiful.ai"],
+      "expectedAllowed": true
+    },
+    {
+      "id": "output-api-key-guidance",
+      "answer": "API key: store it in a runtime secret manager.",
+      "expectedAllowed": true
+    },
+    {
+      "id": "output-external-url",
+      "answer": "请访问 https://evil.example/path",
+      "expectedAllowed": false,
+      "expectedError": "link"
+    },
+    {
+      "id": "output-bare-domain",
+      "answer": "请访问 evil.xyz 获取详情",
+      "expectedAllowed": false,
+      "expectedError": "domain"
+    },
+    {
+      "id": "output-ip-address",
+      "answer": "服务地址是 192.168.1.8",
+      "expectedAllowed": false,
+      "expectedError": "ip_address"
+    },
+    {
+      "id": "output-fabricated-citation",
+      "answer": "依据 tool:not-real 可以直接保存。",
+      "expectedAllowed": false,
+      "expectedError": "fabricated_citation"
+    },
+    {
+      "id": "output-secret",
+      "answer": "Bearer abcdefghijklmnopqrstuvwxyz",
+      "expectedAllowed": false,
+      "expectedError": "secret_like_content"
+    },
+    {
+      "id": "output-html",
+      "answer": "<script>alert(1)</script>",
+      "expectedAllowed": false,
+      "expectedError": "html"
+    }
+  ]
+}

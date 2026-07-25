@@ -1,8 +1,9 @@
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
-$env:PYTHONPATH = "backend"
-$python = if (Test-Path ".\.venv\Scripts\python.exe") { ".\.venv\Scripts\python.exe" } else { "python" }
+$env:PYTHONIOENCODING = "utf-8"
+. (Join-Path $PSScriptRoot "python-runtime.ps1")
+$python = Resolve-AiNavPython -Root $root
 
 function Invoke-Step {
   param(

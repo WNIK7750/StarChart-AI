@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "checks": {
+    "openapi": true,
+    "database": true,
+    "frontend": true,
+    "responsive": true,
+    "security": true,
+    "performance": true,
+    "releaseRehearsal": true
+  },
+  "evidence": {
+    "openapiPathCount": 51,
+    "migrationCount": 20,
+    "responsiveCaptures": 4,
+    "security": {
+      "pass": 28,
+      "knownRisk": 0,
+      "fail": 0
+    },
+    "performanceOperations": 8,
+    "queryPlanChecks": 3,
+    "knownRisks": []
+  }
+}

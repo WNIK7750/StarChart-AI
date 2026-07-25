@@ -42,7 +42,7 @@ test("auth local state stores only consent and avatar URL preferences", async ()
   state.rememberRecentAvatar("/uploads/avatars/alice.webp");
   assert.equal(state.hasRememberedPrivacyConsent(), true);
   assert.equal(state.getRecentAvatarUrl(), "/uploads/avatars/alice.webp");
-  assert.deepEqual([...values.keys()].sort(), ["ai_nav_privacy_consent_2026-07-01", "ai_nav_recent_avatar_v1"]);
+  assert.deepEqual([...values.keys()].sort(), ["ai_nav_privacy_consent_2026-07-20", "ai_nav_recent_avatar_v1"]);
   assert.doesNotMatch(JSON.stringify([...values]), /password|token/i);
   delete globalThis.window;
 });
@@ -51,9 +51,22 @@ test("login and settings dialogs expose the current detailed policy", () => {
   const auth = read("frontend/assets/js/auth-ui.js");
   const settings = read("frontend/settings.html");
   for (const source of [auth, settings]) {
-    assert.match(source, /版本：2026-07-01/);
+    assert.match(source, /版本：2026-07-20/);
     assert.match(source, /不出售个人信息/);
+    assert.match(source, /阿里云百炼千问/);
+    assert.match(source, /不会发送账号资料、用户资产或长期记忆/);
     assert.match(source, /导出数据/);
     assert.match(source, /撤回/);
   }
+});
+
+test("password recovery uses an external one-time credential instead of security answers", () => {
+  const auth = read("frontend/assets/js/auth-ui.js");
+  const api = read("frontend/assets/js/users-api.js");
+  assert.match(auth, /账号已验证的外部恢复通道/);
+  assert.match(auth, /name="resetToken" autocomplete="one-time-code"/);
+  assert.doesNotMatch(auth, /data-reset-questions|data-answer|提交答案/);
+  assert.match(api, /password-reset\/start/);
+  assert.match(api, /password-reset\/confirm/);
+  assert.doesNotMatch(api, /password-reset\/security\/verify/);
 });

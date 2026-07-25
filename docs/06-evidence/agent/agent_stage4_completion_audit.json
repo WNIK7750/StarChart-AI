@@ -1,0 +1,65 @@
+{
+  "contractVersion": 1,
+  "scenario": "agent-stage4-quality-and-runtime-governance",
+  "verifiedAt": "2026-07-24",
+  "status": "complete_offline",
+  "requirements": {
+    "versionedEvaluation": {
+      "passed": true,
+      "caseCount": 30,
+      "artifacts": [
+        "agent_phase1_evaluation_manifest.json",
+        "agent_blind_evaluation_protocol_manifest.json",
+        "agent_model_comparison_empty_report.json"
+      ]
+    },
+    "minimalTrace": {
+      "passed": true,
+      "requestIdRepresentation": "sha256-prefix-24",
+      "fields": [
+        "requestId",
+        "mode",
+        "provider",
+        "model",
+        "attempts",
+        "fallbackReason",
+        "validationError",
+        "promptVersion",
+        "evidenceCount",
+        "tools",
+        "latencyMs",
+        "inputTokens",
+        "outputTokens",
+        "costCny"
+      ],
+      "containsContent": false,
+      "containsUserIdentity": false
+    },
+    "ciSafetyAndFallback": {
+      "passed": true,
+      "realProviderDefault": false,
+      "requiresNetwork": false,
+      "requiresRealCredentials": false
+    },
+    "complexityGate": {
+      "passed": true,
+      "secondProviderEnabled": false,
+      "vectorStoreEnabled": false,
+      "stateGraphEnabled": false,
+      "multiAgentEnabled": false,
+      "deterministicFallbackRetained": true
+    }
+  },
+  "exitConditions": {
+    "localAndCiRepeatable": true,
+    "safetyOrAuthorizationAllowedFailures": 0,
+    "componentsClosable": true,
+    "websiteIndependentFromAgent": true
+  },
+  "deferredToRelease": [
+    "Provider data processing agreement review",
+    "Controlled real Provider validation",
+    "Shanghai production capacity confirmation",
+    "Production egress allowlist and secret rotation"
+  ]
+}

@@ -1,6 +1,7 @@
 import {
   clearAuthTokens,
   getAccessToken,
+  restoreAuthSession,
 } from "./api.js";
 import { rememberPrivacyConsent, rememberRecentAvatar } from "./auth-local-state.js";
 import { formatLearningTime, learningTimeTitle } from "./time-format.js";
@@ -220,8 +221,12 @@ function fillQuestionRows(items = []) {
 
 async function requireLogin() {
   if (!getAccessToken()) {
-    window.location.href = "index.html";
-    return null;
+    try {
+      await restoreAuthSession();
+    } catch {
+      window.location.href = "index.html";
+      return null;
+    }
   }
   try {
     const data = await getCurrentUser();
@@ -448,19 +453,72 @@ async function loadLearningAreas() {
     <div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "learn.html"))}">${escapeHtml(item.title)}</a><span>${escapeHtml(item.description || "学习收藏")}</span></div><button class="btn subtle" type="button" data-remove-favorite="${escapeHtml(item.favoriteUid)}">移除</button></div>`);
 }
 
+function workflowToolMarkup(step) {
+  const targetName = step.target?.name || step.toolNameSnapshot || "";
+  if (!targetName) return '<span class="workflow-tool">无关联工具</span>';
+  const href = safeInternalHref(step.target?.href, "");
+  if (step.target?.status === "available" && href) {
+    return `<a class="workflow-tool" href="${escapeHtml(href)}">${escapeHtml(targetName)}</a>`;
+  }
+  return `<span class="workflow-tool unavailable">${escapeHtml(targetName)} · 当前不可用</span>`;
+}
+
+function workflowStepsMarkup(workflow) {
+  return `
+    <div class="workflow-detail">
+      ${workflow.description ? `<p class="workflow-description">${escapeHtml(workflow.description)}</p>` : ""}
+      <ol class="workflow-step-list">
+        ${workflow.steps.map((step, index) => `
+          <li class="workflow-step">
+            <span class="workflow-step-number" aria-hidden="true">${escapeHtml(step.stepOrder || index + 1)}</span>
+            <div>
+              <strong>${escapeHtml(step.name)}</strong>
+              <p>${escapeHtml(step.objective)}</p>
+              ${workflowToolMarkup(step)}
+            </div>
+          </li>`).join("")}
+      </ol>
+    </div>`;
+}
+
 async function loadWorkflows() {
   setContentLoading("[data-workflows-box]", "正在读取工作流...");
   const box = $("[data-workflows-box]");
+  const requestedWorkflowUid = new URLSearchParams(window.location.search).get("workflow");
   try {
     const result = await listUserWorkflows({ status: "active", pageSize: 20 });
     box.setAttribute("aria-busy", "false");
     box.innerHTML = result.items.length
-      ? result.items.map((item) => `
-        <div class="learning-item">
-          <div><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.description || "已保存工作流")} · ${item.steps.length} 步 · ${item.availability.status === "degraded" ? "部分工具不可用" : "可用"}</span></div>
-          <button class="btn subtle" type="button" data-archive-workflow="${escapeHtml(item.workflowUid)}" data-workflow-version="${item.version}">归档</button>
-        </div>`).join("")
+      ? result.items.map((item) => {
+        const isTarget = item.workflowUid === requestedWorkflowUid;
+        const detailId = `workflow-detail-${item.workflowUid.replaceAll(/[^a-zA-Z0-9_-]/g, "-")}`;
+        return `
+        <article class="learning-item workflow-item${isTarget ? " workflow-target" : ""}"
+                 data-workflow-uid="${escapeHtml(item.workflowUid)}"
+                 ${isTarget ? 'tabindex="-1" aria-label="刚保存的工作流，步骤详情已展开"' : ""}>
+          <div class="workflow-overview">
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.description || "已保存工作流")} · ${item.steps.length} 步 · ${item.availability.status === "degraded" ? "部分工具不可用" : "可用"}</span>
+          </div>
+          <div class="workflow-actions">
+            <button class="btn subtle" type="button"
+                    data-workflow-detail-toggle="${escapeHtml(item.workflowUid)}"
+                    aria-expanded="${String(isTarget)}"
+                    aria-controls="${escapeHtml(detailId)}">${isTarget ? "收起步骤" : "查看步骤"}</button>
+            <button class="btn subtle" type="button" data-archive-workflow="${escapeHtml(item.workflowUid)}" data-workflow-version="${item.version}">归档</button>
+          </div>
+          <div id="${escapeHtml(detailId)}" class="workflow-detail-region" ${isTarget ? "" : "hidden"}>
+            ${workflowStepsMarkup(item)}
+          </div>
+        </article>`;
+      }).join("")
       : stateBlock("暂无已保存工作流。");
+    const target = [...box.querySelectorAll("[data-workflow-uid]")]
+      .find((item) => item.dataset.workflowUid === requestedWorkflowUid);
+    if (target) {
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
   } catch (error) {
     box.setAttribute("aria-busy", "false");
     box.innerHTML = stateBlock(error.message || "工作流暂不可用。", "workflows");
@@ -997,6 +1055,16 @@ async function init() {
   canvas.addEventListener("touchstart", startCropTouch, { passive: false });
   canvas.addEventListener("touchmove", moveCropTouch, { passive: false });
   document.addEventListener("click", async (event) => {
+    const workflowDetailToggle = event.target.closest("[data-workflow-detail-toggle]");
+    if (workflowDetailToggle) {
+      const detail = document.getElementById(workflowDetailToggle.getAttribute("aria-controls"));
+      const expanded = workflowDetailToggle.getAttribute("aria-expanded") === "true";
+      workflowDetailToggle.setAttribute("aria-expanded", String(!expanded));
+      workflowDetailToggle.textContent = expanded ? "查看步骤" : "收起步骤";
+      if (detail) detail.hidden = expanded;
+      return;
+    }
+
     const retry = event.target.closest("[data-retry-area]");
     if (retry) {
       retry.disabled = true;

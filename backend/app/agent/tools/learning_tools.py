@@ -1,5 +1,4 @@
 from app.learning import get_learning_service
-from app.learning.policies import site_learning_node_href
 
 
 def search_learning_nodes(query: str, limit: int = 5) -> list[dict]:

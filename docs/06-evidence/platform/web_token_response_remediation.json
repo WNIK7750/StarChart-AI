@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-25",
+  "productionClaim": false,
+  "securityHeaders": {
+    "paths": ["/", "/api/v1/health/live", "/api/v1/not-a-real-route", "/assets/js/api.js"],
+    "required": ["Content-Security-Policy", "X-Content-Type-Options", "Referrer-Policy", "X-Frame-Options", "Permissions-Policy"],
+    "unsafeEvalAllowed": false,
+    "hstsPolicy": "Only emitted when AI_NAV_ENV=production and AI_NAV_HTTPS_CONFIRMED=1"
+  },
+  "tokens": {
+    "accessTokenStorage": "JavaScript module memory only",
+    "legacyLocalStorageKeysRemoved": ["ai_nav_access_token", "ai_nav_refresh_token"],
+    "reloadRecovery": "POST /api/v1/auth/refresh with HttpOnly refresh cookie",
+    "refreshTokenInJsonResponse": false,
+    "defaultAccessTokenLifetimeSeconds": 600,
+    "writeReplayPolicy": "writes are not automatically retried; only token-expiry failures get one refresh-bound replay"
+  },
+  "openapi": {
+    "httpOperations": 88,
+    "jsonOperations": 84,
+    "jsonOperationsWithSuccessSchema": 84,
+    "jsonOperationsWithFieldLevelResponseModel": 84,
+    "legacyJsonObjectOperations": 0,
+    "undeclaredFieldPolicy": "filtered before HTTP serialization",
+    "documentedNonJsonOperations": ["Agent SSE stream", "three 204 delete responses"]
+  },
+  "regressions": {
+    "webAndTokenNode": "14/14 passed",
+    "inputAndHeaderPython": "7/7 passed",
+    "usersPython": "48/48 passed",
+    "usersCommandSafety": "35/35 passed",
+    "usersSecurityBaseline": "28 pass, 0 known risk, 0 fail"
+  },
+  "notes": [
+    "The 44 broad JsonObject operations found by independent verification were replaced with domain-owned field-level response DTOs.",
+    "A nested internalSecret injection regression proves undeclared service fields are removed before the HTTP response is serialized.",
+    "No reverse proxy, HTTPS termination or production browser validation is claimed."
+  ]
+}

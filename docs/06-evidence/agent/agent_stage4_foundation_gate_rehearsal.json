@@ -1,0 +1,37 @@
+{
+  "contractVersion": 1,
+  "scenario": "stage4-reproducible-foundation-gates",
+  "verifiedAt": "2026-07-24",
+  "result": {
+    "agentGatePassed": true,
+    "agentPythonTests": 84,
+    "agentNodeTests": 3,
+    "foundationGatePassed": true,
+    "frontendNodeTests": 25,
+    "toolsPythonTests": 6,
+    "learningPythonTests": 19,
+    "learningNodeTests": 2,
+    "usersPythonTests": 43,
+    "commandSafetyCommands": 33,
+    "migrationCount": 18,
+    "usersAcceptancePassed": true
+  },
+  "fixes": [
+    "Shared Python runtime resolution across Agent, Users, Tools, and Learning gates",
+    "Explicit Learning test-file discovery to avoid third-party package shadowing",
+    "Exact migration filename-set verification instead of a hard-coded migration count"
+  ],
+  "environment": {
+    "providerMode": "deterministic",
+    "liveProvider": false,
+    "realCredentialsLoaded": false,
+    "externalModelRequests": 0,
+    "ciPathReviewed": "Windows Python 3.12 project virtual environment"
+  },
+  "boundaries": [
+    "No new service or microservice",
+    "No domain HTTP loopback",
+    "No new Agent write capability",
+    "No real .env or API key read"
+  ]
+}

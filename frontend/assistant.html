@@ -8,49 +8,80 @@
   <link rel="stylesheet" href="assets/css/assistant.css">
 </head>
 <body data-page="assistant">
-  <header class="nav">
-    <div class="nav-inner">
-      <a href="index.html" class="brand"><span class="brand-mark">A+</span><span>AI 知识导航</span></a>
-      <nav class="nav-links" aria-label="主导航">
-        <a href="index.html">主页</a>
-        <a href="learn.html">学习</a>
-        <a href="tools.html">工具</a>
-        <a href="assistant.html" class="active">助手</a>
-      </nav>
-      <div class="nav-actions"><div data-auth-root></div></div>
-    </div>
-  </header>
-
   <main class="assistant-shell">
-    <aside class="context-panel" aria-label="助手上下文">
-      <h2 class="panel-title">当前上下文</h2>
-      <div class="context-block">
-        <div class="mode-line"><span class="mode-dot"></span><strong>确定性只读模式</strong></div>
-        <p class="read-only">回答来自站内 Learning 与 Tools 数据。任何用户资产写入都需要单独确认。</p>
+    <aside class="context-panel" id="contextPanel" aria-label="会话导航">
+      <div class="sidebar-head">
+        <a href="index.html" class="brand" aria-label="返回 AI 知识导航首页">
+          <span class="brand-mark" aria-hidden="true">A+</span>
+          <span class="brand-copy"><strong>AI 知识导航</strong><small>AI 学习助手</small></span>
+        </a>
+        <button type="button" id="closeSessionsButton" class="sidebar-icon session-close" aria-label="关闭会话列表">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
       </div>
-      <div class="context-block">
-        <span class="context-label">用户资产</span>
-        <div class="context-value" id="assetSummary">登录后读取最小上下文</div>
-      </div>
-      <div class="context-block">
-        <span class="context-label">快捷任务</span>
-        <div class="quick-list">
-          <button type="button" data-prompt="RAG 怎么学？">规划 RAG 学习入口</button>
-          <button type="button" data-prompt="推荐适合写代码的 AI 工具">查找编程工具</button>
-          <button type="button" data-prompt="帮我做一个论文阅读工作流">生成论文工作流</button>
-        </div>
+
+      <button type="button" id="newSessionButton" class="session-new" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <span>新建对话</span>
+      </button>
+
+      <section class="session-panel" id="sessionPanel" hidden>
+        <section class="session-group" id="longConversationPanel">
+          <div class="session-heading">
+            <h2>长期对话</h2>
+          </div>
+          <div class="session-list" id="longConversationList" aria-label="长期对话列表"></div>
+          <div class="session-empty" id="longConversationEmpty">还没有长期对话</div>
+        </section>
+        <section class="session-group session-group-short">
+          <div class="session-heading">
+            <h2>短期会话</h2>
+          </div>
+          <div class="session-list" id="sessionList" aria-label="短期会话列表"></div>
+          <div class="session-empty" id="sessionEmpty">还没有保存的会话</div>
+        </section>
+      </section>
+
+      <div class="sidebar-footer sidebar-footer-mobile">
+        <span class="sidebar-mode"><i aria-hidden="true"></i>站内证据只读模式</span>
+        <nav class="sidebar-links" aria-label="产品导航">
+          <a href="learn.html">学习</a>
+          <a href="tools.html">工具</a>
+          <a href="settings.html">设置</a>
+        </nav>
       </div>
     </aside>
 
+    <button type="button" class="drawer-scrim" id="drawerScrim" aria-label="关闭会话列表" hidden></button>
+
     <section class="conversation" aria-label="Agent 对话">
       <header class="conversation-head">
-        <div><h1>AI 学习助手</h1><p>检索站内知识、工具与工作流候选</p></div>
-        <span class="conversation-status" id="assistantStatus">就绪</span>
+        <div class="conversation-head-primary">
+          <div class="conversation-title">
+            <button type="button" id="mobileSessionsButton" class="mobile-sessions-button" aria-controls="contextPanel" aria-expanded="false" aria-label="打开会话列表" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+            <div>
+              <h1>AI 学习助手</h1>
+              <span class="conversation-status" id="assistantStatus" role="status" aria-live="polite" aria-atomic="true">就绪</span>
+            </div>
+          </div>
+          <div class="assistant-header-links">
+            <nav class="assistant-nav" id="assistantHeaderNav" aria-label="产品导航">
+              <a href="learn.html">学习</a>
+              <a href="tools.html">工具</a>
+              <a href="settings.html">设置</a>
+            </nav>
+            <span class="header-mode"><i aria-hidden="true"></i>站内证据只读模式</span>
+          </div>
+        </div>
+        <div class="top-actions"><div data-auth-root></div></div>
       </header>
+
       <div class="messages" id="messages" aria-live="polite">
         <div class="welcome" id="welcome">
-          <h2>从一个具体问题开始</h2>
-          <p>我会先使用站内事实回答，并展示引用和实际调用的数据来源。</p>
+          <h2>今天想学什么？</h2>
+          <p>从一个具体问题开始。</p>
           <div class="suggestions">
             <button type="button" data-prompt="RAG 和微调应该先学哪个？">RAG 和微调应该先学哪个？</button>
             <button type="button" data-prompt="推荐免费优先的代码工具">推荐免费优先的代码工具</button>
@@ -59,22 +90,34 @@
           </div>
         </div>
       </div>
+
       <div class="composer-wrap">
         <form class="composer" id="assistantForm">
           <textarea id="assistantInput" rows="1" maxlength="4000" placeholder="询问学习路线、工具或工作流" aria-label="向助手提问" required></textarea>
-          <button type="submit" id="sendButton" aria-label="发送">↑</button>
+          <button type="button" id="stopButton" class="stop-button" aria-label="停止生成" aria-keyshortcuts="Escape" title="停止生成" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+          </button>
+          <button type="submit" id="sendButton" aria-label="发送">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg>
+          </button>
         </form>
-        <p class="composer-note">当前为确定性检索模式，回答附带站内来源。</p>
+        <p class="composer-note">回答基于站内公开证据。请勿输入密码、令牌或联系方式等敏感信息。</p>
       </div>
     </section>
-
-    <aside class="evidence-panel" aria-label="回答来源">
-      <h2 class="panel-title">来源与调用</h2>
-      <div class="evidence-empty" id="evidenceEmpty">发送问题后，这里会显示使用的学习节点、工具目录和调用记录。</div>
-      <div class="evidence-list" id="evidenceList"></div>
-      <div class="tool-calls" id="toolCalls" hidden></div>
-    </aside>
   </main>
+
+  <dialog class="session-dialog" id="sessionRenameDialog" aria-labelledby="sessionRenameTitle">
+    <form method="dialog" id="sessionRenameForm">
+      <h2 id="sessionRenameTitle">修改对话标题</h2>
+      <label for="sessionRenameInput">标题</label>
+      <input type="text" id="sessionRenameInput" maxlength="120" required autocomplete="off">
+      <p class="session-dialog-state" id="sessionRenameState" role="status" aria-live="polite"></p>
+      <div class="session-dialog-actions">
+        <button type="button" id="sessionRenameCancel">取消</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
 
   <script type="module" src="assets/js/v2-api.js"></script>
   <script type="module" src="assets/js/assistant-page.js"></script>

@@ -1,16 +1,21 @@
 import json
+import os
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import unittest
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
-from fastapi import HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.testclient import TestClient
 from PIL import Image
 from pydantic import ValidationError
 
 from app.api.v1.routers import auth as auth_router
+from app.api.v1.routers import agent as agent_router
 from app.api.v1.routers.common import check_database_ready, health_live
 from app.api.v1.routers import users as users_router
 from app.api.v1.dependencies.authorization import require_permission
@@ -33,6 +38,7 @@ from app.users.authorization.repositories.sqlite import SQLiteAuthorizationRepos
 from app.users.authorization.service import AuthorizationService
 from app.users.authentication.repositories.sqlite import SQLiteAuthenticationRepository
 from app.users.authentication.rate_limit import AuthRateLimiter, SQLiteAuthRateLimitRepository
+from app.users.authentication.recovery import MemoryPasswordRecoverySender
 from app.users.authentication.service import AuthenticationService, RequestContext
 from app.users.common import StrictModel, UsersError
 from app.users.preferences.repositories.sqlite import SQLitePreferencesRepository
@@ -89,9 +95,9 @@ class UsersServicesTest(unittest.TestCase):
                     """
                     INSERT INTO user_privacy_consent_events(
                         event_uid, user_id, consent_type, policy_version, action, source
-                    ) VALUES (?, ?, 'privacy_policy', '2026-07-01', 'granted', 'registration')
+                    ) VALUES (?, ?, 'privacy_policy', ?, 'granted', 'registration')
                     """,
-                    (f"cons_{username}", user_id),
+                    (f"cons_{username}", user_id, PRIVACY_POLICY_VERSION),
                 )
                 conn.execute(
                     "INSERT INTO user_role_assignments(user_id, role_id) SELECT ?, id FROM roles WHERE code = 'user'",
@@ -130,7 +136,13 @@ class UsersServicesTest(unittest.TestCase):
         self.sessions = SessionsService(SQLiteSessionsRepository(connection_factory))
         self.security = SecurityService(SQLiteSecurityRepository(connection_factory))
         self.authorization = AuthorizationService(SQLiteAuthorizationRepository(connection_factory))
-        self.auth = AuthenticationService(SQLiteAuthenticationRepository(connection_factory), self.audit, self.privacy)
+        self.recovery_sender = MemoryPasswordRecoverySender()
+        self.auth = AuthenticationService(
+            SQLiteAuthenticationRepository(connection_factory),
+            self.audit,
+            self.privacy,
+            recovery_sender=self.recovery_sender,
+        )
         self.context = RequestContext(ip_address="127.0.0.1", user_agent="users-test")
 
     def tearDown(self):
@@ -140,6 +152,72 @@ class UsersServicesTest(unittest.TestCase):
         conn = sqlite3.connect(self.database_path)
         try:
             return conn.execute(query, params).fetchone()[0]
+        finally:
+            conn.close()
+
+    def seed_agent_conversations(self):
+        conn = self.connection_factory()
+        try:
+            for user_id, owner in ((self.alice_id, "alice"), (self.bob_id, "bob")):
+                session_uid = f"chat_{owner}"
+                conn.execute(
+                    """
+                    INSERT INTO agent_chat_sessions(
+                        session_uid, user_id, title, title_customized, expires_at
+                    ) VALUES (?, ?, ?, 1, datetime('now', '+7 days'))
+                    """,
+                    (session_uid, user_id, f"{owner} short"),
+                )
+                session_id = conn.execute(
+                    "SELECT id FROM agent_chat_sessions WHERE session_uid = ?",
+                    (session_uid,),
+                ).fetchone()["id"]
+                conn.execute(
+                    """
+                    INSERT INTO agent_chat_messages(
+                        message_uid, session_id, role, content, request_id
+                    ) VALUES (?, ?, 'user', ?, ?)
+                    """,
+                    (
+                        f"msg_short_{owner}",
+                        session_id,
+                        f"{owner} short question",
+                        f"internal-short-{owner}",
+                    ),
+                )
+
+                conversation_uid = f"long_{owner}"
+                conn.execute(
+                    """
+                    INSERT INTO agent_long_conversations(
+                        conversation_uid, user_id, source_session_uid, title
+                    ) VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        conversation_uid,
+                        user_id,
+                        f"source_{owner}",
+                        f"{owner} long",
+                    ),
+                )
+                conversation_id = conn.execute(
+                    "SELECT id FROM agent_long_conversations WHERE conversation_uid = ?",
+                    (conversation_uid,),
+                ).fetchone()["id"]
+                conn.execute(
+                    """
+                    INSERT INTO agent_long_conversation_messages(
+                        message_uid, conversation_id, role, content, request_id
+                    ) VALUES (?, ?, 'assistant', ?, ?)
+                    """,
+                    (
+                        f"msg_long_{owner}",
+                        conversation_id,
+                        f"{owner} long answer",
+                        f"internal-long-{owner}",
+                    ),
+                )
+            conn.commit()
         finally:
             conn.close()
 
@@ -166,6 +244,26 @@ class UsersServicesTest(unittest.TestCase):
             AvatarProcessor(max_source_pixels=100).process(content, "image/png")
         self.assertEqual("AVATAR_PIXEL_LIMIT_EXCEEDED", pixel_limit.exception.code)
         self.assertEqual(413, pixel_limit.exception.status_code)
+
+    def test_avatar_processing_rejects_truncated_animated_and_timed_out_inputs(self):
+        valid_png = self.avatar_bytes(size=(40, 40))
+        with self.assertRaises(UsersError) as truncated:
+            AvatarProcessor().process(valid_png[:-8], "image/png")
+        self.assertEqual("AVATAR_INVALID_IMAGE", truncated.exception.code)
+
+        animated = BytesIO()
+        frames = [
+            Image.new("RGB", (24, 24), (220, 30, 30)),
+            Image.new("RGB", (24, 24), (30, 30, 220)),
+        ]
+        frames[0].save(animated, format="GIF", save_all=True, append_images=frames[1:], duration=20, loop=0)
+        with self.assertRaises(UsersError) as frame_limit:
+            AvatarProcessor(max_frames=1).process(animated.getvalue(), "image/gif")
+        self.assertEqual("AVATAR_FRAME_LIMIT_EXCEEDED", frame_limit.exception.code)
+
+        with self.assertRaises(UsersError) as timeout:
+            AvatarProcessor(max_processing_seconds=0).process(valid_png, "image/png")
+        self.assertEqual("AVATAR_PROCESSING_TIMEOUT", timeout.exception.code)
 
     def test_avatar_upload_replaces_old_file_and_rolls_back_failed_profile_update(self):
         upload_dir = Path(self.temp.name) / "uploads"
@@ -353,6 +451,7 @@ class UsersServicesTest(unittest.TestCase):
         )
 
     def test_data_export_requires_reauthentication_and_excludes_authentication_secrets(self):
+        self.seed_agent_conversations()
         with self.assertRaises(UsersError) as invalid:
             self.privacy.export_user_data(self.alice_id, "WrongPassword123")
         self.assertEqual(("CURRENT_PASSWORD_INVALID", 401), (invalid.exception.code, invalid.exception.status_code))
@@ -367,11 +466,39 @@ class UsersServicesTest(unittest.TestCase):
         serialized = json.dumps(exported, ensure_ascii=False)
         self.assertEqual("completed", exported["request"]["status"])
         self.assertEqual("alice@example.test", exported["export"]["data"]["account"]["email"])
+        self.assertEqual(
+            ["alice short question"],
+            [
+                message["content"]
+                for conversation in exported["export"]["data"]["agentShortConversations"]
+                for message in conversation["messages"]
+            ],
+        )
+        self.assertEqual(
+            ["alice long answer"],
+            [
+                message["content"]
+                for conversation in exported["export"]["data"]["agentLongConversations"]
+                for message in conversation["messages"]
+            ],
+        )
         self.assertNotIn("bob@example.test", serialized)
-        for forbidden in ("password_hash", "refresh_token_hash", "answer_hash", "Current123"):
+        self.assertNotIn("bob short question", serialized)
+        self.assertNotIn("bob long answer", serialized)
+        for forbidden in (
+            "password_hash",
+            "refresh_token_hash",
+            "answer_hash",
+            "request_id",
+            "internal-short-alice",
+            "internal-long-alice",
+            "source_alice",
+            "Current123",
+        ):
             self.assertNotIn(forbidden, serialized)
 
     def test_deletion_lifecycle_is_scoped_recoverable_and_anonymizes_only_private_data(self):
+        self.seed_agent_conversations()
         first = self.privacy.request_deletion(self.alice_id, "Current123", "privacy")["request"]
         with self.assertRaises(UsersError) as cross_user:
             self.privacy.cancel_deletion(self.bob_id, first["requestUid"])
@@ -392,9 +519,13 @@ class UsersServicesTest(unittest.TestCase):
         executed = self.privacy.execute_deletion(second["requestUid"])
         self.assertEqual("processing", executed["request"]["status"])
         self.assertEqual("deleted", self.database_value("SELECT account_status FROM user_accounts WHERE id = ?", (self.alice_id,)))
+        self.assertEqual(1, self.database_value("SELECT COUNT(*) FROM agent_chat_sessions WHERE user_id = ?", (self.alice_id,)))
+        self.assertEqual(1, self.database_value("SELECT COUNT(*) FROM agent_long_conversations WHERE user_id = ?", (self.alice_id,)))
         restored = self.privacy.restore_deletion(second["requestUid"])
         self.assertEqual("cancelled", restored["request"]["status"])
         self.assertEqual("active", self.database_value("SELECT account_status FROM user_accounts WHERE id = ?", (self.alice_id,)))
+        self.assertEqual(1, self.database_value("SELECT COUNT(*) FROM agent_chat_sessions WHERE user_id = ?", (self.alice_id,)))
+        self.assertEqual(1, self.database_value("SELECT COUNT(*) FROM agent_long_conversations WHERE user_id = ?", (self.alice_id,)))
 
         self.privacy.set_consent(
             self.alice_id,
@@ -430,6 +561,12 @@ class UsersServicesTest(unittest.TestCase):
         self.assertEqual(0, self.database_value("SELECT COUNT(*) FROM user_auth_passwords WHERE user_id = ?", (self.alice_id,)))
         self.assertEqual(0, self.database_value("SELECT COUNT(*) FROM user_sessions WHERE user_id = ?", (self.alice_id,)))
         self.assertEqual(1, self.database_value("SELECT COUNT(*) FROM user_sessions WHERE user_id = ?", (self.bob_id,)))
+        self.assertEqual(0, self.database_value("SELECT COUNT(*) FROM agent_chat_sessions WHERE user_id = ?", (self.alice_id,)))
+        self.assertEqual(0, self.database_value("SELECT COUNT(*) FROM agent_long_conversations WHERE user_id = ?", (self.alice_id,)))
+        self.assertEqual(1, self.database_value("SELECT COUNT(*) FROM agent_chat_sessions WHERE user_id = ?", (self.bob_id,)))
+        self.assertEqual(1, self.database_value("SELECT COUNT(*) FROM agent_long_conversations WHERE user_id = ?", (self.bob_id,)))
+        self.assertEqual(1, self.database_value("SELECT COUNT(*) FROM agent_chat_messages"))
+        self.assertEqual(1, self.database_value("SELECT COUNT(*) FROM agent_long_conversation_messages"))
         self.assertEqual(public_nodes_before, self.database_value("SELECT COUNT(*) FROM roadmap_nodes"))
         self.assertFalse(self.privacy.has_current_consent(self.alice_id, "agent_memory"))
 
@@ -463,6 +600,20 @@ class UsersServicesTest(unittest.TestCase):
         self.assertFalse(created["meta"]["idempotencyReplayed"])
         self.assertTrue(replayed["meta"]["idempotencyReplayed"])
         self.assertEqual(workflow["workflowUid"], replayed["workflow"]["workflowUid"])
+        with self.assertRaises(UsersError) as idempotency_conflict:
+            self.assets.create_workflow(
+                self.alice_id,
+                {**payload, "title": "Different workflow"},
+                "workflow-save-001",
+                context,
+            )
+        self.assertEqual(
+            ("WORKFLOW_IDEMPOTENCY_CONFLICT", 409),
+            (
+                idempotency_conflict.exception.code,
+                idempotency_conflict.exception.status_code,
+            ),
+        )
         self.assertEqual("degraded", workflow["availability"]["status"])
         self.assertEqual("unavailable", workflow["steps"][0]["target"]["status"])
         self.assertEqual("Retired Tool", workflow["steps"][0]["target"]["name"])
@@ -548,6 +699,62 @@ class UsersServicesTest(unittest.TestCase):
         self.assertTrue(validated.confirmed)
         with self.assertRaises(ValidationError):
             WorkflowCreate.model_validate({**base, "confirmed": False})
+
+    def test_agent_workflow_save_maps_idempotency_conflict_to_http_409(self):
+        base = {
+            "title": "Confirmed workflow",
+            "sourceType": "agent",
+            "sourceRef": "agent-draft",
+            "confirmed": True,
+            "steps": [
+                {
+                    "order": 1,
+                    "name": "Draft",
+                    "objective": "Prepare",
+                    "toolSlug": None,
+                }
+            ],
+        }
+        request = Request({
+            "type": "http",
+            "method": "POST",
+            "path": "/api/v1/agent/workflows/save",
+            "headers": [],
+            "client": ("127.0.0.1", 5000),
+        })
+        with patch(
+            "app.api.v1.routers.agent.get_user_assets_facade",
+            return_value=UserAssetsFacade(self.assets),
+        ):
+            created = agent_router.save_agent_workflow(
+                WorkflowCreate.model_validate(base),
+                request,
+                "agent-route-save-001",
+                {"id": self.alice_id},
+            )
+            self.assertFalse(created["meta"]["idempotencyReplayed"])
+            replayed = agent_router.save_agent_workflow(
+                WorkflowCreate.model_validate(base),
+                request,
+                "agent-route-save-001",
+                {"id": self.alice_id},
+            )
+            self.assertTrue(replayed["meta"]["idempotencyReplayed"])
+            with self.assertRaises(HTTPException) as conflict:
+                agent_router.save_agent_workflow(
+                    WorkflowCreate.model_validate({
+                        **base,
+                        "title": "Different confirmed workflow",
+                    }),
+                    request,
+                    "agent-route-save-001",
+                    {"id": self.alice_id},
+                )
+        self.assertEqual(409, conflict.exception.status_code)
+        self.assertEqual(
+            "WORKFLOW_IDEMPOTENCY_CONFLICT",
+            conflict.exception.detail["code"],
+        )
 
     def test_sessions_are_user_scoped_and_revocable(self):
         alice_result = self.sessions.list_sessions(self.alice_id)
@@ -1114,30 +1321,162 @@ class UsersServicesTest(unittest.TestCase):
         self.assertNotEqual(legacy_hash, upgraded_hash)
         self.assertIn(f"pbkdf2_sha256${PASSWORD_HASH_ROUNDS}$", upgraded_hash)
 
-    def test_auth_security_reset_flow_revokes_sessions(self):
+    def test_password_recovery_uses_single_use_external_channel_token_and_revokes_sessions(self):
         self.security.replace_security_questions(
             self.alice_id,
             "Current123",
             [{"question": "城市?", "answer": "杭州"}],
         )
-        started = self.auth.password_reset_security_start("alice", self.context)
-        self.assertEqual(1, len(started["questions"]))
-        with self.assertRaises(UsersError) as wrong_answer:
-            self.auth.password_reset_security_verify(started["resetUid"], ["上海"])
-        self.assertEqual("SECURITY_ANSWER_INVALID", wrong_answer.exception.code)
-        verified = self.auth.password_reset_security_verify(started["resetUid"], ["杭州"], self.context)
-        confirmed = self.auth.password_reset_security_confirm(verified["resetToken"], "Newpass123", self.context)
+        conn = sqlite3.connect(self.database_path)
+        try:
+            conn.execute(
+                "UPDATE user_accounts SET email_verified = 1 WHERE id = ?",
+                (self.alice_id,),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        public_existing = self.auth.password_reset_start("alice", self.context)
+        public_missing = self.auth.password_reset_start("missing-user", self.context)
+        self.assertEqual(public_existing, public_missing)
+        self.assertEqual(
+            {"status": "accepted", "message": "如果账号及已验证恢复通道可用，恢复说明将发送至该通道。"},
+            public_existing,
+        )
+        self.assertEqual(1, len(self.recovery_sender.deliveries))
+        recovery_token = self.recovery_sender.deliveries[0].token
+        self.assertEqual(
+            2,
+            self.database_value(
+                "SELECT COUNT(*) FROM user_verification_tokens WHERE purpose = 'password_reset'"
+            ),
+        )
+        self.assertEqual(
+            1,
+            self.database_value(
+                """
+                SELECT COUNT(*) FROM user_verification_tokens
+                WHERE target = 'recovery:discard' AND consumed_at IS NOT NULL
+                """
+            ),
+        )
+        self.assertNotIn(
+            recovery_token,
+            self.database_value(
+                "SELECT token_hash FROM user_verification_tokens WHERE purpose = 'password_reset'"
+            ),
+        )
+
+        with self.assertRaises(UsersError) as deprecated:
+            self.auth.password_reset_security_verify("legacy-reset", ["杭州"], self.context)
+        self.assertEqual("SECURITY_RESET_DEPRECATED", deprecated.exception.code)
+
+        confirmed = self.auth.password_reset_confirm(recovery_token, "Newpass123", self.context)
         self.assertEqual("ok", confirmed["status"])
         self.assertEqual(1, self.database_value("SELECT token_version FROM user_accounts WHERE id = ?", (self.alice_id,)))
         self.assertEqual(1, self.database_value("SELECT is_revoked FROM user_sessions WHERE session_uid = 'sess_alice'"))
         self.assertEqual("password_reset", self.database_value("SELECT revoked_reason FROM user_sessions WHERE session_uid = 'sess_alice'"))
+        with self.assertRaises(UsersError) as replayed:
+            self.auth.password_reset_confirm(recovery_token, "Another123", self.context)
+        self.assertEqual("RESET_TOKEN_INVALID", replayed.exception.code)
         self.assertEqual(
-            3,
+            2,
             self.database_value(
                 "SELECT COUNT(*) FROM user_audit_logs WHERE target_user_id = ? AND action LIKE 'users.auth.password_reset_%'",
                 (self.alice_id,),
             ),
         )
+
+        audit_json = self.database_value(
+            """
+            SELECT group_concat(metadata_json, '')
+            FROM user_audit_logs
+            WHERE target_user_id = ? AND action LIKE 'users.auth.password_reset_%'
+            """,
+            (self.alice_id,),
+        )
+        self.assertNotIn(recovery_token, audit_json)
+        self.assertNotIn("杭州", audit_json)
+        self.assertNotIn("Newpass123", audit_json)
+
+    def test_password_recovery_rejects_expired_tampered_and_other_user_tokens(self):
+        conn = sqlite3.connect(self.database_path)
+        try:
+            conn.execute("UPDATE user_accounts SET email_verified = 1 WHERE id IN (?, ?)", (self.alice_id, self.bob_id))
+            conn.commit()
+        finally:
+            conn.close()
+
+        self.auth.password_reset_start("alice", self.context)
+        alice_token = self.recovery_sender.deliveries[-1].token
+        self.auth.password_reset_start("bob", self.context)
+        bob_token = self.recovery_sender.deliveries[-1].token
+
+        with self.assertRaises(UsersError):
+            self.auth.password_reset_confirm(f"{alice_token}x", "Newpass123", self.context)
+        self.auth.password_reset_confirm(alice_token, "Newpass123", self.context)
+        self.assertEqual(0, self.database_value("SELECT is_revoked FROM user_sessions WHERE session_uid = 'sess_bob'"))
+
+        conn = sqlite3.connect(self.database_path)
+        try:
+            conn.execute(
+                """
+                UPDATE user_verification_tokens
+                SET expires_at = datetime('now', '-1 minute')
+                WHERE token_hash = ?
+                """,
+                (hash_token(bob_token),),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        with self.assertRaises(UsersError) as expired:
+            self.auth.password_reset_confirm(bob_token, "Newpass123", self.context)
+        self.assertEqual("RESET_TOKEN_INVALID", expired.exception.code)
+
+    def test_password_recovery_http_response_does_not_enumerate_accounts(self):
+        conn = sqlite3.connect(self.database_path)
+        try:
+            conn.execute("UPDATE user_accounts SET email_verified = 1 WHERE id = ?", (self.alice_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+        app = FastAPI()
+        app.include_router(auth_router.router, prefix="/api/v1")
+        with (
+            patch("app.api.v1.routers.auth.get_authentication_service", return_value=self.auth),
+            patch("app.api.v1.routers.auth.get_auth_rate_limiter", return_value=AuthRateLimiter(
+                SQLiteAuthRateLimitRepository(self.connection_factory)
+            )),
+            TestClient(app) as client,
+        ):
+            existing = client.post("/api/v1/auth/password-reset/start", json={"identifier": "alice"})
+            missing = client.post("/api/v1/auth/password-reset/start", json={"identifier": "missing-user"})
+            deprecated = client.post(
+                "/api/v1/auth/password-reset/security/verify",
+                json={"resetUid": "legacy-reset", "answers": ["杭州"]},
+            )
+            logged_in = client.post(
+                "/api/v1/auth/login",
+                json={
+                    "identifier": "alice",
+                    "password": "Current123",
+                    "privacyAccepted": True,
+                    "rememberMe": False,
+                },
+            )
+
+        self.assertEqual(200, existing.status_code)
+        self.assertEqual(existing.status_code, missing.status_code)
+        self.assertEqual(existing.json(), missing.json())
+        self.assertEqual({"status", "message"}, set(existing.json()))
+        self.assertEqual(410, deprecated.status_code)
+        self.assertEqual("SECURITY_RESET_DEPRECATED", deprecated.json()["detail"]["code"])
+        self.assertEqual(200, logged_in.status_code)
+        self.assertNotIn("refreshToken", logged_in.json())
+        self.assertIn("HttpOnly", logged_in.headers["set-cookie"])
 
     def test_password_update_revokes_user_sessions_and_uses_stable_401(self):
         with self.assertRaises(UsersError) as invalid:
@@ -1196,6 +1535,66 @@ class UsersServicesTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "REFRESH_COOKIE_SECURE"):
             validate_runtime_security("production", "x" * 32, ("https://app.example.test",), False)
         validate_runtime_security("production", "x" * 32, ("https://app.example.test",), True)
+
+    def test_production_runtime_rejects_reset_and_source_tree_storage(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            external_root = Path(temp_dir)
+            common = {
+                "environment": "production",
+                "secret_key": "x" * 32,
+                "cors_origins": ("https://app.example.test",),
+                "refresh_cookie_secure": True,
+                "database_path": external_root / "data" / "ai-nav.sqlite3",
+                "upload_dir": external_root / "uploads",
+                "base_dir": ROOT,
+            }
+            with self.assertRaisesRegex(RuntimeError, "RESET_DATABASE_ON_START"):
+                validate_runtime_security(**common, reset_database_on_start=True)
+            with self.assertRaisesRegex(RuntimeError, "AI_NAV_DATABASE_PATH"):
+                validate_runtime_security(
+                    **{**common, "database_path": ROOT / "database" / "production.sqlite3"},
+                    reset_database_on_start=False,
+                )
+            with self.assertRaisesRegex(RuntimeError, "AI_NAV_UPLOAD_DIR"):
+                validate_runtime_security(
+                    **{**common, "upload_dir": ROOT / "uploads"},
+                    reset_database_on_start=False,
+                )
+
+    def test_minimal_safe_production_environment_loads_without_dotenv(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            external_root = Path(temp_dir)
+            env = {
+                "PYTHONPATH": str(ROOT / "backend"),
+                "AI_NAV_DISABLE_DOTENV": "1",
+                "AI_NAV_ENV": "production",
+                "AI_NAV_SECRET_KEY": "x" * 32,
+                "AI_NAV_DATABASE_PATH": str(external_root / "data" / "ai-nav.sqlite3"),
+                "AI_NAV_UPLOAD_DIR": str(external_root / "uploads"),
+                "AI_NAV_CORS_ALLOW_ORIGINS": "https://app.example.test",
+                "AI_NAV_REFRESH_COOKIE_SECURE": "1",
+                "AI_NAV_API_WORKERS": "1",
+                "AI_NAV_AGENT_RUNTIME_STATE_BACKEND": "process_local",
+                "AI_NAV_AGENT_PROVIDER": "deterministic",
+                "AI_NAV_AGENT_PROVIDER_LIVE_ENABLED": "0",
+                "RESET_DATABASE_ON_START": "0",
+            }
+            safe_process_env = {
+                key: value
+                for key, value in os.environ.items()
+                if key.upper() in {"SYSTEMROOT", "WINDIR", "PATH", "PATHEXT", "TEMP", "TMP"}
+            }
+            process = subprocess.run(
+                [sys.executable, "-c", "import app.core.config"],
+                cwd=ROOT,
+                env={**safe_process_env, **env},
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        self.assertEqual("", process.stdout)
+        self.assertEqual("", process.stderr)
+        self.assertEqual(0, process.returncode)
 
     def test_liveness_and_database_readiness_are_separate(self):
         self.assertEqual({"status": "ok"}, health_live())

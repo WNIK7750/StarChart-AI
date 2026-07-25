@@ -1,4 +1,4 @@
-const PRIVACY_CONSENT_KEY = "ai_nav_privacy_consent_2026-07-01";
+const PRIVACY_CONSENT_KEY = "ai_nav_privacy_consent_2026-07-20";
 const RECENT_AVATAR_KEY = "ai_nav_recent_avatar_v1";
 
 function read(key) {

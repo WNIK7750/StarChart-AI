@@ -20,10 +20,11 @@ from app.users.account.service import normalize_username
 from app.users.account.identity import normalize_email, normalize_login_identifier, normalize_phone
 from app.users.audit.service import AuditService, get_audit_service
 from app.users.authentication.ports import AuthenticationRepository
+from app.users.authentication.recovery import DisabledPasswordRecoverySender, PasswordRecoverySender
 from app.users.authentication.repositories.sqlite import SQLiteAuthenticationRepository
 from app.users.common import UsersError
 from app.users.privacy.service import PrivacyService, get_privacy_service
-from app.users.security.service import hash_security_answer, validate_password_strength
+from app.users.security.service import validate_password_strength
 
 
 @dataclass(frozen=True)
@@ -52,10 +53,12 @@ class AuthenticationService:
         repository: AuthenticationRepository,
         audit: AuditService | None = None,
         privacy: PrivacyService | None = None,
+        recovery_sender: PasswordRecoverySender | None = None,
     ):
         self.repository = repository
         self.audit = audit or get_audit_service()
         self.privacy = privacy or get_privacy_service()
+        self.recovery_sender = recovery_sender or DisabledPasswordRecoverySender()
 
     def _audit(self, event: str, user_id: int, user_uid: str, context: RequestContext, metadata: dict) -> None:
         self.audit.record(
@@ -274,32 +277,46 @@ class AuthenticationService:
             self._audit("users.auth.session_logged_out", user_id, user_uid, context, {"scope": "current"})
         return {"status": "ok"}
 
-    def password_reset_security_start(self, identifier: str, context: RequestContext | None = None) -> dict:
-        reset_uid = random_uid("reset")
-        result = self.repository.start_security_reset(
+    def password_reset_start(self, identifier: str, context: RequestContext | None = None) -> dict:
+        raw_token = create_refresh_token()
+        token_hash = hash_token(raw_token)
+        expires_at = utc_now() + timedelta(minutes=10)
+        user = self.repository.create_password_recovery(
             identifier.strip(),
-            reset_uid,
-            hash_token(reset_uid),
-            iso_datetime(utc_now() + timedelta(minutes=10)),
+            random_uid("recovery"),
+            token_hash,
+            iso_datetime(expires_at),
         )
-        if not result:
-            raise UsersError("RESET_ACCOUNT_NOT_FOUND", "未找到可用账号", 404)
-        user, questions = result
-        if not questions:
-            raise UsersError("SECURITY_QUESTIONS_NOT_CONFIGURED", "该账号尚未设置密保问题", 409)
-        if context:
+        delivered = False
+        if user:
+            try:
+                delivered = self.recovery_sender.send_password_recovery(
+                    channel=user["recoveryChannel"],
+                    target=user["recoveryTarget"],
+                    token=raw_token,
+                    expires_at=expires_at,
+                )
+            except Exception:
+                delivered = False
+            if not delivered:
+                self.repository.cancel_password_recovery(token_hash)
+        if not user:
+            self.repository.cancel_password_recovery(token_hash)
+        if user and delivered and context:
             self._audit(
                 "users.auth.password_reset_started",
                 user["id"],
                 user["userUid"],
                 context,
-                {"stage": "started"},
+                {"stage": "delivery_requested"},
             )
         return {
-            "resetUid": reset_uid,
-            "questions": [{"order": row["questionOrder"], "question": row["question"]} for row in questions],
-            "expiresIn": 600,
+            "status": "accepted",
+            "message": "如果账号及已验证恢复通道可用，恢复说明将发送至该通道。",
         }
+
+    def password_reset_security_start(self, identifier: str, context: RequestContext | None = None) -> dict:
+        return self.password_reset_start(identifier, context)
 
     def password_reset_security_verify(
         self,
@@ -307,36 +324,14 @@ class AuthenticationService:
         answers: list[str],
         context: RequestContext | None = None,
     ) -> dict:
-        result = self.repository.verify_security_reset(reset_uid, hash_token(reset_uid))
-        if not result:
-            raise UsersError("RESET_SESSION_INVALID", "找回密码会话已失效", 401)
-        challenge, questions = result
-        if len(answers) != len(questions):
-            raise UsersError("SECURITY_ANSWER_COUNT_MISMATCH", "密保答案数量不匹配", 422)
-        for answer, question in zip(answers, questions):
-            if hash_security_answer(answer) != question["answerHash"]:
-                raise UsersError("SECURITY_ANSWER_INVALID", "密保答案不正确", 401)
-        reset_token = create_refresh_token()
-        user = self.repository.consume_reset_challenge(
-            reset_uid,
-            random_uid("resetok"),
-            hash_token(reset_token),
-            iso_datetime(utc_now() + timedelta(minutes=10)),
+        del reset_uid, answers, context
+        raise UsersError(
+            "SECURITY_RESET_DEPRECATED",
+            "密保问题不再用于密码恢复，请使用已验证外部通道。",
+            410,
         )
-        if context:
-            self._audit(
-                "users.auth.password_reset_verified",
-                user["userId"],
-                user["userUid"],
-                context,
-                {"stage": "verified"},
-            )
-        return {
-            "resetToken": reset_token,
-            "expiresIn": 600,
-        }
 
-    def password_reset_security_confirm(
+    def password_reset_confirm(
         self,
         reset_token: str,
         new_password: str,
@@ -358,6 +353,14 @@ class AuthenticationService:
             "status": "ok",
             "message": "密码已重置，请重新登录",
         }
+
+    def password_reset_security_confirm(
+        self,
+        reset_token: str,
+        new_password: str,
+        context: RequestContext | None = None,
+    ) -> dict:
+        return self.password_reset_confirm(reset_token, new_password, context)
 
 
 @lru_cache(maxsize=1)
