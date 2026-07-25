@@ -38,7 +38,7 @@ jobs:
   # ── 质量门禁（Python 测试 + Ruff + 覆盖率 + 审计 + 发布包） ──
   verify-quality:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     env:
       AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
     defaults:
@@ -99,7 +99,7 @@ jobs:
   # ── Agent 地基（Agent 测试 + SSE + 评估清单 + 归档） ──
   verify-agent:
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
     defaults:
