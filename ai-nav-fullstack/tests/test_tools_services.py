@@ -49,7 +49,19 @@ class ToolsServicesTest(unittest.TestCase):
             conn.close()
 
     def test_migration_imports_complete_normalized_catalog(self):
-        self.assertEqual(17, self.value("SELECT COUNT(*) FROM schema_migrations"))
+        expected_migrations = {
+            migration.name
+            for migration in (ROOT / "database" / "migrations").glob("*.sql")
+        }
+        conn = sqlite3.connect(self.database_path)
+        try:
+            applied_migrations = {
+                row[0]
+                for row in conn.execute("SELECT version FROM schema_migrations")
+            }
+        finally:
+            conn.close()
+        self.assertEqual(expected_migrations, applied_migrations)
         self.assertEqual(136, self.value("SELECT COUNT(*) FROM ai_tools WHERE is_active = 1"))
         self.assertEqual(134, self.value("SELECT COUNT(*) FROM ai_tools WHERE is_active = 1 AND publication_status = 'published'"))
         self.assertEqual(138, self.value("SELECT COUNT(*) FROM tool_placements"))

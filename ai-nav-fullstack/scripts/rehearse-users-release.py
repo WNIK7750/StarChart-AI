@@ -9,7 +9,7 @@ from app.db.database import apply_migrations
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "docs" / "users-baseline" / "users_release_rehearsal.json"
+OUTPUT = ROOT / "docs" / "06-evidence" / "users" / "users_release_rehearsal.json"
 BACKUP_SCRIPT = Path(__file__).with_name("manage-users-backup.py")
 BACKUP_SPEC = importlib.util.spec_from_file_location("manage_users_backup", BACKUP_SCRIPT)
 if BACKUP_SPEC is None or BACKUP_SPEC.loader is None:

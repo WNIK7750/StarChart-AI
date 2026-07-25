@@ -1,0 +1,6 @@
+{
+  "version": "agent-model-comparison-v1",
+  "baselineModel": "qwen3.5-flash",
+  "candidateModel": "qwen3.7-plus",
+  "runs": []
+}

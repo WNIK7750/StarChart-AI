@@ -4,9 +4,8 @@ export const getCurrentUser = () => apiGet("/auth/me");
 export const loginUser = (payload) => apiPost("/auth/login", payload);
 export const registerUser = (payload) => apiPost("/auth/register", payload);
 export const logoutUser = () => apiPost("/auth/logout", {});
-export const startSecurityPasswordReset = (payload) => apiPost("/auth/password-reset/security/start", payload);
-export const verifySecurityPasswordReset = (payload) => apiPost("/auth/password-reset/security/verify", payload);
-export const confirmSecurityPasswordReset = (payload) => apiPost("/auth/password-reset/security/confirm", payload);
+export const startPasswordReset = (payload) => apiPost("/auth/password-reset/start", payload);
+export const confirmPasswordReset = (payload) => apiPost("/auth/password-reset/confirm", payload);
 
 export const getUserAccount = () => apiGet("/users/me/account");
 export const updateUserAccount = (payload) => apiPatch("/users/me/account", payload);

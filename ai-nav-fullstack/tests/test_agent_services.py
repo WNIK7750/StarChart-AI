@@ -84,10 +84,12 @@ class AgentServicesTest(unittest.TestCase):
             cards=[
                 AgentLinkCard(type="tool", sourceKey="safe", title="Safe", href="tools.html", citationIds=["tool:safe", "tool:unsafe"]),
                 AgentLinkCard(type="tool", sourceKey="unsafe", title="Unsafe", href="https://example.com", citationIds=["tool:unsafe"]),
+                AgentLinkCard(type="tool", sourceKey="traversal", title="Traversal", href="tools.html/../settings.html", citationIds=["tool:traversal"]),
             ],
             citations=[
                 AgentCitation(citationId="tool:safe", sourceType="tool", sourceKey="safe", title="Safe", href="tools.html"),
                 AgentCitation(citationId="tool:unsafe", sourceType="tool", sourceKey="unsafe", title="Unsafe", href="https://example.com"),
+                AgentCitation(citationId="tool:traversal", sourceType="tool", sourceKey="traversal", title="Traversal", href="tools.html/../settings.html"),
             ],
         )
         validated = validate_response(response)
@@ -98,6 +100,82 @@ class AgentServicesTest(unittest.TestCase):
     def test_retrieval_query_removes_task_scaffolding(self):
         self.assertEqual("RAG", agent_retrieval_query("RAG 怎么学？"))
         self.assertEqual("论文", agent_retrieval_query("帮我做论文工作流"))
+        self.assertEqual("RAG", agent_retrieval_query("RAG是什么"))
+        self.assertEqual("RAG", agent_retrieval_query("请介绍RAG"))
+        self.assertEqual("编程", agent_retrieval_query("推荐一个编程工具"))
+        self.assertEqual("用户空间", agent_retrieval_query("打开用户空间"))
+
+    def test_intent_plan_calls_only_needed_baseline_capabilities(self):
+        with (
+            patch("app.agent.service.search_learning_cards", return_value=self.learning_cards) as learning,
+            patch("app.agent.service.search_tool_cards", side_effect=AssertionError("unexpected tools call")),
+            patch("app.agent.service.suggest_workflow", side_effect=AssertionError("unexpected workflow call")),
+        ):
+            response = draft_agent_response(AgentChatRequest(message="RAG 怎么学"), self.user_context)
+        learning.assert_called_once()
+        self.assertEqual("completed", response.toolCalls[0].status)
+        self.assertEqual("skipped", response.toolCalls[1].status)
+
+        with (
+            patch("app.agent.service.search_learning_cards", side_effect=AssertionError("unexpected learning call")),
+            patch("app.agent.service.search_tool_cards", return_value=self.tool_cards) as tools,
+            patch("app.agent.service.suggest_workflow", side_effect=AssertionError("unexpected workflow call")),
+        ):
+            response = draft_agent_response(AgentChatRequest(message="推荐一个编程工具"), self.user_context)
+        tools.assert_called_once()
+        self.assertEqual("编程", tools.call_args.args[0])
+        self.assertEqual("skipped", response.toolCalls[0].status)
+        self.assertEqual("completed", response.toolCalls[1].status)
+
+    def test_navigation_intent_uses_shared_navigation_capability(self):
+        navigation_items = [
+            {"code": "home", "label": "主页", "href": "index.html"},
+            {"code": "assistant", "label": "助手", "href": "assistant.html"},
+        ]
+        with patch(
+            "app.agent.tools.navigation_tools.get_navigation_items",
+            return_value=navigation_items,
+        ):
+            response = draft_agent_response(
+                AgentChatRequest(message="打开用户空间"),
+                None,
+            )
+        self.assertEqual("navigation", response.intent)
+        self.assertEqual(["用户空间"], [card.title for card in response.cards])
+        self.assertEqual("settings.html", response.cards[0].href)
+        self.assertEqual("navigation.read", response.toolCalls[-1].name)
+        self.assertEqual("completed", response.toolCalls[-1].status)
+        self.assertEqual("skipped", next(call for call in response.toolCalls if call.name == "users.context").status)
+
+    def test_page_context_narrows_referential_reads_without_new_services(self):
+        with (
+            patch("app.agent.service.search_learning_cards", return_value=self.learning_cards) as learning,
+            patch("app.agent.service.search_tool_cards", side_effect=AssertionError("unexpected tools call")),
+        ):
+            response = draft_agent_response(
+                AgentChatRequest(
+                    message="这个是什么",
+                    pageContext={"page": "learn-node", "nodeSlug": "rag"},
+                ),
+                None,
+            )
+        learning.assert_called_once_with("rag", limit=5)
+        self.assertEqual("completed", response.toolCalls[0].status)
+        self.assertEqual("skipped", response.toolCalls[1].status)
+
+        with (
+            patch("app.agent.service.search_learning_cards", return_value=self.learning_cards) as learning,
+            patch("app.agent.service.search_tool_cards", return_value=self.tool_cards) as tools,
+        ):
+            draft_agent_response(
+                AgentChatRequest(
+                    message="这个工具和 RAG 有什么区别",
+                    pageContext={"page": "tools", "toolCategory": "编程"},
+                ),
+                None,
+            )
+        learning.assert_called_once_with("这个工具和 RAG 有什么区别", limit=5)
+        tools.assert_called_once_with("这个工具和 RAG 有什么区别", limit=5)
 
 
 if __name__ == "__main__":

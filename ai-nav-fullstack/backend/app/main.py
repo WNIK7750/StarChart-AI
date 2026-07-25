@@ -11,7 +11,16 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.routers import agent, assets, auth, common, learning, operations, privacy, tools, user_learning, users
-from app.core.config import API_PREFIX, APP_NAME, CORS_ALLOW_ORIGINS, FRONTEND_DIR, UPLOAD_DIR
+from app.core.config import (
+    API_PREFIX,
+    APP_NAME,
+    APP_ENV,
+    AVATAR_MAX_REQUEST_BYTES,
+    CORS_ALLOW_ORIGINS,
+    FRONTEND_DIR,
+    HTTPS_CONFIRMED,
+    UPLOAD_DIR,
+)
 from app.db.database import initialize_database
 from app.users.observability.access import observe_users_request
 
@@ -29,7 +38,63 @@ app = FastAPI(title=APP_NAME, lifespan=lifespan)
 learning_logger = logging.getLogger("app.learning.access")
 
 
+def iter_app_routes():
+    """Yield concrete routes across FastAPI's eager and lazy router representations."""
+    for route in app.routes:
+        effective_candidates = getattr(route, "effective_candidates", None)
+        if callable(effective_candidates):
+            yield from effective_candidates()
+        else:
+            yield route
+
+
 app.middleware("http")(observe_users_request)
+
+
+async def security_response_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob: https:; "
+        "font-src 'self' data:; "
+        "connect-src 'self'; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "frame-ancestors 'none'"
+    )
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()"
+    )
+    if APP_ENV == "production" and HTTPS_CONFIRMED:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+
+@app.middleware("http")
+async def bound_avatar_multipart_request(request: Request, call_next):
+    if request.method == "POST" and request.url.path == f"{API_PREFIX}/users/me/avatar":
+        raw_length = request.headers.get("content-length")
+        if raw_length is None:
+            return JSONResponse(
+                status_code=411,
+                content={"detail": {"code": "CONTENT_LENGTH_REQUIRED", "message": "Content-Length is required"}},
+            )
+        try:
+            content_length = int(raw_length)
+        except ValueError:
+            content_length = -1
+        if content_length < 0 or content_length > AVATAR_MAX_REQUEST_BYTES:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": {"code": "AVATAR_REQUEST_TOO_LARGE", "message": "Avatar request exceeds limit"}},
+            )
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -100,6 +165,7 @@ app.add_middleware(
     expose_headers=["Content-Disposition", "Server-Timing", "X-Request-Id"],
     max_age=600,
 )
+app.middleware("http")(security_response_headers)
 
 app.include_router(common.router, prefix=API_PREFIX)
 app.include_router(agent.router, prefix=API_PREFIX)

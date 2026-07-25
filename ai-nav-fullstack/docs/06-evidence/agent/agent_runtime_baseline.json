@@ -1,0 +1,32 @@
+{
+  "version": "agent-runtime-baseline-v1",
+  "capturedAt": "2026-07-23",
+  "mode": "deterministic",
+  "networkCalls": false,
+  "samples": 64,
+  "concurrency": 8,
+  "durationSeconds": 0.2713,
+  "throughputPerSecond": 235.91,
+  "latencyMs": {
+    "p50": 177.51,
+    "p95": 262.02,
+    "max": 265.67
+  },
+  "thresholds": {
+    "maxP95Ms": 1500.0,
+    "passed": true
+  },
+  "runtime": {
+    "declaredWorkers": 1,
+    "agentStateBackend": "process_local",
+    "python": "3.13.13",
+    "machine": "AMD64"
+  },
+  "meta": {
+    "containsPii": false,
+    "containsPrompts": false,
+    "containsResponses": false,
+    "comparableOnlyOnSameHostClass": true,
+    "productionCapacityClaim": false
+  }
+}

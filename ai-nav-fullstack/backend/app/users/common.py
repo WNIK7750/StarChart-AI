@@ -5,6 +5,12 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ResponseModel(BaseModel):
+    """Field-level response allowlist; unknown service fields are never serialized."""
+
+    model_config = ConfigDict(extra="ignore")
+
+
 class UsersError(Exception):
     def __init__(self, code: str, message: str, status_code: int = 400):
         super().__init__(message)

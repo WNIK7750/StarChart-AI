@@ -3,6 +3,7 @@ from ipaddress import ip_address, ip_network
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Query, Request, Response, status
 from pydantic import Field
 
+from app.api.v1.schemas import ErrorResponse
 from app.core.config import (
     REFRESH_COOKIE_MAX_AGE_SECONDS,
     REFRESH_COOKIE_NAME,
@@ -13,6 +14,14 @@ from app.core.config import (
 )
 from app.users.account.service import get_account_service, normalize_username as normalize_username_policy
 from app.users.authentication.service import RequestContext, get_authentication_service, normalize_email as normalize_email_policy
+from app.users.authentication.schemas import (
+    AccessTokenResponse,
+    AuthResponse,
+    StatusMessageResponse,
+    StatusResponse,
+    UsernameAvailableResponse,
+    UserResponse,
+)
 from app.users.authentication.rate_limit import get_auth_rate_limiter
 from app.users.common import StrictModel, UsersError, users_error_detail
 from app.users.security.service import hash_security_answer as hash_security_answer_policy
@@ -119,6 +128,10 @@ def _clear_refresh_cookie(response: Response) -> None:
     )
 
 
+def _without_refresh_token(result: dict) -> dict:
+    return {key: value for key, value in result.items() if key != "refreshToken"}
+
+
 def _refresh_token_from(payload: RefreshRequest | None, cookie_token: str | None) -> str:
     token = cookie_token or (payload.refreshToken if payload else None)
     if not token:
@@ -173,37 +186,49 @@ def get_current_user(authorization: str | None = Header(default=None)) -> dict:
     return _auth_call(lambda: get_authentication_service().current_user_from_token(token))
 
 
-@router.get("/username-available")
+@router.get("/username-available", response_model=UsernameAvailableResponse)
 def username_available(request: Request, username: str = Query(min_length=3, max_length=32)):
     _enforce_rate_limit("username_available", {"ip": _client_ip(request)})
     return _auth_call(lambda: get_authentication_service().username_available(username))
 
 
-@router.post("/register", status_code=201)
+@router.post("/register", status_code=201, response_model=AuthResponse)
 def register(payload: RegisterRequest, request: Request, response: Response):
     _enforce_rate_limit("register", {"ip": _client_ip(request)})
     result = _auth_call(lambda: get_authentication_service().register(payload.model_dump(), _context(request)))
     _set_refresh_cookie(response, result.get("refreshToken"), persistent=False)
-    return result
+    return _without_refresh_token(result)
 
 
-@router.post("/login")
+@router.post("/login", response_model=AuthResponse)
 def login(payload: LoginRequest, request: Request, response: Response):
     _enforce_rate_limit("login", {"ip": _client_ip(request), "identifier": payload.identifier})
     result = _auth_call(lambda: get_authentication_service().login(payload.model_dump(), _context(request)))
     _set_refresh_cookie(response, result.get("refreshToken"), persistent=payload.rememberMe)
-    return result
+    return _without_refresh_token(result)
 
 
-@router.post("/password-reset/security/start")
-def password_reset_security_start(payload: PasswordResetStartRequest, request: Request):
+def _password_reset_start(payload: PasswordResetStartRequest, request: Request):
     _enforce_rate_limit("password_reset_start", {"ip": _client_ip(request), "identifier": payload.identifier})
-    return _auth_call(
-        lambda: get_authentication_service().password_reset_security_start(payload.identifier, _context(request))
-    )
+    return _auth_call(lambda: get_authentication_service().password_reset_start(payload.identifier, _context(request)))
 
 
-@router.post("/password-reset/security/verify")
+@router.post("/password-reset/start", response_model=StatusMessageResponse)
+def password_reset_start(payload: PasswordResetStartRequest, request: Request):
+    return _password_reset_start(payload, request)
+
+
+@router.post("/password-reset/security/start", deprecated=True, response_model=StatusMessageResponse)
+def password_reset_security_start(payload: PasswordResetStartRequest, request: Request):
+    return _password_reset_start(payload, request)
+
+
+@router.post(
+    "/password-reset/security/verify",
+    deprecated=True,
+    response_model=StatusMessageResponse,
+    responses={410: {"model": ErrorResponse}},
+)
 def password_reset_security_verify(payload: PasswordResetVerifyRequest, request: Request):
     _enforce_rate_limit("password_reset_verify", {"ip": _client_ip(request), "challenge": payload.resetUid})
     return _auth_call(
@@ -215,11 +240,10 @@ def password_reset_security_verify(payload: PasswordResetVerifyRequest, request:
     )
 
 
-@router.post("/password-reset/security/confirm")
-def password_reset_security_confirm(payload: PasswordResetConfirmRequest, request: Request):
+def _password_reset_confirm(payload: PasswordResetConfirmRequest, request: Request):
     _enforce_rate_limit("password_reset_confirm", {"ip": _client_ip(request), "token": payload.resetToken})
     return _auth_call(
-        lambda: get_authentication_service().password_reset_security_confirm(
+        lambda: get_authentication_service().password_reset_confirm(
             payload.resetToken,
             payload.newPassword,
             _context(request),
@@ -227,7 +251,17 @@ def password_reset_security_confirm(payload: PasswordResetConfirmRequest, reques
     )
 
 
-@router.post("/refresh")
+@router.post("/password-reset/confirm", response_model=StatusMessageResponse)
+def password_reset_confirm(payload: PasswordResetConfirmRequest, request: Request):
+    return _password_reset_confirm(payload, request)
+
+
+@router.post("/password-reset/security/confirm", deprecated=True, response_model=StatusMessageResponse)
+def password_reset_security_confirm(payload: PasswordResetConfirmRequest, request: Request):
+    return _password_reset_confirm(payload, request)
+
+
+@router.post("/refresh", response_model=AccessTokenResponse)
 def refresh(
     request: Request,
     response: Response,
@@ -242,10 +276,10 @@ def refresh(
         )
     )
     _set_refresh_cookie(response, result.get("refreshToken"), persistent=persistent)
-    return result
+    return _without_refresh_token(result)
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=StatusResponse)
 def logout(
     request: Request,
     response: Response,
@@ -265,6 +299,6 @@ def logout(
     return result
 
 
-@router.get("/me")
+@router.get("/me", response_model=UserResponse)
 def me(current_user: dict = Depends(get_current_user)):
     return {"user": _public_user(current_user)}

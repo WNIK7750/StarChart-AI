@@ -3,23 +3,16 @@ import sqlite3
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import MIGRATIONS_DIR
-from app.db.database import db_cursor, get_connection
+from app.db.database import get_connection
+from app.platform.navigation import get_navigation_items
+from app.platform.schemas import HealthResponse, NavigationResponse, ReadinessResponse
 
 router = APIRouter(tags=["common"])
 
 
-@router.get("/navigation")
+@router.get("/navigation", response_model=NavigationResponse)
 def get_navigation():
-    with db_cursor() as cur:
-        rows = cur.execute(
-            """
-            SELECT code, label, href
-            FROM navigation_items
-            WHERE is_active = 1
-            ORDER BY sort_order, id
-            """
-        ).fetchall()
-    return {"items": rows}
+    return {"items": get_navigation_items()}
 
 
 def check_database_ready(conn: sqlite3.Connection, expected_migrations: set[str]) -> dict:
@@ -32,12 +25,12 @@ def check_database_ready(conn: sqlite3.Connection, expected_migrations: set[str]
     return {"status": "ready", "migrationCount": len(applied)}
 
 
-@router.get("/health/live")
+@router.get("/health/live", response_model=HealthResponse)
 def health_live():
     return {"status": "ok"}
 
 
-@router.get("/health/ready")
+@router.get("/health/ready", response_model=ReadinessResponse)
 def health_ready():
     conn = get_connection()
     try:
@@ -52,7 +45,7 @@ def health_ready():
         conn.close()
 
 
-@router.get("/health")
+@router.get("/health", response_model=HealthResponse)
 def health_check():
     health_ready()
     return {"status": "ok"}

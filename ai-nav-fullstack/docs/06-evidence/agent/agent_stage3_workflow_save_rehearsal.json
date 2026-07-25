@@ -1,0 +1,75 @@
+{
+  "contractVersion": 1,
+  "scenario": "agent-stage3-confirmed-workflow-save",
+  "verifiedAt": "2026-07-24",
+  "environment": {
+    "url": "http://127.0.0.1:8090/assistant.html",
+    "database": "temporary",
+    "provider": "deterministic",
+    "providerNetworkUsed": false,
+    "realCredentialsLoaded": false
+  },
+  "result": {
+    "passed": true,
+    "savedWorkflowCount": 1,
+    "requestCount": 2,
+    "idempotencyKeyStable": true,
+    "requestBodyStable": true,
+    "editedTitlePersisted": true,
+    "editedStepPersisted": true,
+    "savedWorkflowDeepLink": true,
+    "settingsTargetFocused": true,
+    "conflictReadOnlyReviewLink": true,
+    "navigationAddedWriteRequests": 0
+  },
+  "interaction": {
+    "previewEditable": true,
+    "explicitConfirmationRequired": true,
+    "firstResponseInterruptedAfterServerCompletion": true,
+    "draftLockedAfterFirstAttempt": true,
+    "manualRetryRequired": true,
+    "retryReportedReplay": true,
+    "duplicateWorkflowCreated": false,
+    "differentPayloadSameKeyReturns409": true
+  },
+  "browserQa": {
+    "operaConnector": {
+      "pageIdentity": "pass",
+      "accessibilityTree": "pass",
+      "screenshot": "blocked",
+      "screenshotError": "Browser not connected; Allow AI connection is required"
+    },
+    "playwrightFallback": {
+      "engine": "Chromium",
+      "desktopViewport": "1440x1500",
+      "mobileViewport": "390x1200",
+      "horizontalOverflow": false,
+      "unexpectedConsoleErrors": 0,
+      "expectedInjectedNetworkErrors": 1,
+      "trackingDesktopViewport": "1440x960",
+      "trackingMobileViewport": "390x844",
+      "trackingMobileHorizontalOverflow": false
+    },
+    "screenshots": [
+      "assistant-stage3-workflow-preview.png",
+      "assistant-stage3-workflow-saved.png",
+      "assistant-stage3-workflow-mobile.png",
+      "assistant-stage3-workflow-tracked.png",
+      "assistant-stage3-workflow-conflict-review.png"
+    ]
+  },
+  "verification": {
+    "usersPythonTests": 43,
+    "agentPythonTests": 73,
+    "agentNodeSseTests": 3,
+    "usersFrontendFacade": "pass",
+    "usersSecurityBaseline": "pass",
+    "usersCommandSafety": "pass",
+    "javascriptSyntax": "pass"
+  },
+  "boundaries": [
+    "Only the existing workflow-save Users Command was extended.",
+    "The model still produces a draft and cannot execute the write.",
+    "Long-term memory, free tool loops, multi-agent runtime, and live Provider remain disabled."
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-25",
+  "environment": {
+    "platform": "Windows",
+    "python": "3.13",
+    "productionClaim": false
+  },
+  "before": {
+    "advisoryRecords": 39,
+    "affectedPackages": [
+      "python-multipart 0.0.20",
+      "Pillow 10.4.0",
+      "starlette 0.46.2"
+    ]
+  },
+  "after": {
+    "command": "python -m pip_audit -r backend/requirements.txt",
+    "result": "No known vulnerabilities found",
+    "advisoryRecords": 0,
+    "packages": {
+      "fastapi": "0.139.2",
+      "starlette": "1.3.1",
+      "python-multipart": "0.0.32",
+      "Pillow": "12.3.0"
+    }
+  },
+  "rootCauses": [
+    {
+      "component": "python-multipart",
+      "applicability": "applicable",
+      "path": "POST /api/v1/users/me/avatar",
+      "controls": [
+        "request Content-Length bound before multipart parsing",
+        "parser header count and size defaults from 0.0.32",
+        "bounded header/preamble/epilogue regressions"
+      ]
+    },
+    {
+      "component": "Pillow",
+      "applicability": "applicable",
+      "path": "AvatarProcessor.process",
+      "controls": [
+        "magic signature before decoder selection",
+        "declared MIME and decoded format equality",
+        "verify then reopen and decode",
+        "source byte, pixel, frame, output byte, dimension and elapsed-time bounds"
+      ]
+    },
+    {
+      "component": "Starlette",
+      "applicability": "applicable",
+      "path": "StaticFiles mounts and request URL classification",
+      "controls": [
+        "upgraded Range, upload rollover, URL and Windows static-file fixes",
+        "bounded many-range regression"
+      ]
+    }
+  ],
+  "regressions": {
+    "inputSecurity": "3/3 passed",
+    "avatarUnitCases": "2/2 passed",
+    "users": "48/48 passed",
+    "agent": "91/91 Python and 3/3 Node passed"
+  },
+  "notes": [
+    "The original 39 records contained aliases and repeated root causes and were not described as 39 exploitable vulnerabilities.",
+    "No production traffic, external provider, capacity or deployment validation is claimed."
+  ]
+}

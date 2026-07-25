@@ -23,7 +23,7 @@ from app.users.sessions.service import SessionsService
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASELINE_DIR = ROOT / "docs" / "users-baseline"
+BASELINE_DIR = ROOT / "docs" / "06-evidence" / "users"
 
 
 def connection_factory(database_path: Path):
@@ -135,10 +135,12 @@ def response_samples(database_path: Path, user_id: int) -> dict:
     context = RequestContext(ip_address="127.0.0.1", user_agent="contract-freeze")
     login = services["auth"].login({"identifier": "contract_user", "password": "Current123", "deviceName": "contract", "privacyAccepted": True}, context)
     refresh = services["auth"].refresh(login["refreshToken"], context)
+    public_login = auth._without_refresh_token(login)
+    public_refresh = auth._without_refresh_token(refresh)
     return {
-        "auth.login": sorted(login),
+        "auth.login": sorted(public_login),
         "auth.login.user": sorted(login["user"]),
-        "auth.refresh": sorted(refresh),
+        "auth.refresh": sorted(public_refresh),
         "auth.me": ["user"],
         "auth.me.user": sorted(auth._public_user(services["auth"].current_user_from_token(login["accessToken"]))),
         "users.profile.get": sorted(services["profile"].get_profile(user_id)),

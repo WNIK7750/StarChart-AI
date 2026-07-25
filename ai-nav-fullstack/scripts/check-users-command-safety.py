@@ -1,4 +1,4 @@
-from app.main import app
+from app.main import iter_app_routes
 from app.users.audit.events import AUDIT_EVENTS
 from app.users.command_safety import COMMAND_SAFETY
 
@@ -15,7 +15,7 @@ LEARNING_AUDIT_EVENTS = {
 
 def users_command_routes() -> set[tuple[str, str]]:
     commands: set[tuple[str, str]] = set()
-    for route in app.routes:
+    for route in iter_app_routes():
         path = getattr(route, "path", "")
         methods = getattr(route, "methods", set()) or set()
         owned = path.startswith("/api/v1/users/") or path.startswith("/api/v1/auth/")

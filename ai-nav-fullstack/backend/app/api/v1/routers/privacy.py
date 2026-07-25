@@ -9,6 +9,14 @@ from app.api.v1.routers.auth import get_current_user
 from app.users.audit.service import get_audit_service
 from app.users.common import StrictModel, UsersError, users_error_detail
 from app.users.privacy.service import get_privacy_service
+from app.users.response_schemas import (
+    ConsentResponse,
+    ConsentStatusResponse,
+    DataExportResponse,
+    DataRequestResponse,
+    DeletionAdminResponse,
+    DeletionAnonymizeResponse,
+)
 
 
 router = APIRouter(tags=["privacy"])
@@ -56,12 +64,12 @@ def _record(
     )
 
 
-@router.get("/users/me/privacy/consents")
+@router.get("/users/me/privacy/consents", response_model=ConsentStatusResponse)
 def consent_status(current_user: dict = Depends(get_current_user)):
     return get_privacy_service().consent_status(current_user["id"])
 
 
-@router.put("/users/me/privacy/consents/{consent_type}")
+@router.put("/users/me/privacy/consents/{consent_type}", response_model=ConsentResponse)
 def update_consent(
     consent_type: Literal["privacy_policy", "agent_memory"],
     payload: ConsentUpdate,
@@ -91,7 +99,7 @@ def update_consent(
     return result
 
 
-@router.post("/users/me/privacy/export")
+@router.post("/users/me/privacy/export", response_model=DataExportResponse)
 def export_data(
     payload: DataExportRequest,
     request: Request,
@@ -111,12 +119,12 @@ def export_data(
     return result
 
 
-@router.get("/users/me/privacy/deletion-requests/current")
+@router.get("/users/me/privacy/deletion-requests/current", response_model=DataRequestResponse)
 def current_deletion_request(current_user: dict = Depends(get_current_user)):
     return get_privacy_service().current_deletion_request(current_user["id"])
 
 
-@router.post("/users/me/privacy/deletion-requests", status_code=201)
+@router.post("/users/me/privacy/deletion-requests", status_code=201, response_model=DataRequestResponse)
 def request_deletion(
     payload: DeletionRequestCreate,
     request: Request,
@@ -143,7 +151,7 @@ def request_deletion(
     return result
 
 
-@router.delete("/users/me/privacy/deletion-requests/{request_uid}")
+@router.delete("/users/me/privacy/deletion-requests/{request_uid}", response_model=DataRequestResponse)
 def cancel_deletion(
     request_uid: str,
     request: Request,
@@ -162,7 +170,7 @@ def cancel_deletion(
     return result
 
 
-@router.post("/users/privacy/deletion-requests/{request_uid}/execute")
+@router.post("/users/privacy/deletion-requests/{request_uid}/execute", response_model=DeletionAdminResponse)
 def execute_deletion(
     request_uid: str,
     request: Request,
@@ -180,7 +188,7 @@ def execute_deletion(
     return result
 
 
-@router.post("/users/privacy/deletion-requests/{request_uid}/restore")
+@router.post("/users/privacy/deletion-requests/{request_uid}/restore", response_model=DeletionAdminResponse)
 def restore_deletion(
     request_uid: str,
     request: Request,
@@ -197,7 +205,7 @@ def restore_deletion(
     return result
 
 
-@router.post("/users/privacy/deletion-requests/{request_uid}/anonymize")
+@router.post("/users/privacy/deletion-requests/{request_uid}/anonymize", response_model=DeletionAnonymizeResponse)
 def anonymize_deletion(
     request_uid: str,
     request: Request,

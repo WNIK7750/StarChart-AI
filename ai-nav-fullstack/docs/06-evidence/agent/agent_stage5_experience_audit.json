@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "agent-stage5-experience-audit-v1",
+  "status": "complete_offline",
+  "date": "2026-07-25",
+  "scope": "offline",
+  "frontend": {
+    "mobileSessionDrawer": {
+      "status": "passed",
+      "viewport": "390x844",
+      "checks": [
+        "aria-controls target exists",
+        "open moves focus to close control",
+        "Escape closes drawer",
+        "close restores focus to trigger",
+        "no horizontal overflow",
+        "reduced motion context"
+      ]
+    },
+    "browsersPassed": [
+      "chromium",
+      "firefox",
+      "webkit",
+      "opera"
+    ],
+    "browserConsoleErrors": 0,
+    "crossBrowserChecks": [
+      "page identity",
+      "non-empty content",
+      "no framework overlay",
+      "accessible labels",
+      "aria-live polite",
+      "reduced motion",
+      "4000 character long text",
+      "mobile drawer focus and Escape",
+      "no horizontal overflow"
+    ],
+    "deviceEmulationPassed": [
+      "Pixel 7",
+      "iPhone 15"
+    ],
+    "realDeviceAcceptance": {
+      "status": "passed_manual",
+      "evidence": "user supplied real device screenshots and reported no requested defects",
+      "checks": [
+        "portrait layout",
+        "landscape layout",
+        "mobile session drawer",
+        "long text and reduced motion",
+        "no horizontal overflow or clipped controls"
+      ],
+      "containsDeviceIdentifier": false
+    },
+    "isolatedAcceptanceServer": {
+      "status": "passed",
+      "checks": [
+        "create ephemeral session",
+        "return deterministic mock answer",
+        "list and restore session history",
+        "delete session",
+        "no database environment API key or Provider"
+      ]
+    },
+    "conversationLayoutRedesign": {
+      "status": "passed_automated",
+      "direction": "traditional_generative_ai_workspace_with_neutral_codex_visual_system",
+      "viewports": [
+        "1440x900",
+        "390x844"
+      ],
+      "checks": [
+        "persistent desktop session sidebar",
+        "mobile session drawer with scrim",
+        "open assistant reading flow",
+        "right aligned user message",
+        "inline citations and tool trace",
+        "bottom anchored composer",
+        "drawer focus and Escape recovery",
+        "no horizontal overflow",
+        "no framework overlay",
+        "zero browser console errors"
+      ],
+      "operaConnectorChecks": [
+        "page title and URL",
+        "non-empty accessibility tree",
+        "native Opera screenshot at desktop viewport",
+        "no visible clipping overlap or horizontal overflow",
+        "no visible framework error overlay",
+        "header product navigation",
+        "session controls",
+        "status live region",
+        "prompt suggestions",
+        "composer accessible name"
+      ],
+      "operaConnectorLimitations": [
+        "connector exposes navigation content tree and screenshot but not click or console APIs",
+        "interaction and console contracts remain covered by automated Chromium and WebKit runs"
+      ]
+    },
+    "assistiveSemantics": {
+      "status": "passed_automated",
+      "checks": [
+        "request state uses role status",
+        "request state uses polite atomic live region",
+        "stop control declares Escape shortcut",
+        "Escape cancels active request",
+        "focus returns to composer after cancellation"
+      ]
+    },
+    "screenReaderAcceptance": {
+      "status": "passed_manual",
+      "reader": "Windows Narrator",
+      "checks": [
+        "composer accessible name announced",
+        "retrieval status announced",
+        "stopped status announced",
+        "focus returned to composer",
+        "no duplicate or missing announcement reported"
+      ]
+    },
+    "pending": []
+  },
+  "releaseDocumentation": {
+    "status": "passed",
+    "runbook": "docs/04-operations/agent/agent-stage5-release-runbook.md",
+    "covers": [
+      "feature_flags",
+      "known_limits",
+      "provider_data_boundary",
+      "cost_thresholds",
+      "monitoring",
+      "rollback",
+      "failure_rehearsal_evidence"
+    ]
+  },
+  "offlineGates": {
+    "status": "passed",
+    "agentPythonTests": 91,
+    "agentNodeAndSseTests": 3,
+    "frontendNodeTests": 25,
+    "toolsPythonTests": 6,
+    "learningPythonTests": 19,
+    "learningNodeTests": 2,
+    "usersPythonTests": 43,
+    "migrationCount": 20,
+    "backupRestorePassed": true,
+    "securityPassed": true,
+    "performancePassed": true,
+    "linkChecksPassed": true
+  },
+  "productionDeferred": [
+    "provider_dpa_and_retention_review",
+    "controlled_live_provider_validation",
+    "shanghai_server_egress_allowlist",
+    "shanghai_capacity_validation",
+    "production_secret_rotation"
+  ],
+  "containsUserContent": false,
+  "containsCredentials": false
+}

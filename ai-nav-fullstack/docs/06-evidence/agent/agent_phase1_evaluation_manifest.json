@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "agent-evaluation-manifest-v1",
+  "suiteId": "agent-phase1",
+  "suiteVersion": "agent-phase1-v1",
+  "sourceSemanticSha256": "e6ae28e3d1163f80df16d54bfc1cdaecf03a4ae5b8d473abab75930bed28aaaf",
+  "caseCount": 30,
+  "groups": {
+    "routing": {
+      "caseCount": 20,
+      "intentCounts": {
+        "learning_plan": 3,
+        "navigation": 4,
+        "qa": 6,
+        "tool_recommendation": 4,
+        "workflow_generation": 3
+      }
+    },
+    "providerOutput": {
+      "caseCount": 10,
+      "allowedCount": 4,
+      "rejectedCount": 6,
+      "rejectionClassCounts": {
+        "domain": 1,
+        "fabricated_citation": 1,
+        "html": 1,
+        "ip_address": 1,
+        "link": 1,
+        "secret_like_content": 1
+      }
+    }
+  },
+  "failureClasses": [
+    "EVAL_MANIFEST_SCHEMA_INVALID",
+    "EVAL_MANIFEST_DUPLICATE_CASE_ID",
+    "EVAL_MANIFEST_CASE_COUNT_MISMATCH",
+    "EVAL_MANIFEST_CATEGORY_COVERAGE_MISSING",
+    "EVAL_MANIFEST_EXPECTATION_INVALID",
+    "EVAL_ARTIFACT_STALE"
+  ],
+  "privacy": {
+    "containsCaseIds": false,
+    "containsMessages": false,
+    "containsAnswers": false
+  }
+}

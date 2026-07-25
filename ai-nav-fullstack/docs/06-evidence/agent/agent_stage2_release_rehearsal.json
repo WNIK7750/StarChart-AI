@@ -1,0 +1,72 @@
+{
+  "contractVersion": 1,
+  "scenario": "agent-stage2-deterministic-release-rehearsal",
+  "verifiedAt": "2026-07-24",
+  "environment": {
+    "provider": "deterministic",
+    "providerLive": false,
+    "realCredentialsLoaded": false,
+    "providerNetworkUsed": false,
+    "database": "temporary",
+    "declaredWorkers": 1,
+    "stateBackend": "process_local"
+  },
+  "result": {
+    "passed": true,
+    "checksPassed": 29,
+    "checksTotal": 29,
+    "migrationCount": 18
+  },
+  "enabledProfile": {
+    "stream": true,
+    "sessions": true,
+    "streamEventCount": 3,
+    "retryEventCount": 3,
+    "sessionMessageCountAfterRetry": 2,
+    "checks": {
+      "readiness": "pass",
+      "runtimeSnapshotBounded": "pass",
+      "sessionLifecycle": "pass",
+      "sseCompleted": "pass",
+      "requestIdStableAcrossManualRetry": "pass",
+      "manualRetryEquivalent": "pass",
+      "manualRetryDidNotDuplicateMessages": "pass"
+    }
+  },
+  "rollbackProfile": {
+    "stream": false,
+    "sessions": false,
+    "streamStatus": 503,
+    "sessionsStatus": 503,
+    "jsonStatus": 200,
+    "checks": {
+      "readiness": "pass",
+      "runtimeSnapshotBounded": "pass",
+      "streamRejected": "pass",
+      "sessionsRejected": "pass",
+      "jsonChatAvailable": "pass",
+      "jsonChatDeterministic": "pass"
+    }
+  },
+  "browserQa": {
+    "engine": "Chromium via Playwright Core",
+    "browserPluginNavigationAvailable": false,
+    "desktopViewport": "1440x1000",
+    "mobileViewport": "390x844",
+    "horizontalOverflow": false,
+    "manualDisconnectInjected": true,
+    "retryRequestIdReused": true,
+    "rollbackUsedJsonWithoutSse": true,
+    "unexpectedConsoleErrors": 0,
+    "screenshots": [
+      "assistant-stage2-rehearsal-desktop.png",
+      "assistant-stage2-rehearsal-mobile.png",
+      "assistant-stage2-rollback-json.png"
+    ]
+  },
+  "limitations": [
+    "No real Provider request, provider latency, provider billing, or provider cancellation settlement was tested.",
+    "The browser disconnect was injected after the deterministic server response completed so replay behavior could be verified without model cost.",
+    "Final Beijing Model Studio endpoint, Shanghai outbound allowlist, and production capacity remain pre-launch tasks."
+  ]
+}

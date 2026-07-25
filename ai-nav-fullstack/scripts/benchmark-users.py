@@ -25,7 +25,7 @@ from app.users.sessions.service import SessionsService
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASELINE_DIR = ROOT / "docs" / "users-baseline"
+BASELINE_DIR = ROOT / "docs" / "06-evidence" / "users"
 BUDGETS = {
     "auth.login": {"p95Ms": 250.0, "maxStatements": 8},
     "auth.current_user_from_token": {"p95Ms": 10.0, "maxStatements": 1},

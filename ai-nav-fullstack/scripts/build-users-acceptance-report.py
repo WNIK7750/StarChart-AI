@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASELINE = ROOT / "docs" / "users-baseline"
+BASELINE = ROOT / "docs" / "06-evidence" / "users"
 
 
 def read_json(name: str) -> dict:
@@ -83,9 +83,15 @@ def main() -> None:
 
 {risk_rows}
 
-生产发布必须按 `docs/users-release-runbook.md` 处置已知风险、创建可验证备份并完成发布后观察。
+生产发布必须按 `docs/04-operations/users/users-release-runbook.md` 处置已知风险、创建可验证备份并完成发布后观察。
 """
-    (ROOT / "docs" / "users-final-acceptance-report.md").write_text(markdown, encoding="utf-8")
+    (
+        ROOT
+        / "docs"
+        / "03-domains"
+        / "users"
+        / "users-final-acceptance-report.md"
+    ).write_text(markdown, encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False))
     if not report["passed"]:
         raise SystemExit("Users final acceptance failed")

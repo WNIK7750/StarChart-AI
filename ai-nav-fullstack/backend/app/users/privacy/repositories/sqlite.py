@@ -103,6 +103,23 @@ class SQLitePrivacyRepository:
     def _rows(conn: Connection, query: str, user_id: int) -> list[dict]:
         return conn.execute(query, (user_id,)).fetchall()
 
+    @staticmethod
+    def _agent_conversations(
+        conn: Connection,
+        conversations_query: str,
+        messages_query: str,
+        user_id: int,
+    ) -> list[dict]:
+        conversations = conn.execute(conversations_query, (user_id,)).fetchall()
+        messages_by_conversation: dict[int, list[dict]] = {}
+        for message in conn.execute(messages_query, (user_id,)).fetchall():
+            conversation_id = message.pop("_conversationId")
+            messages_by_conversation.setdefault(conversation_id, []).append(message)
+        for conversation in conversations:
+            conversation_id = conversation.pop("_conversationId")
+            conversation["messages"] = messages_by_conversation.get(conversation_id, [])
+        return conversations
+
     def export_user_data(self, user_id: int) -> dict:
         with self._connect() as conn:
             account = conn.execute(
@@ -193,6 +210,50 @@ class SQLitePrivacyRepository:
                            status, version, archived_at AS archivedAt,
                            created_at AS createdAt, updated_at AS updatedAt
                     FROM user_saved_workflows WHERE user_id = ? ORDER BY id
+                    """,
+                    user_id,
+                ),
+                "agentShortConversations": self._agent_conversations(
+                    conn,
+                    """
+                    SELECT id AS _conversationId, session_uid AS sessionUid, title,
+                           title_customized AS titleCustomized, pinned_at AS pinnedAt,
+                           expires_at AS expiresAt, created_at AS createdAt,
+                           updated_at AS updatedAt
+                    FROM agent_chat_sessions
+                    WHERE user_id = ?
+                    ORDER BY pinned_at DESC, updated_at DESC, id DESC
+                    """,
+                    """
+                    SELECT message.session_id AS _conversationId,
+                           message.message_uid AS messageUid, message.role,
+                           message.content, message.created_at AS createdAt
+                    FROM agent_chat_messages message
+                    JOIN agent_chat_sessions session ON session.id = message.session_id
+                    WHERE session.user_id = ?
+                    ORDER BY message.id
+                    """,
+                    user_id,
+                ),
+                "agentLongConversations": self._agent_conversations(
+                    conn,
+                    """
+                    SELECT id AS _conversationId, conversation_uid AS conversationUid,
+                           title, pinned_at AS pinnedAt, created_at AS createdAt,
+                           updated_at AS updatedAt
+                    FROM agent_long_conversations
+                    WHERE user_id = ?
+                    ORDER BY pinned_at DESC, updated_at DESC, id DESC
+                    """,
+                    """
+                    SELECT message.conversation_id AS _conversationId,
+                           message.message_uid AS messageUid, message.role,
+                           message.content, message.created_at AS createdAt
+                    FROM agent_long_conversation_messages message
+                    JOIN agent_long_conversations conversation
+                      ON conversation.id = message.conversation_id
+                    WHERE conversation.user_id = ?
+                    ORDER BY message.id
                     """,
                     user_id,
                 ),
@@ -405,6 +466,8 @@ class SQLitePrivacyRepository:
                 (user_id,),
             )
             conn.execute("DELETE FROM user_saved_workflows WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM agent_chat_sessions WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM agent_long_conversations WHERE user_id = ?", (user_id,))
             for table in (
                 "user_learning_section_progress",
                 "user_learning_progress",

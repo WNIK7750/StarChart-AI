@@ -13,7 +13,44 @@ globalThis.localStorage = {
   setItem: (key, value) => storage.set(key, value),
   removeItem: (key) => storage.delete(key),
 };
-const { ApiError, apiGet, apiPost } = await import(`../frontend/assets/js/api.js?test=${Date.now()}`);
+const {
+  ApiError,
+  apiGet,
+  apiPost,
+  apiPostStream,
+  clearAuthTokens,
+  getAccessToken,
+  restoreAuthSession,
+  saveAuthTokens,
+} = await import(`../frontend/assets/js/api.js?test=${Date.now()}`);
+
+test("access tokens stay in memory and legacy storage is removed", () => {
+  storage.set("ai_nav_access_token", "legacy-access");
+  storage.set("ai_nav_refresh_token", "legacy-refresh");
+  saveAuthTokens({ accessToken: "memory-access", refreshToken: "must-not-persist" });
+  assert.equal(getAccessToken(), "memory-access");
+  assert.equal(storage.has("ai_nav_access_token"), false);
+  assert.equal(storage.has("ai_nav_refresh_token"), false);
+  clearAuthTokens();
+  assert.equal(getAccessToken(), "");
+});
+
+test("page reload authentication is restored through the refresh cookie flow", async () => {
+  clearAuthTokens();
+  let captured;
+  globalThis.fetch = async (url, options) => {
+    captured = { url, options };
+    return new Response(JSON.stringify({
+      accessToken: "restored-access",
+      tokenType: "Bearer",
+      expiresIn: 600,
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  assert.equal(await restoreAuthSession(), "restored-access");
+  assert.equal(captured.url, "/api/v1/auth/refresh");
+  assert.equal(captured.options.credentials, "same-origin");
+  assert.equal(storage.has("ai_nav_access_token"), false);
+});
 
 test("GET retries one transient network failure", async () => {
   let calls = 0;
@@ -44,7 +81,7 @@ test("write requests are never retried automatically", async () => {
 });
 
 test("business 401 responses do not refresh or replay writes", async () => {
-  storage.set("ai_nav_access_token", "valid-access-token");
+  saveAuthTokens({ accessToken: "valid-access-token" });
   let calls = 0;
   globalThis.fetch = async () => {
     calls += 1;
@@ -76,6 +113,32 @@ test("timeout and caller cancellation have different stable codes", async () => 
   controller.abort();
   await assert.rejects(request, (error) => {
     assert.equal(error.code, "API_REQUEST_ABORTED");
+    return true;
+  });
+});
+
+test("stream requests keep auth server-side and require an SSE response", async () => {
+  saveAuthTokens({ accessToken: "stream-access-token" });
+  let captured;
+  globalThis.fetch = async (url, options) => {
+    captured = { url, options };
+    return new Response("event: response.started\ndata: {}\n\n", {
+      status: 200,
+      headers: { "Content-Type": "text/event-stream; charset=utf-8" },
+    });
+  };
+  const response = await apiPostStream("/agent/chat/stream", { message: "RAG" });
+  assert.equal(response.status, 200);
+  assert.equal(captured.options.headers.Authorization, "Bearer stream-access-token");
+  assert.equal(captured.options.headers.Accept, "text/event-stream");
+  assert.equal(captured.url, "/api/v1/agent/chat/stream");
+
+  globalThis.fetch = async () => new Response("{}", {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+  await assert.rejects(apiPostStream("/agent/chat/stream", {}), (error) => {
+    assert.equal(error.code, "API_STREAM_CONTENT_TYPE_INVALID");
     return true;
   });
 });

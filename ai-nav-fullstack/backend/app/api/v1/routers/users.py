@@ -8,6 +8,7 @@ from app.core.config import AVATAR_MAX_UPLOAD_BYTES, REFRESH_COOKIE_NAME
 from app.core.security import hash_token
 from app.users.account.service import get_account_service
 from app.users.audit.service import get_audit_service
+from app.users.assets.schemas import WorkflowListResponse
 from app.users.assets.service import get_assets_service
 from app.users.common import StrictModel, UsersError, users_error_detail
 from app.users.preferences.service import get_preferences_service
@@ -15,6 +16,19 @@ from app.users.preferences.facade import get_user_preferences_facade
 from app.users.profile.service import get_profile_service
 from app.users.security.service import get_security_service
 from app.users.sessions.service import get_sessions_service
+from app.users.response_schemas import (
+    AccountResponse,
+    AccountUpdateResponse,
+    AvatarUploadResponse,
+    PreferenceContextResponse,
+    PreferencesResponse,
+    ProfileResponse,
+    RevokeOtherSessionsResponse,
+    SecurityQuestionsResponse,
+    SessionListResponse,
+    StatusMessageResponse,
+    StatusResponse,
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
 T = TypeVar("T")
@@ -93,12 +107,12 @@ def _audited_call(
     return result
 
 
-@router.get("/me/account")
+@router.get("/me/account", response_model=AccountResponse)
 def get_account(current_user: dict = Depends(get_current_user)):
     return _users_call(lambda: get_account_service().get_account(current_user["id"]))
 
 
-@router.patch("/me/account")
+@router.patch("/me/account", response_model=AccountUpdateResponse)
 def update_account(payload: AccountUpdate, request: Request, current_user: dict = Depends(get_current_user)):
     return _audited_call(
         lambda: get_account_service().update_account(
@@ -113,7 +127,7 @@ def update_account(payload: AccountUpdate, request: Request, current_user: dict 
     )
 
 
-@router.patch("/me/password")
+@router.patch("/me/password", response_model=StatusMessageResponse)
 def update_password(payload: PasswordUpdate, request: Request, current_user: dict = Depends(get_current_user)):
     return _audited_call(
         lambda: get_security_service().update_password(
@@ -129,12 +143,12 @@ def update_password(payload: PasswordUpdate, request: Request, current_user: dic
     )
 
 
-@router.get("/me/security-questions")
+@router.get("/me/security-questions", response_model=SecurityQuestionsResponse)
 def get_security_questions(current_user: dict = Depends(get_current_user)):
     return get_security_service().list_security_questions(current_user["id"])
 
 
-@router.put("/me/security-questions")
+@router.put("/me/security-questions", response_model=SecurityQuestionsResponse)
 def update_security_questions(payload: SecurityQuestionsUpdate, request: Request, current_user: dict = Depends(get_current_user)):
     return _audited_call(
         lambda: get_security_service().replace_security_questions(
@@ -150,12 +164,12 @@ def update_security_questions(payload: SecurityQuestionsUpdate, request: Request
     )
 
 
-@router.get("/me/profile")
+@router.get("/me/profile", response_model=ProfileResponse)
 def get_profile(current_user: dict = Depends(get_current_user)):
     return _users_call(lambda: get_profile_service().get_profile(current_user["id"]))
 
 
-@router.patch("/me/profile")
+@router.patch("/me/profile", response_model=ProfileResponse)
 def update_profile(payload: ProfileUpdate, request: Request, current_user: dict = Depends(get_current_user)):
     values = payload.model_dump(exclude={"expectedVersion"})
     return _audited_call(
@@ -168,7 +182,7 @@ def update_profile(payload: ProfileUpdate, request: Request, current_user: dict 
     )
 
 
-@router.post("/me/avatar")
+@router.post("/me/avatar", response_model=AvatarUploadResponse)
 async def upload_avatar(request: Request, file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     content = await file.read(AVATAR_MAX_UPLOAD_BYTES + 1)
     if len(content) > AVATAR_MAX_UPLOAD_BYTES:
@@ -188,12 +202,12 @@ async def upload_avatar(request: Request, file: UploadFile = File(...), current_
     )
 
 
-@router.get("/me/preferences")
+@router.get("/me/preferences", response_model=PreferencesResponse)
 def get_preferences(current_user: dict = Depends(get_current_user)):
     return _users_call(lambda: get_preferences_service().get_preferences(current_user["id"]))
 
 
-@router.get("/me/preferences/context")
+@router.get("/me/preferences/context", response_model=PreferenceContextResponse)
 def get_preference_context(
     consumer: Literal["learning", "tools", "agent"] = Query(...),
     current_user: dict = Depends(get_current_user),
@@ -203,7 +217,7 @@ def get_preference_context(
     )
 
 
-@router.patch("/me/preferences")
+@router.patch("/me/preferences", response_model=PreferencesResponse)
 def update_preferences(payload: PreferencesUpdate, request: Request, current_user: dict = Depends(get_current_user)):
     values = payload.model_dump(exclude={"expectedVersion"})
     return _audited_call(
@@ -216,7 +230,7 @@ def update_preferences(payload: PreferencesUpdate, request: Request, current_use
     )
 
 
-@router.get("/me/sessions")
+@router.get("/me/sessions", response_model=SessionListResponse)
 def list_sessions(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, alias="pageSize", ge=1, le=100),
@@ -226,7 +240,7 @@ def list_sessions(
     return get_sessions_service().list_sessions(current_user["id"], page, page_size, _refresh_hash_from_cookie(refresh_cookie))
 
 
-@router.post("/me/sessions/revoke-others")
+@router.post("/me/sessions/revoke-others", response_model=RevokeOtherSessionsResponse)
 def revoke_other_sessions(
     request: Request,
     refresh_cookie: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
@@ -244,7 +258,7 @@ def revoke_other_sessions(
     )
 
 
-@router.delete("/me/sessions/{session_uid}")
+@router.delete("/me/sessions/{session_uid}", response_model=StatusResponse)
 def revoke_session(session_uid: str, request: Request, current_user: dict = Depends(get_current_user)):
     return _audited_call(
         lambda: get_sessions_service().revoke_session(current_user["id"], session_uid),
@@ -256,7 +270,7 @@ def revoke_session(session_uid: str, request: Request, current_user: dict = Depe
     )
 
 
-@router.get("/me/workflows")
+@router.get("/me/workflows", response_model=WorkflowListResponse)
 def saved_workflows(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, alias="pageSize", ge=1, le=100),

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "agent-blind-protocol-manifest-v1",
+  "suiteVersion": "agent-phase1-v1",
+  "rubricVersion": "agent-model-rubric-v1",
+  "comparisonVersion": "agent-model-comparison-v1",
+  "documentVersions": {
+    "assignment": "agent-blind-assignment-v1",
+    "scores": "agent-blind-scores-v1"
+  },
+  "approvedModels": [
+    "qwen3.5-flash",
+    "qwen3.7-plus"
+  ],
+  "documentFields": {
+    "assignment": [
+      "assignments",
+      "rubricVersion",
+      "suiteVersion",
+      "version"
+    ],
+    "assignmentRecord": [
+      "caseId",
+      "costCny",
+      "latencyMs",
+      "model",
+      "sampleId",
+      "trial"
+    ],
+    "scores": [
+      "rubricVersion",
+      "scores",
+      "version"
+    ],
+    "scoreRecord": [
+      "groundingPassed",
+      "safetyPassed",
+      "sampleId",
+      "taskScore"
+    ]
+  },
+  "limits": {
+    "minimumUniqueCases": 20,
+    "trialMinimum": 1,
+    "trialMaximum": 20,
+    "latencyMaximumMs": 600000,
+    "costMaximumCny": 100,
+    "taskScoreValues": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "sampleIdPattern": "^sample_[A-Za-z0-9_-]{8,64}$"
+  },
+  "reviewPolicy": {
+    "primaryRaterCount": 1,
+    "secondReviewTriggers": [
+      "SAFETY_FAILURE",
+      "GROUNDING_FAILURE",
+      "BOUNDARY_SCORE",
+      "ELIGIBLE_FOR_5_PERCENT_REVIEW"
+    ]
+  },
+  "failureClasses": [
+    "BLIND_EVAL_ASSIGNMENT_SCHEMA_INVALID",
+    "BLIND_EVAL_SCORE_SCHEMA_INVALID",
+    "BLIND_EVAL_METRIC_INVALID",
+    "BLIND_EVAL_SAMPLE_ID_INVALID",
+    "BLIND_EVAL_DUPLICATE_SAMPLE_ID",
+    "BLIND_EVAL_UNKNOWN_CASE",
+    "BLIND_EVAL_TRIAL_INVALID",
+    "BLIND_EVAL_MODEL_INVALID",
+    "BLIND_EVAL_DUPLICATE_MODEL_ASSIGNMENT",
+    "BLIND_EVAL_TASK_SCORE_INVALID",
+    "BLIND_EVAL_SAMPLE_SET_MISMATCH",
+    "BLIND_EVAL_UNPAIRED_ASSIGNMENT",
+    "BLIND_EVAL_INSUFFICIENT_CASE_COVERAGE",
+    "BLIND_EVAL_PROTOCOL_ARTIFACT_STALE"
+  ],
+  "privacy": {
+    "scoreContainsModel": false,
+    "scoreContainsPrompt": false,
+    "scoreContainsResponse": false,
+    "scoreContainsLatencyOrCost": false,
+    "containsCaseContent": false
+  }
+}

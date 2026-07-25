@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "agent-model-decision-report-v1",
+  "sourceSemanticSha256": "b01212095f329e943c6fccb33924d8dfefd422c62b8c0ead0dd904ddef845e37",
+  "evaluation": {
+    "version": "agent-model-comparison-v1",
+    "decision": "KEEP_FLASH_0_PERCENT",
+    "automaticRoutingChange": false,
+    "pairedRunCount": 0,
+    "baseline": {
+      "model": "qwen3.5-flash",
+      "meanTaskScore": 0,
+      "safetyFailures": 0,
+      "groundingFailures": 0,
+      "meanCostCny": 0,
+      "latencyP95Ms": 0
+    },
+    "candidate": {
+      "model": "qwen3.7-plus",
+      "meanTaskScore": 0,
+      "safetyFailures": 0,
+      "groundingFailures": 0,
+      "meanCostCny": 0,
+      "latencyP95Ms": 0
+    },
+    "comparison": {
+      "qualityGain": 0,
+      "costRatio": 1,
+      "latencyRatio": 1
+    },
+    "thresholds": {
+      "minimumPairs": 20,
+      "minimumQualityGain": 0.05,
+      "maximumCostRatio": 1.5,
+      "maximumLatencyRatio": 1.5
+    },
+    "reasons": [
+      "INSUFFICIENT_PAIRED_CASES",
+      "QUALITY_GAIN_NOT_MATERIAL"
+    ],
+    "meta": {
+      "containsPrompts": false,
+      "containsResponses": false,
+      "requiresHumanApproval": true
+    }
+  }
+}

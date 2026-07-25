@@ -346,87 +346,66 @@ class SQLiteAuthenticationRepository:
                 (user_id, refresh_token_hash),
             )
 
-    def start_security_reset(self, identifier: str, reset_uid: str, reset_hash: str, expires_at: str) -> tuple[dict, list[dict]] | None:
+    def create_password_recovery(
+        self,
+        identifier: str,
+        token_uid: str,
+        token_hash: str,
+        expires_at: str,
+    ) -> dict | None:
         lookup = identifier.lower() if "@" in identifier else identifier
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             user = conn.execute(
                 """
-                SELECT id, user_uid AS userUid, username, email, phone, account_status
+                SELECT id, user_uid AS userUid, username, email, phone, account_status,
+                       email_verified AS emailVerified, phone_verified AS phoneVerified
                 FROM user_accounts
                 WHERE (username = ? OR lower(email) = lower(?) OR phone = ?) AND deleted_at IS NULL
                 """,
                 (identifier, lookup, identifier),
             ).fetchone()
-            if not user or user["account_status"] != "active":
-                return None
-            questions = conn.execute(
-                """
-                SELECT question_order AS questionOrder, question_text AS question
-                FROM user_security_questions
-                WHERE user_id = ?
-                ORDER BY question_order
-                """,
-                (user["id"],),
-            ).fetchall()
-            if not questions:
-                return user, questions
+            if user and user["account_status"] == "active" and user["email"] and user["emailVerified"]:
+                channel = "email"
+                target = user["email"]
+            elif user and user["account_status"] == "active" and user["phone"] and user["phoneVerified"]:
+                channel = "sms"
+                target = user["phone"]
+            else:
+                channel = None
+                target = None
             conn.execute(
                 """
                 INSERT INTO user_verification_tokens(token_uid, user_id, target, purpose, token_hash, expires_at)
                 VALUES (?, ?, ?, 'password_reset', ?, ?)
                 """,
-                (reset_uid, user["id"], f"security-challenge:{identifier}", reset_hash, expires_at),
+                (
+                    token_uid,
+                    user["id"] if channel else None,
+                    f"recovery:{channel}:{target}" if channel else "recovery:discard",
+                    token_hash,
+                    expires_at,
+                ),
             )
-            return user, questions
-
-    def verify_security_reset(self, reset_uid: str, reset_hash: str) -> tuple[dict, list[dict]] | None:
-        with self._connect() as conn:
-            challenge = conn.execute(
-                """
-                SELECT token.token_uid AS tokenUid, token.user_id AS userId,
-                       account.user_uid AS userUid
-                FROM user_verification_tokens token
-                JOIN user_accounts account ON account.id = token.user_id
-                WHERE token.token_uid = ? AND token.token_hash = ? AND token.purpose = 'password_reset'
-                  AND token.consumed_at IS NULL AND token.expires_at > CURRENT_TIMESTAMP
-                """,
-                (reset_uid, reset_hash),
-            ).fetchone()
-            if not challenge:
+            if not channel:
                 return None
-            questions = conn.execute(
-                """
-                SELECT question_order AS questionOrder, answer_hash AS answerHash
-                FROM user_security_questions
-                WHERE user_id = ?
-                ORDER BY question_order
-                """,
-                (challenge["userId"],),
-            ).fetchall()
-            return challenge, questions
+            return {
+                "id": user["id"],
+                "userUid": user["userUid"],
+                "recoveryChannel": channel,
+                "recoveryTarget": target,
+            }
 
-    def consume_reset_challenge(self, reset_uid: str, reset_token_uid: str, reset_token_hash: str, expires_at: str) -> dict:
+    def cancel_password_recovery(self, token_hash: str) -> None:
         with self._connect() as conn:
-            conn.execute("BEGIN IMMEDIATE")
-            challenge = conn.execute(
-                """
-                SELECT token.user_id AS userId, account.user_uid AS userUid
-                FROM user_verification_tokens token
-                JOIN user_accounts account ON account.id = token.user_id
-                WHERE token.token_uid = ?
-                """,
-                (reset_uid,),
-            ).fetchone()
-            conn.execute("UPDATE user_verification_tokens SET consumed_at = CURRENT_TIMESTAMP WHERE token_uid = ?", (reset_uid,))
             conn.execute(
                 """
-                INSERT INTO user_verification_tokens(token_uid, user_id, target, purpose, token_hash, expires_at)
-                VALUES (?, ?, 'security-verified', 'password_reset', ?, ?)
+                UPDATE user_verification_tokens
+                SET consumed_at = CURRENT_TIMESTAMP
+                WHERE token_hash = ? AND purpose = 'password_reset' AND consumed_at IS NULL
                 """,
-                (reset_token_uid, challenge["userId"], reset_token_hash, expires_at),
+                (token_hash,),
             )
-            return challenge
 
     def confirm_security_reset(self, reset_token_hash: str, password_hash: str) -> dict | None:
         with self._connect() as conn:
@@ -438,7 +417,7 @@ class SQLiteAuthenticationRepository:
                 FROM user_verification_tokens token
                 JOIN user_accounts account ON account.id = token.user_id
                 WHERE token.token_hash = ? AND token.purpose = 'password_reset'
-                  AND token.target = 'security-verified'
+                  AND token.target LIKE 'recovery:%'
                   AND token.consumed_at IS NULL AND token.expires_at > CURRENT_TIMESTAMP
                 """,
                 (reset_token_hash,),

@@ -1,6 +1,5 @@
 from functools import lru_cache
 from collections.abc import Callable
-from typing import Any
 
 from app.core.security import random_uid
 from app.tools.service import get_tool_catalog
@@ -69,6 +68,39 @@ class AssetsService:
             user_agent=context.get("userAgent"),
         )
 
+    @staticmethod
+    def _same_create_command(workflow: dict, payload: dict) -> bool:
+        """Compare the semantic user command, excluding derived tool snapshots."""
+        if any(
+            workflow.get(field) != payload.get(source)
+            for field, source in (
+                ("title", "title"),
+                ("description", "description"),
+                ("sourceType", "sourceType"),
+                ("sourceRef", "sourceRef"),
+            )
+        ):
+            return False
+        existing_steps = [
+            {
+                "order": step["stepOrder"],
+                "name": step["name"],
+                "objective": step["objective"],
+                "toolSlug": step.get("toolSlug"),
+            }
+            for step in workflow["steps"]
+        ]
+        requested_steps = [
+            {
+                "order": step["order"],
+                "name": step["name"],
+                "objective": step["objective"],
+                "toolSlug": step.get("toolSlug"),
+            }
+            for step in sorted(payload["steps"], key=lambda item: item["order"])
+        ]
+        return existing_steps == requested_steps
+
     def create_workflow(self, user_id: int, payload: dict, idempotency_key: str, context: dict) -> dict:
         orders = [step["order"] for step in payload["steps"]]
         if len(set(orders)) != len(orders):
@@ -92,6 +124,12 @@ class AssetsService:
             payload,
             steps,
         )
+        if replayed and not self._same_create_command(workflow, payload):
+            raise UsersError(
+                "WORKFLOW_IDEMPOTENCY_CONFLICT",
+                "同一保存标识已用于另一份工作流草稿",
+                409,
+            )
         decorated = self._decorate(workflow)
         if not replayed:
             self._audit(

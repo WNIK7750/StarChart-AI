@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASELINE_DIR = ROOT / "docs" / "users-baseline"
+BASELINE_DIR = ROOT / "docs" / "06-evidence" / "users"
 
 
 def file_text(path: str) -> str:
@@ -37,7 +37,6 @@ def main() -> None:
     assets_migration = file_text("database/migrations/007_user_workflow_assets.sql")
     assets_service = file_text("backend/app/users/assets/service.py")
     assets_repository = file_text("backend/app/users/assets/repositories/sqlite.py")
-    assets_router = file_text("backend/app/api/v1/routers/assets.py")
     user_context_facade = file_text("backend/app/users/context/facade.py")
     observability_access = file_text("backend/app/users/observability/access.py")
     observability_metrics = file_text("backend/app/users/observability/metrics.py")
@@ -364,8 +363,8 @@ def main() -> None:
                 "async def lifespan" in main_py
                 and "FastAPI(title=APP_NAME, lifespan=lifespan)" in main_py
                 and "AI_NAV_DATABASE_PATH" in config
-                and '@router.get("/health/live")' in common_router
-                and '@router.get("/health/ready")' in common_router
+                and '@router.get("/health/live",' in common_router
+                and '@router.get("/health/ready",' in common_router
                 and "schema_migrations" in common_router
                 and "DATABASE_NOT_READY" in common_router
             )

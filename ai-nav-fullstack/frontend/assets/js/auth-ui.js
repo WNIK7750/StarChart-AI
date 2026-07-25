@@ -1,17 +1,17 @@
 import {
   clearAuthTokens,
   getAccessToken,
+  restoreAuthSession,
   saveAuthTokens,
 } from "./api.js";
 import {
-  confirmSecurityPasswordReset,
+  confirmPasswordReset,
   getCurrentUser,
   getUserProfile,
   loginUser,
   logoutUser,
   registerUser,
-  startSecurityPasswordReset,
-  verifySecurityPasswordReset,
+  startPasswordReset,
 } from "./users-api.js";
 import {
   getRecentAvatarUrl,
@@ -23,11 +23,6 @@ import {
 const AUTH_STYLE_ID = "ai-nav-auth-style";
 const AUTH_PANEL_ID = "authPanel";
 const DEFAULT_AUTH_AVATAR = "assets/img/logo.png";
-
-let resetState = {
-  uid: "",
-  token: "",
-};
 
 function escapeHtml(value = "") {
   return String(value)
@@ -96,27 +91,25 @@ function authPanel() {
         <p class="auth-note">注册后会自动创建用户资料、偏好和普通用户角色；不会写入虚假学习数据。</p>
       </form>
       <form class="auth-form" data-auth-form="reset-start">
-        <p class="auth-note">通过已设置的密保问题找回密码。密保问题需要先在用户设置中开启。</p>
+        <p class="auth-note">仅可通过账号已验证的外部恢复通道重置密码。无论账号是否存在，提交后都会显示相同结果。</p>
         <div class="auth-field"><label>用户名 / 邮箱 / 手机</label><input name="identifier" autocomplete="username" required></div>
-        <button class="auth-submit" type="submit">验证身份</button>
+        <button class="auth-submit" type="submit">发送恢复说明</button>
         <button class="auth-ghost" data-auth-tab="login" type="button">返回登录</button>
         <div class="auth-error" data-auth-error="reset-start"></div>
       </form>
-      <form class="auth-form" data-auth-form="reset-verify">
-        <div class="reset-questions" data-reset-questions></div>
-        <button class="auth-submit" type="submit">提交答案</button>
-        <button class="auth-ghost" data-auth-tab="reset-start" type="button">重新填写账号</button>
-        <div class="auth-error" data-auth-error="reset-verify"></div>
-      </form>
       <form class="auth-form" data-auth-form="reset-confirm">
+        <p class="auth-note">请填写从已验证恢复通道收到的一次性凭据。凭据将在使用或过期后失效。</p>
+        <div class="auth-field"><label>一次性恢复凭据</label><input name="resetToken" autocomplete="one-time-code" required minlength="20" maxlength="160"></div>
         <div class="auth-field"><label>新密码</label><input name="newPassword" type="password" autocomplete="new-password" required minlength="8"></div>
         <button class="auth-submit" type="submit">重置密码</button>
+        <button class="auth-ghost" data-auth-tab="reset-start" type="button">重新发送</button>
         <div class="auth-error" data-auth-error="reset-confirm"></div>
       </form>
       <dialog class="auth-legal" data-auth-legal-dialog aria-labelledby="authLegalTitle">
         <h2 id="authLegalTitle">服务协议与隐私政策</h2>
-        <p><strong>版本：2026-07-01。</strong>使用账号服务时，请遵守法律法规，不得利用本站干扰服务、侵害他人权益或提交违法内容。本站可为安全、维护或合规需要限制异常账号与会话。</p>
+        <p><strong>版本：2026-07-20。</strong>使用账号服务时，请遵守法律法规，不得利用本站干扰服务、侵害他人权益或提交违法内容。本站可为安全、维护或合规需要限制异常账号与会话。</p>
         <p>为提供账号、学习记录与个性化功能，本站会处理账号资料、头像、登录设备与会话信息，以及你主动产生的学习进度、收藏和工作流数据；这些信息仅用于身份验证、功能交付、安全审计与故障排查，不出售个人信息。</p>
+        <p>启用 AI 模型服务时，本站会将当前问题和站内公开证据发送至位于中国内地北京区域的阿里云百炼千问处理，用于生成本次回答；不会发送账号资料、用户资产或长期记忆。生产启用以完成数据处理协议、明确数据不用于模型训练并落实约定留存策略为前提。请勿在问题中提交密码、令牌、联系方式或其他敏感个人信息。</p>
         <p>密码以不可逆安全散列保存，刷新令牌通过 HttpOnly Cookie 管理。数据按业务与安全需要保留；你可在“设置 · 隐私与数据”查询同意状态、导出数据、申请注销或撤回同意。撤回后需在登录时重新同意当前版本。</p>
         <button class="auth-ghost" data-auth-legal-close type="button">我已了解</button>
       </dialog>
@@ -227,8 +220,12 @@ function renderLoggedIn(user, avatarUrl = "", profile = {}) {
 
 async function refreshAuthUI() {
   if (!getAccessToken()) {
-    renderLoggedOut();
-    return;
+    try {
+      await restoreAuthSession();
+    } catch {
+      renderLoggedOut();
+      return;
+    }
   }
   try {
     const [{ user }, profileResult] = await Promise.all([
@@ -262,34 +259,14 @@ async function handleLoginOrRegister(form, mode) {
 
 async function handleResetStart(form) {
   const body = Object.fromEntries(new FormData(form).entries());
-  const data = await startSecurityPasswordReset(body);
-  resetState = { uid: data.resetUid, token: "" };
-  const box = authPanel().querySelector("[data-reset-questions]");
-  box.innerHTML = (data.questions || []).map((item, index) => `
-    <div class="auth-field">
-      <label>${escapeHtml(item.question)}</label>
-      <input name="answer${index}" data-answer autocomplete="off" required minlength="2" maxlength="80">
-    </div>`).join("");
-  setAuthTab("reset-verify");
-}
-
-async function handleResetVerify(form) {
-  const answers = Array.from(form.querySelectorAll("[data-answer]")).map((input) => input.value);
-  const data = await verifySecurityPasswordReset({
-    resetUid: resetState.uid,
-    answers,
-  });
-  resetState.token = data.resetToken;
+  const data = await startPasswordReset(body);
   setAuthTab("reset-confirm");
+  authPanel().querySelector('[data-auth-error="reset-confirm"]').textContent = data.message;
 }
 
 async function handleResetConfirm(form) {
   const body = Object.fromEntries(new FormData(form).entries());
-  await confirmSecurityPasswordReset({
-    resetToken: resetState.token,
-    newPassword: body.newPassword,
-  });
-  resetState = { uid: "", token: "" };
+  await confirmPasswordReset(body);
   form.reset();
   setAuthTab("login");
   authPanel().querySelector('[data-auth-error="login"]').textContent = "密码已重置，请使用新密码登录。";
@@ -304,7 +281,6 @@ async function handleAuthSubmit(event) {
   try {
     if (mode === "login" || mode === "register") await handleLoginOrRegister(form, mode);
     if (mode === "reset-start") await handleResetStart(form);
-    if (mode === "reset-verify") await handleResetVerify(form);
     if (mode === "reset-confirm") await handleResetConfirm(form);
   } catch (err) {
     error.textContent = err.message || "操作失败";

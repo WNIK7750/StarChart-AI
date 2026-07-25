@@ -3,7 +3,7 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 $baseUrl = if ($env:AI_NAV_BASE_URL) { $env:AI_NAV_BASE_URL } else { "http://127.0.0.1:8000" }
-$outputDir = Join-Path $root "docs/users-baseline/screenshots"
+$outputDir = Join-Path $root "docs/06-evidence/users/screenshots"
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 
 $tempDir = Join-Path $env:TEMP ("users-settings-qa-" + [guid]::NewGuid().ToString("N"))
