@@ -1,7 +1,7 @@
 # HTTP 测试部署文件索引
 
 > 用途：作为 HTTP 子路径测试部署的文件路由、实现进度、验证证据和回滚同步入口。
-> 状态：设计与实施计划已完成；任务 1 至任务 6 已完成，Tasks 4–6 Agent 全流程审查发现的两项 Important 竞态已在本地修复并验证；部署覆盖层和服务器尚未修改。
+> 状态：设计与实施计划已完成；任务 1 至任务 7 已完成，Tasks 4–6 Agent 全流程审查发现的两项 Important 竞态已在本地修复并验证；部署覆盖层和服务器尚未修改。
 > 日期：2026-07-26。
 > 权威性：本索引记录本任务事实，不替代当前审计报告、生产发布清单或服务器实际运行记录。
 
@@ -40,7 +40,8 @@
 | `frontend/assets/js/assistant-session-epoch.js` | 身份 epoch、会话异步操作取消与完成有效性 | 已新增；合并审查修复 |
 | `frontend/assistant.html` | 游客状态与清除入口 | 已完成任务 6 |
 | Users 授权与命令边界 | 唯一测试账号的身份、恢复、隐私和删除限制 | 候选，精确文件待实现计划复核 |
-| `tests/` | 前缀、Agent 会话历史、测试账号限制和游客无服务端写入回归 | 任务 1 至任务 6 已按范围更新 |
+| `scripts/provision-http-test-account.py` | 无命令行秘密的一次性测试账号初始化 | 已完成任务 7 |
+| `tests/` | 前缀、Agent 会话历史、测试账号限制、游客无服务端写入和初始化器回归 | 任务 1 至任务 7 已按范围更新 |
 | `deploy/http-test/` | Nginx、systemd、项目选择页、无秘密环境模板和脚本 | 候选，未创建 |
 | `docs/04-operations/` | 后续部署、验证、备份与回滚运行手册 | 候选，未创建 |
 | `docs/06-evidence/` | 后续脱敏机器证据 | 候选，未创建 |
@@ -115,6 +116,15 @@
 - 全门禁证据：当前 PowerShell 进程执行 `scripts/verify-frontend.ps1`，通过 34 项前端测试、JavaScript 语法和 whitespace；在系统临时目录创建并初始化一次性数据库后执行 `scripts/verify-agent.ps1`，通过 112 项 Python、3 项 Node/SSE、Python 编译、评估清单、盲评协议清单、模型决策基线、前端语法与 whitespace。临时数据库随后删除；最终 `git diff --check` 退出码为 0。
 - 未读取真实 `.env`、凭据、Token 或用户内容，未调用真实 Provider、网络或服务器。CI、HTTPS、备份恢复、服务器验收和生产验证仍未执行；HTTP 测试候选与生产发布结论继续为 `NO-GO`。最小回滚路径为回退本修复批次提交，无需数据库回滚。
 
+### 3.8 实施批次：2026-07-26，任务 7（无秘密测试账号初始化）
+
+- 已新增 `scripts/provision-http-test-account.py` 与 `tests/test_provision_http_test_account.py`。初始化器强制关闭 dotenv 加载，仅允许 `http_test`/`provider_preview` 配置档，仅接受交互式用户名和隐藏密码输入，并拒绝命令行参数、密码环境变量与非 TTY 标准输入。
+- 数据库和上传目录在写入前解析并验证为源码树外路径。初始化在同目录临时数据库中执行现有 schema、seed、迁移与 `AuthenticationService` 注册/哈希流程；现有任意账号会拒绝执行，注册生成的 refresh session 会立即经现有认证服务撤销，成功验证后才原子替换目标数据库。失败会删除暂存数据库及本次新建的空上传目录，不留下半初始化账号。
+- 成功返回与控制台仅包含脱敏状态、用户 UID 的 12 位 SHA-256 摘要和外部路径已验证状态，不返回或打印登录标识、密码、密码哈希、access/refresh token。测试夹具只使用明确命名的合成值，不包含用户提供的测试账号或任何真实凭据。
+- RED 证据：计划中的 `.\.venv\Scripts\python.exe -m pytest tests/test_provision_http_test_account.py -q` 因隔离解释器未安装 pytest，以 `No module named pytest` 退出；匹配 unittest 随后因目标脚本尚不存在而以 `FileNotFoundError` 失败。
+- GREEN 证据：`.\.venv\Scripts\python.exe -m unittest tests.test_provision_http_test_account -v` 通过 7 项；设置 `PYTHONPATH=backend` 后，`.\.venv\Scripts\python.exe -m unittest tests.test_provision_http_test_account tests.test_users_services -q` 通过 56 项，最终运行耗时 23.950 秒。首次未设置 `PYTHONPATH` 的合并回归因无法导入 `app` 快速退出，修正测试环境后同一范围通过；Users 回归仍输出既有 Starlette TestClient 弃用警告。
+- 未读取真实 `.env`、真实账号、凭据或用户数据，未调用 Provider、网络或服务器；未对实际数据库执行初始化。CI、服务器、HTTPS、备份恢复、真实回滚和生产验证仍未执行。最小回滚路径为回退任务 7 提交；若仅回滚一次真实初始化，应在服务停止且已备份的前提下移除该隔离测试数据库和空上传目录，而不是修改项目数据库。
+
 ## 4. 强制同步字段
 
 每次实现或部署更新都必须追加：
@@ -146,10 +156,10 @@
 ## 6. 当前结论
 
 - 设计：已由用户确认。
-- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 6 已完成，其余任务尚未执行。
-- 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文、任务 5 的确定性游客助手后端入口和任务 6 的浏览器游客记忆与身份模式切换已完成；其余应用功能尚未开始。
+- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 7 已完成，其余任务尚未执行。
+- 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文、任务 5 的确定性游客助手后端入口、任务 6 的浏览器游客记忆与身份模式切换和任务 7 的无秘密测试账号初始化器已完成；其余应用功能尚未开始。
 - 部署覆盖层：未创建。
-- 本地专项测试：任务 1 至任务 6 已运行并通过；其余专项测试未运行。
+- 本地专项测试：任务 1 至任务 7 已运行并通过；其余专项测试未运行。
 - 全量门禁：未因本设计重新运行。
 - 服务器部署：未执行。
 - HTTP 测试候选：`NO-GO`，仍等待后续功能、部署覆盖层和服务器验证。
