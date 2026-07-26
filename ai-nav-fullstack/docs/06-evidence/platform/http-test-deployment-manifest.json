@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-26T16:01:09.185403Z",
+  "generatedAt": "2026-07-26T16:35:44.357615Z",
   "sourceCommit": "WORKTREE",
   "checks": [
     {
@@ -31,12 +31,12 @@
     {
       "name": "overlay",
       "passed": true,
-      "count": 19
+      "count": 20
     },
     {
       "name": "release",
       "passed": true,
-      "count": 4
+      "count": 6
     }
   ],
   "externalValidation": {
