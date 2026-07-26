@@ -1,5 +1,7 @@
 import asyncio
 from contextlib import suppress
+import hashlib
+import hmac
 import re
 from uuid import uuid4
 
@@ -8,7 +10,9 @@ from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.api.v1.dependencies.authorization import require_permission
+from app.api.v1.routers.auth import _client_ip
 from app.agent.factory import get_agent_orchestrator
+from app.agent.governance import AgentAdmissionGate, AgentGovernanceRejected
 from app.agent.orchestrator import AgentOrchestrator
 from app.agent.observability import get_agent_metrics
 from app.agent.replay import (
@@ -20,6 +24,7 @@ from app.agent.schemas import (
     AgentCapabilities,
     AgentChatRequest,
     AgentErrorResponse,
+    AgentGuestChatRequest,
     AgentMetricsResponse,
     AgentLongConversationDetailResponse,
     AgentLongConversationListResponse,
@@ -43,7 +48,11 @@ from app.core.config import (
     AGENT_SESSIONS_ENABLED,
     AGENT_STREAM_BUFFER_EVENTS,
     AGENT_STREAM_ENABLED,
+    APP_ENV,
+    HTTP_TEST_GUEST_AGENT_ENABLED,
     PRIVACY_POLICY_VERSION,
+    SECRET_KEY,
+    TRUSTED_PROXY_CIDRS,
 )
 from app.users.assets.facade import get_user_assets_facade
 from app.users.assets.schemas import WorkflowCreate, WorkflowCreateResponse
@@ -53,6 +62,14 @@ from app.users.context.facade import get_user_context_facade
 router = APIRouter(prefix="/agent", tags=["agent"])
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 USER_CONTEXT_TIMEOUT_SECONDS = 1.0
+GUEST_AGENT_TIMEOUT_SECONDS = 15.0
+_guest_orchestrator = AgentOrchestrator()
+_guest_admission_gate = AgentAdmissionGate(
+    per_user_limit=1,
+    global_limit=8,
+    queue_limit=16,
+    queue_timeout_seconds=2,
+)
 
 
 @router.get("/capabilities", response_model=AgentCapabilities)
@@ -95,6 +112,21 @@ def _require_sessions_enabled() -> None:
 def _safe_request_id(request: Request) -> str:
     value = request.headers.get("X-Request-Id", "")
     return value if REQUEST_ID_PATTERN.fullmatch(value) else uuid4().hex
+
+
+def _require_guest_agent_enabled() -> None:
+    if APP_ENV != "http_test" or not HTTP_TEST_GUEST_AGENT_ENABLED:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
+def _guest_client_key(request: Request) -> str:
+    client_ip = _client_ip(request, TRUSTED_PROXY_CIDRS)
+    digest = hmac.new(
+        SECRET_KEY.encode("utf-8"),
+        client_ip.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()[:24]
+    return f"guest:{digest}"
 
 
 async def _wait_for_disconnect(request: Request) -> None:
@@ -233,6 +265,61 @@ async def _run_agent_request(
             fingerprint,
             result,
         )
+    except AgentReplayConflict as exc:
+        _replay_conflict(exc)
+    return result
+
+
+async def _run_guest_agent_request(
+    payload: AgentGuestChatRequest,
+    request_id: str,
+    guest_key: str,
+) -> AgentStructuredResponse:
+    request_payload = AgentChatRequest(
+        message=payload.message,
+        pageContext=payload.pageContext,
+    )
+    history = tuple(payload.history)
+    fingerprint = request_fingerprint(request_payload, history=history)
+    replay_cache = get_agent_response_replay_cache()
+    try:
+        replayed = replay_cache.get(guest_key, request_id, fingerprint)
+    except AgentReplayConflict as exc:
+        _replay_conflict(exc)
+    if replayed is not None:
+        get_agent_metrics().record_replay_hit()
+        return replayed
+
+    try:
+        async with _guest_admission_gate.slot(guest_key):
+            result = await asyncio.wait_for(
+                _guest_orchestrator.respond_guest(
+                    request_payload,
+                    history=history,
+                    request_id=request_id,
+                    guest_key=guest_key,
+                ),
+                timeout=GUEST_AGENT_TIMEOUT_SECONDS,
+            )
+    except AgentGovernanceRejected as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "AGENT_CAPACITY_LIMITED",
+                "message": "助手当前繁忙，请稍后重试",
+            },
+        ) from exc
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail={
+                "code": "AGENT_REQUEST_TIMEOUT",
+                "message": "助手响应超时，请稍后重试",
+            },
+        ) from exc
+
+    try:
+        replay_cache.put(guest_key, request_id, fingerprint, result)
     except AgentReplayConflict as exc:
         _replay_conflict(exc)
     return result
@@ -426,6 +513,39 @@ def agent_runtime(
     _: dict = Depends(require_permission("users:manage")),
 ):
     return get_agent_runtime_profile()
+
+
+@router.post(
+    "/guest/chat",
+    response_model=AgentStructuredResponse,
+    include_in_schema=(
+        APP_ENV == "http_test" and HTTP_TEST_GUEST_AGENT_ENABLED
+    ),
+    responses={
+        404: {"model": AgentErrorResponse},
+        409: {"model": AgentErrorResponse},
+        422: {"model": AgentErrorResponse},
+        499: {"model": AgentErrorResponse},
+        503: {"model": AgentErrorResponse},
+        504: {"model": AgentErrorResponse},
+    },
+)
+async def agent_guest_chat(
+    payload: AgentGuestChatRequest,
+    request: Request,
+    response: Response,
+):
+    _require_guest_agent_enabled()
+    request_id = _safe_request_id(request)
+    response.headers["X-Request-Id"] = request_id
+    response_task = asyncio.create_task(
+        _run_guest_agent_request(
+            payload,
+            request_id,
+            _guest_client_key(request),
+        )
+    )
+    return await _respond_until_disconnect(request, response_task)
 
 
 @router.post(
