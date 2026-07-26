@@ -8,6 +8,7 @@ from app.agent.providers import ProviderConversationMessage
 from app.agent.schemas import (
     AgentChatRequest,
     AgentCitation,
+    AgentGuestChatRequest,
     AgentHistoryMessage,
     AgentLinkCard,
     AgentStructuredResponse,
@@ -55,6 +56,25 @@ class AgentServicesTest(unittest.TestCase):
                     AgentHistoryMessage(role="user", content=content)
                 with self.assertRaises(ValueError):
                     ProviderConversationMessage(role="user", content=content)
+
+    def test_guest_history_contract_enforces_total_character_budget(self):
+        accepted = AgentGuestChatRequest(
+            message="继续",
+            history=[
+                AgentHistoryMessage(role="user", content="x" * 6000),
+                AgentHistoryMessage(role="assistant", content="y" * 6000),
+            ],
+        )
+        self.assertEqual(12000, sum(len(item.content) for item in accepted.history))
+        with self.assertRaises(ValidationError):
+            AgentGuestChatRequest(
+                message="继续",
+                history=[
+                    AgentHistoryMessage(role="user", content="x" * 6000),
+                    AgentHistoryMessage(role="assistant", content="y" * 6000),
+                    AgentHistoryMessage(role="user", content="z"),
+                ],
+            )
 
     def test_response_contract_combines_read_only_domain_contexts(self):
         with (

@@ -60,6 +60,24 @@ class AgentOrchestrator:
         self.disabled_reason = disabled_reason
         self.governance = governance
 
+    async def respond_guest(
+        self,
+        request: AgentChatRequest,
+        *,
+        history: tuple[AgentHistoryMessage, ...] = (),
+        request_id: str | None = None,
+        guest_key: str | None = None,
+    ) -> AgentStructuredResponse:
+        """Run the shared read-only pipeline without ever admitting a Provider call."""
+        return await self.respond(
+            request,
+            None,
+            history=history,
+            request_id=request_id,
+            user_key=guest_key,
+            provider_allowed=False,
+        )
+
     async def respond(
         self,
         request: AgentChatRequest,

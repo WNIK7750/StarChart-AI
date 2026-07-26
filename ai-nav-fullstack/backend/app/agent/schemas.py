@@ -57,6 +57,18 @@ class AgentHistoryMessage(StrictModel):
     content: str = Field(min_length=1, max_length=6000)
 
 
+class AgentGuestChatRequest(StrictModel):
+    message: str = Field(min_length=1, max_length=4000)
+    history: list[AgentHistoryMessage] = Field(default_factory=list, max_length=12)
+    pageContext: AgentPageContext = Field(default_factory=AgentPageContext)
+
+    @model_validator(mode="after")
+    def validate_history_budget(self):
+        if sum(len(message.content) for message in self.history) > 12000:
+            raise ValueError("history must contain at most 12000 characters")
+        return self
+
+
 class AgentCapabilities(StrictModel):
     stream: bool
     sessions: bool = False
