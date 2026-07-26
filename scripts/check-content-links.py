@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import sqlite3
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -12,7 +13,9 @@ from urllib.request import Request, urlopen
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DATABASE = ROOT / "database" / "ai_nav.sqlite3"
+DEFAULT_DATABASE = Path(
+    os.getenv("AI_NAV_DATABASE_PATH", str(ROOT / "database" / "ai_nav.sqlite3"))
+).expanduser().resolve()
 VALID_LINK_STATUSES = {"unchecked", "healthy", "degraded", "unavailable"}
 
 
