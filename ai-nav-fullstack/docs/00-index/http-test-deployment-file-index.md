@@ -1,8 +1,8 @@
 # HTTP 测试部署文件索引
 
 > 用途：作为 HTTP 子路径测试部署的文件路由、实现进度、验证证据和回滚同步入口。
-> 状态：设计与实施计划已完成；任务 1 至任务 10 已完成，Tasks 4–6 Agent 全流程审查发现的两项 Important 竞态已在本地修复并验证；隔离部署覆盖层已纳入 deny-first 发布包和专项门禁，服务器尚未修改。
-> 日期：2026-07-26。
+> 状态：设计与实施计划已完成；任务 1 至任务 11 已完成，隔离部署覆盖层已纳入 deny-first 发布包和专项门禁，可执行运行手册已完成结构审查，服务器尚未修改。
+> 日期：2026-07-27。
 > 权威性：本索引记录本任务事实，不替代当前审计报告、生产发布清单或服务器实际运行记录。
 
 ## 1. 阅读顺序
@@ -10,7 +10,7 @@
 1. `docs/02-architecture/deployment/http-subpath-test-deployment-design.md`
 2. `docs/01-overview/http-subpath-test-deployment-implementation-plan.md`
 3. 本文件
-4. 后续 HTTP 测试部署运行手册
+4. `docs/04-operations/deployment/http-test-deployment-runbook.md`
 5. 对应源码、测试和部署覆盖层
 6. 本次重新运行产生的本地、CI 和服务器证据
 
@@ -44,7 +44,7 @@
 | `tests/` | 前缀、Agent 会话历史、测试账号限制、游客无服务端写入、初始化器、发布包和专项门禁回归 | 任务 1 至任务 10 已按范围更新 |
 | `deploy/http-test/` | Nginx、systemd、项目选择页、无秘密环境模板和脚本 | 已完成任务 8，并在任务 9 纳入发布 allowlist；仅本地结构、shell 语法和发布包选择已验证 |
 | `scripts/verify-http-test-deployment.ps1` | 顺序运行 Tasks 1–9 聚焦功能流并产生本次结构化计数 | 已完成任务 10；已接入 foundation 本地门禁和 CI |
-| `docs/04-operations/` | 后续部署、验证、备份与回滚运行手册 | 候选，未创建 |
+| `docs/04-operations/deployment/http-test-deployment-runbook.md` | 参数化的备份、安装、初始化、验证、停止和回滚步骤 | 已完成任务 11；仅结构与交叉链接通过，本地/服务器命令未据此执行 |
 | `docs/06-evidence/platform/http-test-deployment-manifest.json` | 无内容、无秘密的本地专项门禁机器证据 | 已由任务 10 生成；所有外部验证仍为 `not_run` |
 
 ### 3.1 实施批次：2026-07-26，任务 1（运行时配置档）
@@ -155,6 +155,17 @@
 - GREEN 证据：`.\.venv\Scripts\python.exe -m unittest tests.test_http_test_manifest tests.test_no_secrets -v` 通过 9 项。最近一次完整 `scripts/verify-http-test-deployment.ps1` 在 28.4 秒内退出码 0，本次真实计数为 runtime 49、policy 8、agentHistory 74、guestAgent 27、frontend 47、overlay 19、release 4；发布验证返回 `fileCount=362`、`forbiddenCount=0`、`deploymentOverlayCount=10`。
 - 机器证据的 `sourceCommit` 为 `WORKTREE`，`containsSecrets=false`；`serverDeployment`、`providerPreview`、`https`、`backupRestore` 和 `rollback` 全部保持 `not_run`。未访问网络、服务器或 Provider，未执行部署、HTTPS、备份恢复或回滚。最小回滚路径为回退任务 10 提交；证据为生成文件，不代表服务器或生产通过。
 
+### 3.12 实施批次：2026-07-27，任务 11（运行手册与文档治理）
+
+- 已新增 `docs/04-operations/deployment/http-test-deployment-runbook.md`，并同步设计实施对应表、文件索引、文档地图和 README 文档入口。
+- 运行手册按备份、只读预检、不可变发布安装、root 交互编辑、唯一账号初始化、8001 启动、Nginx 语法验证/reload、确定性 smoke、8002 loopback 手工预览、停止和最小回滚组织。每组服务器命令均标明执行身份和工作目录，实际值使用变量或占位符。
+- 两个 EnvironmentFile 在填写前要求收紧为 root-only `0600`；文档不包含真实 IP、账号、密码、API Key、Cookie 或 Token，也不要求在命令行、环境变量或聊天中传递密码/API Key。
+- 手册明确 HTTP 可窃听风险、禁止真实隐私数据、登录不自动导入游客历史，以及本地整改候选、HTTP 测试部署、真实 Provider 预览、生产发布四个独立结论。生产发布保持 `NO-GO`。
+- 本任务只进行面向人工执行的结构化审查，不新增脆弱的 Markdown 源文本断言。运行手册引用的脚本、配置和路由由任务 1–10 的行为测试负责；本次文档链接、秘密扫描和差异检查结果记录于本节后续命令结果。
+- 使用隔离临时数据库运行 `scripts/check-content-links.py`，离线检查 238 个已发布引用（Learning 104、Tools 134），退出码 0；`git diff --check` 退出码 0。
+- 计划中的整目录秘密扫描 `scripts/check-no-secrets.py --paths docs deploy README.md` 按 fail-closed 规则命中 `docs/06-evidence/users/screenshots/` 内 4 个既有 PNG 二进制证据，退出码 1；这些文件不是本任务新增或修改，未删除、移动或豁免。随后对本任务五个文档文件、`deploy/` 和 `README.md` 运行相同扫描器，未发现秘密形状值或禁止制品，退出码 0。
+- 未访问网络、服务器或 Provider，未执行部署、Nginx/systemd 变更、真实 Provider、HTTPS、备份恢复或回滚。最小回滚路径为回退任务 11 提交；无数据库或服务器回滚需求。
+
 ## 4. 强制同步字段
 
 每次实现或部署更新都必须追加：
@@ -186,10 +197,10 @@
 ## 6. 当前结论
 
 - 设计：已由用户确认。
-- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 10 已完成，其余任务尚未执行。
+- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 11 已完成，其余任务尚未执行。
 - 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文、任务 5 的确定性游客助手后端入口、任务 6 的浏览器游客记忆与身份模式切换和任务 7 的无秘密测试账号初始化器已完成；任务 8 没有修改应用源码。
 - 部署覆盖层：已创建并纳入 deny-first 发布包；本地结构测试、shell 语法和发布选择通过，Linux Nginx/systemd 加载验证仍为 `NOT RUN`。
-- 本地专项测试：任务 1 至任务 10 已按各自范围运行并通过；最新专项门禁七组真实计数已写入无秘密 manifest，其余专项测试未运行。
+- 本地专项测试：任务 1 至任务 10 已按各自范围运行并通过；任务 11 只执行文档链接、秘密扫描、差异检查和人工结构审查；最新专项门禁七组真实计数已写入无秘密 manifest。
 - 全量门禁：未因本设计重新运行。
 - 服务器部署：未执行。
 - HTTP 测试候选：`NO-GO`，仍等待后续功能、部署覆盖层和服务器验证。
