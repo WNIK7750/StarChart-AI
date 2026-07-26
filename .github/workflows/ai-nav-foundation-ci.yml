@@ -11,7 +11,9 @@ on:
       - "ai-nav-fullstack/pyproject.toml"
       - "ai-nav-fullstack/.coveragerc"
       - "ai-nav-fullstack/docs/06-evidence/agent/**"
+      - "ai-nav-fullstack/docs/06-evidence/platform/**"
       - "ai-nav-fullstack/docs/04-operations/agent/**"
+      - "ai-nav-fullstack/deploy/http-test/**"
       - ".github/workflows/ai-nav-foundation-ci.yml"
   push:
     branches: [master]
@@ -24,7 +26,9 @@ on:
       - "ai-nav-fullstack/pyproject.toml"
       - "ai-nav-fullstack/.coveragerc"
       - "ai-nav-fullstack/docs/06-evidence/agent/**"
+      - "ai-nav-fullstack/docs/06-evidence/platform/**"
       - "ai-nav-fullstack/docs/04-operations/agent/**"
+      - "ai-nav-fullstack/deploy/http-test/**"
       - ".github/workflows/ai-nav-foundation-ci.yml"
 
 permissions:

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-26T16:01:09.185403Z",
+  "sourceCommit": "WORKTREE",
+  "checks": [
+    {
+      "name": "runtime",
+      "passed": true,
+      "count": 49
+    },
+    {
+      "name": "policy",
+      "passed": true,
+      "count": 8
+    },
+    {
+      "name": "agentHistory",
+      "passed": true,
+      "count": 74
+    },
+    {
+      "name": "guestAgent",
+      "passed": true,
+      "count": 27
+    },
+    {
+      "name": "frontend",
+      "passed": true,
+      "count": 47
+    },
+    {
+      "name": "overlay",
+      "passed": true,
+      "count": 19
+    },
+    {
+      "name": "release",
+      "passed": true,
+      "count": 4
+    }
+  ],
+  "externalValidation": {
+    "serverDeployment": "not_run",
+    "providerPreview": "not_run",
+    "https": "not_run",
+    "backupRestore": "not_run",
+    "rollback": "not_run"
+  },
+  "containsSecrets": false
+}
