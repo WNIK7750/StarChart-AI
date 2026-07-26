@@ -1,8 +1,8 @@
 # HTTP 子路径测试部署设计
 
 > 用途：定义 `47.100.94.1` 上新旧项目共存、HTTP 测试环境、游客助手和真实 Provider 预览的边界。
-> 状态：设计已确认，尚未实施。
-> 日期：2026-07-26。
+> 状态：设计已确认；任务 1–10 已实现，服务器尚未部署。
+> 日期：2026-07-27。
 > 权威性：本文件约束后续实现计划；它不证明服务器已经部署、HTTPS 已配置或真实 Provider 已通过验收。
 
 ## 1. 目标与非目标
@@ -253,3 +253,22 @@ HTTP 无法保护传输中的账号凭据与 Cookie。因此该环境只使用�
 - 对设计、运行手册和文档地图的影响。
 
 文档不得包含测试账号凭据、真实 API Key、可用服务端密钥、Cookie、Token 或真实用户内容。
+
+## 15. 实施对应表
+
+| 设计边界 | 实现入口 | 验证入口 |
+| --- | --- | --- |
+| 独立 `http_test` / `provider_preview` 配置档、单 worker、外部持久化路径 | `backend/app/core/config.py`、`backend/run.py` | `tests/test_http_test_runtime.py`、`tests/test_agent_provider.py` |
+| `/StarChart-AI` 公共前缀与公开能力 | `frontend/assets/js/public-path.js`、`backend/app/api/v1/routers/common.py` | `tests/test_public_path.mjs`、`tests/test_http_test_runtime.py` |
+| 唯一测试账号及受限身份、恢复、隐私和删除动作 | `backend/app/users/deployment_policy.py`、`backend/app/api/v1/dependencies/deployment_policy.py` | `tests/test_http_test_policy.py` |
+| 登录会话有界历史与并发 replay 一致性 | `backend/app/agent/sessions.py`、`backend/app/agent/replay.py`、`backend/app/api/v1/routers/agent.py` | `tests/test_agent_sessions.py`、`tests/test_agent_replay.py` |
+| 游客无账号、无数据库副作用的确定性入口 | `backend/app/api/v1/routers/agent.py` | `tests/test_agent_guest.py` |
+| 游客浏览器记忆与身份切换隔离 | `frontend/assets/js/guest-agent-memory.js`、`frontend/assets/js/assistant-session-epoch.js`、`frontend/assets/js/assistant-page.js` | `tests/test_guest_agent_memory.mjs`、`tests/test_auth_ui.mjs` |
+| 无命令行秘密的唯一账号初始化 | `scripts/provision-http-test-account.py` | `tests/test_http_test_account_provisioning.py` |
+| Nginx、systemd、数据目录和环境模板覆盖层 | `deploy/http-test/` | `tests/test_http_test_overlay.py` |
+| deny-first 发布包 | `scripts/build-release-package.ps1` | `tests/test_release_http_test_overlay.py` |
+| 专项门禁、秘密扫描和无秘密 manifest | `scripts/verify-http-test-deployment.ps1`、`scripts/check-no-secrets.py` | `docs/06-evidence/platform/http-test-deployment-manifest.json` |
+| 服务器安装、验证、停止和回滚 | `docs/04-operations/deployment/http-test-deployment-runbook.md` | Task 13 授权后的真实服务器记录；当前 `NOT RUN` |
+
+以上本地实现不证明 Nginx/systemd 已在 Linux 加载，不证明真实 Provider、HTTPS、备份恢复或回滚通过。当前运行事实以
+`docs/00-index/http-test-deployment-file-index.md` 和机器证据为准。

@@ -79,8 +79,10 @@
 - `docs/00-index/http-test-deployment-file-index.md`
 - `docs/01-overview/http-subpath-test-deployment-implementation-plan.md`
 - `docs/02-architecture/deployment/http-subpath-test-deployment-design.md`
+- `docs/04-operations/deployment/http-test-deployment-runbook.md`
+- `docs/06-evidence/platform/http-test-deployment-manifest.json`
 
-当前状态为设计与实施计划已确认；应用实现、部署覆盖层、服务器部署和真实 Provider 验证尚未开始。
+当前状态为任务 1–11 的本地实现和文档已完成；独立全量复验、服务器部署、真实 Provider、HTTPS、备份恢复和回滚验证尚未完成。
 
 ### 审计整改提示词
 
