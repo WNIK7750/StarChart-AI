@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from collections.abc import AsyncIterator
 from typing import Literal, Protocol, runtime_checkable
 
+from app.agent.schemas import AgentHistoryRole
+
 
 ProviderFailureKind = Literal[
     "not_configured",
@@ -26,6 +28,18 @@ class AgentEvidenceItem:
 
 
 @dataclass(frozen=True, slots=True)
+class ProviderConversationMessage:
+    role: AgentHistoryRole
+    content: str
+
+    def __post_init__(self) -> None:
+        if self.role not in {"user", "assistant"}:
+            raise ValueError("provider conversation role must be user or assistant")
+        if not isinstance(self.content, str) or not 1 <= len(self.content) <= 6000:
+            raise ValueError("provider conversation content must contain 1 to 6000 characters")
+
+
+@dataclass(frozen=True, slots=True)
 class ProviderRequest:
     request_id: str
     prompt_version: str
@@ -33,6 +47,7 @@ class ProviderRequest:
     user_message: str
     evidence: tuple[AgentEvidenceItem, ...]
     max_output_chars: int
+    history: tuple[ProviderConversationMessage, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

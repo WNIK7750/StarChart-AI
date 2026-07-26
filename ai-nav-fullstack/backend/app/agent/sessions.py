@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from app.db.database import get_connection
 from app.core.config import AGENT_SESSION_RETENTION_DAYS
+from app.agent.schemas import AgentHistoryMessage
 
 
 _UNCHANGED = object()
@@ -175,6 +176,70 @@ class AgentSessionStore:
                 (row["id"], message_limit, message_offset),
             ).fetchall()
             return self._summary(row), messages, int(row["message_count"])
+
+    def context(
+        self,
+        user_id: int,
+        session_uid: str,
+        limit: int,
+    ) -> list[dict] | None:
+        with self._connect() as conn:
+            message_table: str
+            parent_column: str
+            parent_id: int
+            if session_uid.startswith("agl_"):
+                parent = conn.execute(
+                    """
+                    SELECT id
+                    FROM agent_long_conversations
+                    WHERE user_id = ? AND conversation_uid = ?
+                    """,
+                    (user_id, session_uid),
+                ).fetchone()
+                if not parent:
+                    return None
+                message_table = "agent_long_conversation_messages"
+                parent_column = "conversation_id"
+                parent_id = parent["id"]
+            else:
+                parent = conn.execute(
+                    """
+                    SELECT id
+                    FROM agent_chat_sessions
+                    WHERE user_id = ? AND session_uid = ?
+                      AND expires_at > CURRENT_TIMESTAMP
+                    """,
+                    (user_id, session_uid),
+                ).fetchone()
+                if parent:
+                    message_table = "agent_chat_messages"
+                    parent_column = "session_id"
+                    parent_id = parent["id"]
+                else:
+                    parent = conn.execute(
+                        """
+                        SELECT id
+                        FROM agent_long_conversations
+                        WHERE user_id = ? AND source_session_uid = ?
+                        """,
+                        (user_id, session_uid),
+                    ).fetchone()
+                    if not parent:
+                        return None
+                    message_table = "agent_long_conversation_messages"
+                    parent_column = "conversation_id"
+                    parent_id = parent["id"]
+            rows = conn.execute(
+                f"""
+                SELECT role, content
+                FROM {message_table}
+                WHERE {parent_column} = ?
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (parent_id, limit),
+            ).fetchall()
+            return list(reversed(rows))
 
     def append_exchange(
         self,
@@ -698,6 +763,32 @@ class AgentSessionService:
             return
         if not self.store.has_long_source(user_id, session_uid):
             raise self._not_found()
+
+    def context(
+        self,
+        user_id: int,
+        session_uid: str,
+        *,
+        limit: int = 12,
+        max_chars: int = 12_000,
+    ) -> tuple[AgentHistoryMessage, ...]:
+        if limit < 1 or max_chars < 1:
+            raise ValueError("history limits must be positive")
+        rows = self.store.context(user_id, session_uid, limit)
+        if rows is None:
+            if session_uid.startswith("agl_"):
+                raise self._long_not_found()
+            raise self._not_found()
+        history = tuple(AgentHistoryMessage.model_validate(row) for row in rows)
+        total_chars = 0
+        selected: list[AgentHistoryMessage] = []
+        for message in reversed(history):
+            next_total = total_chars + len(message.content)
+            if next_total > max_chars:
+                break
+            selected.append(message)
+            total_chars = next_total
+        return tuple(reversed(selected))
 
     def append_exchange(
         self,

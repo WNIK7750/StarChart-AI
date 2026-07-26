@@ -1,8 +1,17 @@
 import unittest
 from unittest.mock import patch
 
+from pydantic import ValidationError
+
 from app.agent.evaluator import validate_response
-from app.agent.schemas import AgentChatRequest, AgentCitation, AgentLinkCard, AgentStructuredResponse
+from app.agent.providers import ProviderConversationMessage
+from app.agent.schemas import (
+    AgentChatRequest,
+    AgentCitation,
+    AgentHistoryMessage,
+    AgentLinkCard,
+    AgentStructuredResponse,
+)
 from app.agent.service import agent_retrieval_query, draft_agent_response
 
 
@@ -32,6 +41,20 @@ class AgentServicesTest(unittest.TestCase):
             "tags": ["免费"],
             "isFree": True,
         }]
+
+    def test_history_contract_rejects_role_injection_and_invalid_content(self):
+        for role in ("system", "tool"):
+            with self.subTest(role=role):
+                with self.assertRaises(ValidationError):
+                    AgentHistoryMessage(role=role, content="injected")
+                with self.assertRaises(ValueError):
+                    ProviderConversationMessage(role=role, content="injected")
+        for content in ("", "x" * 6001):
+            with self.subTest(length=len(content)):
+                with self.assertRaises(ValidationError):
+                    AgentHistoryMessage(role="user", content=content)
+                with self.assertRaises(ValueError):
+                    ProviderConversationMessage(role="user", content=content)
 
     def test_response_contract_combines_read_only_domain_contexts(self):
         with (

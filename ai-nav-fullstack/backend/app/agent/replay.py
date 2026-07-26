@@ -6,7 +6,7 @@ from threading import Lock
 from time import monotonic
 from typing import Callable
 
-from app.agent.schemas import AgentChatRequest, AgentStructuredResponse
+from app.agent.schemas import AgentChatRequest, AgentHistoryMessage, AgentStructuredResponse
 from app.core.config import (
     AGENT_RESPONSE_REPLAY_MAX_ENTRIES,
     AGENT_RESPONSE_REPLAY_TTL_SECONDS,
@@ -17,9 +17,19 @@ class AgentReplayConflict(Exception):
     pass
 
 
-def request_fingerprint(payload: AgentChatRequest) -> str:
+def request_fingerprint(
+    payload: AgentChatRequest,
+    *,
+    history: tuple[AgentHistoryMessage, ...] = (),
+) -> str:
     canonical = json.dumps(
-        payload.model_dump(mode="json"),
+        {
+            "request": payload.model_dump(mode="json"),
+            "history": [
+                message.model_dump(mode="json")
+                for message in history
+            ],
+        },
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),

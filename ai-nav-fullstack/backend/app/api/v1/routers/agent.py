@@ -151,6 +151,7 @@ async def _run_agent_request(
     on_answer_delta=None,
 ) -> AgentStructuredResponse:
     session_service = None
+    history = ()
     if payload.sessionId:
         _require_sessions_enabled()
         session_service = get_agent_session_service()
@@ -160,10 +161,15 @@ async def _run_agent_request(
                 current_user["id"],
                 payload.sessionId,
             )
+            history = await run_in_threadpool(
+                session_service.context,
+                current_user["id"],
+                payload.sessionId,
+            )
         except AgentSessionError as exc:
             _session_error(exc)
 
-    fingerprint = request_fingerprint(payload)
+    fingerprint = request_fingerprint(payload, history=history)
     replay_cache = get_agent_response_replay_cache()
     try:
         replayed = replay_cache.get(
@@ -194,6 +200,7 @@ async def _run_agent_request(
         except Exception:
             user_context = None
     response_options = {
+        "history": history,
         "request_id": request_id,
         "user_key": f"user:{current_user['id']}",
         "provider_allowed": provider_allowed,
@@ -211,6 +218,12 @@ async def _run_agent_request(
                 payload.message,
                 result.answer,
             )
+            history = await run_in_threadpool(
+                session_service.context,
+                current_user["id"],
+                payload.sessionId,
+            )
+            fingerprint = request_fingerprint(payload, history=history)
         except AgentSessionError as exc:
             _session_error(exc)
     try:

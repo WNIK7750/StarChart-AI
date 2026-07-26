@@ -1,7 +1,7 @@
 # HTTP 测试部署文件索引
 
 > 用途：作为 HTTP 子路径测试部署的文件路由、实现进度、验证证据和回滚同步入口。
-> 状态：设计与实施计划已完成；任务 1 运行时配置档、任务 2 公开运行能力/公共路径投影和任务 3 测试账号服务端策略已完成；部署覆盖层和服务器尚未修改。
+> 状态：设计与实施计划已完成；任务 1 至任务 4 已完成，其中任务 4 为登录会话补齐了有界对话上下文；部署覆盖层和服务器尚未修改。
 > 日期：2026-07-26。
 > 权威性：本索引记录本任务事实，不替代当前审计报告、生产发布清单或服务器实际运行记录。
 
@@ -33,13 +33,13 @@
 | --- | --- | --- |
 | `backend/app/core/config.py` | 通用公开前缀与独立 `http_test` 配置验证 | 候选，未修改 |
 | `backend/app/main.py` | 复核 Nginx 剥离前缀后是否需要改动 | 已复核，无需修改；内部路径保持 `/api/v1`、`/uploads` 和 `/` |
-| `backend/app/api/v1/routers/agent.py` | 游客聊天入口与有界历史上下文 | 候选，未修改 |
-| `backend/app/agent/schemas.py` | 严格的游客历史请求契约 | 候选，未修改 |
+| `backend/app/api/v1/routers/agent.py` | 登录会话所有权、replay 与有界历史上下文编排 | 已完成任务 4 |
+| `backend/app/agent/schemas.py` | 严格的登录会话历史消息契约 | 已完成任务 4 |
 | `frontend/assets/js/api.js` | 前缀感知的 API URL | 候选，未修改 |
 | `frontend/assets/js/assistant-page.js` | 游客本地会话、草案和登录能力切换 | 候选，未修改 |
 | `frontend/assistant.html` | 游客状态与清除入口 | 候选，未修改 |
 | Users 授权与命令边界 | 唯一测试账号的身份、恢复、隐私和删除限制 | 候选，精确文件待实现计划复核 |
-| `tests/` | 前缀、游客助手、测试账号限制和无服务端写入回归 | 候选，未修改 |
+| `tests/` | 前缀、Agent 会话历史、测试账号限制和无服务端写入回归 | 任务 1 至任务 4 已按范围更新 |
 | `deploy/http-test/` | Nginx、systemd、项目选择页、无秘密环境模板和脚本 | 候选，未创建 |
 | `docs/04-operations/` | 后续部署、验证、备份与回滚运行手册 | 候选，未创建 |
 | `docs/06-evidence/` | 后续脱敏机器证据 | 候选，未创建 |
@@ -72,6 +72,17 @@
 - 本地 GREEN 证据：匹配 unittest 专项与 Users 回归共 54 项通过；`scripts/verify-users.ps1` 在当前 PowerShell 进程中通过，其中 Users 服务 49 项、前端门禁、契约、安全、命令覆盖、迁移/恢复、性能和最终验收均成功。输出仍包含既有 FastAPI TestClient 的 Starlette 弃用警告。
 - CI、服务器、真实 Provider、HTTPS、备份恢复和生产验证均未执行。最小回滚路径为回退任务 3 提交；无需修改数据库或迁移。
 
+### 3.4 实施批次：2026-07-26，任务 4（登录会话有界对话上下文）
+
+- 已修改 `backend/app/agent/schemas.py`、`backend/app/agent/sessions.py`、`backend/app/agent/providers/base.py`、`backend/app/agent/providers/__init__.py`、`backend/app/agent/providers/openai_compatible.py`、`backend/app/agent/orchestrator.py`、`backend/app/agent/governance.py`、`backend/app/agent/replay.py`、`backend/app/api/v1/routers/agent.py` 和四个 Agent 专项测试文件。
+- 登录用户的短会话、长期会话与升级竞态源会话均复用现有消息表；历史严格限定为当前用户和会话的最新 12 条完整 `user`/`assistant` 消息，按时间正序返回，总字符数不超过 12,000，裁剪只从最旧端按整条消息执行。
+- 路由在所有权验证后、生成前加载历史，并仅在成功且非 replay 的完成响应后追加一次新 exchange。Provider 消息顺序固定为 `system → bounded history → current user`；历史不进入 system、evidence、响应 meta 或日志，敏感历史仍受 Provider 输入校验。
+- replay 指纹包含服务端解析后的有界历史；成功追加后用最新历史状态登记缓存，使直接重试可命中一次，而会话后续变化会保留原有 409 request-id 冲突语义。取消路径不追加、不缓存。
+- Provider 治理输入预算同步计入历史字符，避免新增的最多 12,000 字符绕过既有 token/成本门禁。该窄修复对应“不得弱化任务 1 至任务 3 安全边界”，因此补充了原任务文件清单遗漏的 `backend/app/agent/governance.py`。
+- RED 证据：隔离解释器没有 pytest，计划 pytest 命令以 `No module named pytest` 退出；匹配 unittest 首次运行的四个模块均因 `AgentHistoryMessage` / `ProviderConversationMessage` 尚不存在而导入失败。治理专项随后以历史 token 差值为 0 的断言失败，证明历史预算遗漏。
+- GREEN 证据：四个聚焦 unittest 模块共 69 项通过；在一次性临时数据库上初始化 schema 与 migrations 后，`scripts/verify-agent.ps1` 通过 101 项 Python、3 项 Node/SSE、Python 编译、评估清单、盲评协议清单、模型决策基线、前端语法与 whitespace 检查；`git diff --check` 退出码为 0。
+- 未读取真实 `.env`、凭据或用户内容，未调用真实 Provider/网络，未修改服务器、数据库 schema 或迁移。CI、服务器、HTTPS、备份恢复和生产验证均未执行。最小回滚路径为回退任务 4 提交。
+
 ## 4. 强制同步字段
 
 每次实现或部署更新都必须追加：
@@ -103,10 +114,10 @@
 ## 6. 当前结论
 
 - 设计：已由用户确认。
-- 实施计划：已完成，共 13 个顺序任务；任务 1、任务 2 和任务 3 已完成，其余任务尚未执行。
-- 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略已完成；其余应用功能尚未开始。
+- 实施计划：已完成，共 13 个顺序任务；任务 1、任务 2、任务 3 和任务 4 已完成，其余任务尚未执行。
+- 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文已完成；其余应用功能尚未开始。
 - 部署覆盖层：未创建。
-- 本地专项测试：任务 1、任务 2 和任务 3 已运行并通过；其余专项测试未运行。
+- 本地专项测试：任务 1、任务 2、任务 3 和任务 4 已运行并通过；其余专项测试未运行。
 - 全量门禁：未因本设计重新运行。
 - 服务器部署：未执行。
 - HTTP 测试候选：`NO-GO`，仍等待后续功能、部署覆盖层和服务器验证。

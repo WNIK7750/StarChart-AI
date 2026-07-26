@@ -9,7 +9,7 @@ from unittest.mock import patch
 from fastapi import HTTPException
 
 from app.agent.sessions import AgentSessionError, AgentSessionService, AgentSessionStore
-from app.agent.schemas import AgentChatRequest, AgentStructuredResponse
+from app.agent.schemas import AgentChatRequest, AgentHistoryMessage, AgentStructuredResponse
 from app.db.database import apply_migrations, dict_factory
 
 
@@ -161,6 +161,7 @@ class AgentSessionServiceTest(unittest.TestCase):
         for operation in (
             lambda: self.service.get(self.bob_id, session["sessionId"], 50, 0),
             lambda: self.service.require_owned(self.bob_id, session["sessionId"]),
+            lambda: self.service.context(self.bob_id, session["sessionId"]),
             lambda: self.service.append_exchange(
                 self.bob_id,
                 session["sessionId"],
@@ -181,6 +182,55 @@ class AgentSessionServiceTest(unittest.TestCase):
             ]["messageCount"],
             0,
         )
+
+    def test_context_returns_latest_complete_messages_in_chronological_order(self):
+        empty = self.service.create(self.alice_id, None)["session"]
+        self.assertEqual((), self.service.context(self.alice_id, empty["sessionId"]))
+
+        for index in range(8):
+            self.service.append_exchange(
+                self.alice_id,
+                empty["sessionId"],
+                f"request-context-{index}",
+                f"user-{index}",
+                f"assistant-{index}",
+            )
+
+        history = self.service.context(self.alice_id, empty["sessionId"])
+        self.assertEqual(12, len(history))
+        self.assertEqual(
+            ["user-2", "assistant-2", "user-3", "assistant-3"],
+            [message.content for message in history[:4]],
+        )
+        self.assertEqual(
+            ["user-7", "assistant-7"],
+            [message.content for message in history[-2:]],
+        )
+        self.assertTrue(
+            all(message.role in {"user", "assistant"} for message in history)
+        )
+
+    def test_context_trims_only_whole_messages_from_the_oldest_end(self):
+        session = self.service.create(self.alice_id, None)["session"]
+        for index in range(3):
+            self.service.append_exchange(
+                self.alice_id,
+                session["sessionId"],
+                f"request-budget-{index}",
+                str(index) + ("u" * 2999),
+                str(index) + ("a" * 2999),
+            )
+
+        history = self.service.context(
+            self.alice_id,
+            session["sessionId"],
+            max_chars=12_000,
+        )
+
+        self.assertEqual(4, len(history))
+        self.assertEqual(["1", "1", "2", "2"], [item.content[0] for item in history])
+        self.assertEqual(12_000, sum(len(item.content) for item in history))
+        self.assertTrue(all(len(item.content) == 3000 for item in history))
 
     def test_rename_and_multiple_pin_order_is_user_owned(self):
         first = self.service.create(self.alice_id, None)["session"]
@@ -380,6 +430,9 @@ class AgentSessionRouterIntegrationTest(unittest.IsolatedAsyncioTestCase):
             def require_owned(self, user_id, session_id):
                 self.required.append((user_id, session_id))
 
+            def context(self, _user_id, _session_id):
+                return ()
+
             def append_exchange(self, *args):
                 self.appended.append(args)
 
@@ -421,6 +474,72 @@ class AgentSessionRouterIntegrationTest(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
+    async def test_history_is_loaded_after_ownership_and_before_generation(self):
+        from app.api.v1.routers.agent import _run_agent_request
+
+        calls = []
+        history = (
+            AgentHistoryMessage(role="user", content="earlier question"),
+            AgentHistoryMessage(role="assistant", content="earlier answer"),
+        )
+
+        class SessionService:
+            def __init__(self):
+                self.history = history
+
+            def require_owned(self, _user_id, _session_id):
+                calls.append("require_owned")
+
+            def context(self, _user_id, _session_id):
+                calls.append("context")
+                return self.history
+
+            def append_exchange(
+                self,
+                _user_id,
+                _session_id,
+                _request_id,
+                user_message,
+                assistant_message,
+            ):
+                calls.append("append_exchange")
+                self.history += (
+                    AgentHistoryMessage(role="user", content=user_message),
+                    AgentHistoryMessage(role="assistant", content=assistant_message),
+                )
+
+        class Orchestrator:
+            async def respond(self, *_args, **kwargs):
+                calls.append("respond")
+                self.history = kwargs["history"]
+                return AgentStructuredResponse(answer="final answer")
+
+        session_service = SessionService()
+        orchestrator = Orchestrator()
+        payload = AgentChatRequest(
+            message="current question",
+            sessionId="ags_12345678",
+        )
+        with (
+            patch("app.api.v1.routers.agent.AGENT_SESSIONS_ENABLED", True),
+            patch(
+                "app.api.v1.routers.agent.get_agent_session_service",
+                return_value=session_service,
+            ),
+        ):
+            await _run_agent_request(
+                payload,
+                {"id": 7},
+                orchestrator,
+                "request-history-order",
+            )
+
+        self.assertEqual(history, orchestrator.history)
+        self.assertEqual(
+            ["require_owned", "context", "respond", "append_exchange", "context"],
+            calls,
+        )
+
     async def test_cancelled_session_request_does_not_append(self):
         from app.api.v1.routers.agent import _run_agent_request
 
@@ -430,6 +549,9 @@ class AgentSessionRouterIntegrationTest(unittest.IsolatedAsyncioTestCase):
 
             def require_owned(self, _user_id, _session_id):
                 return None
+
+            def context(self, _user_id, _session_id):
+                return ()
 
             def append_exchange(self, *args):
                 self.appended.append(args)

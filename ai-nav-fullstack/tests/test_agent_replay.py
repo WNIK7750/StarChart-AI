@@ -9,7 +9,7 @@ from app.agent.replay import (
     AgentResponseReplayCache,
     request_fingerprint,
 )
-from app.agent.schemas import AgentChatRequest, AgentStructuredResponse
+from app.agent.schemas import AgentChatRequest, AgentHistoryMessage, AgentStructuredResponse
 
 
 def response(answer: str = "已完成") -> AgentStructuredResponse:
@@ -50,6 +50,18 @@ class AgentResponseReplayCacheTests(unittest.TestCase):
         with self.assertRaises(AgentReplayConflict):
             cache.put(7, "request-1", second, response("另一个回答"))
 
+    def test_fingerprint_changes_when_resolved_session_history_changes(self):
+        payload = AgentChatRequest(message="same current question")
+        first = request_fingerprint(
+            payload,
+            history=(AgentHistoryMessage(role="user", content="first history"),),
+        )
+        second = request_fingerprint(
+            payload,
+            history=(AgentHistoryMessage(role="user", content="changed history"),),
+        )
+        self.assertNotEqual(first, second)
+
     def test_cache_evicts_least_recently_used_entry(self):
         cache = AgentResponseReplayCache(ttl_seconds=30, max_entries=2)
         fingerprints = {}
@@ -64,6 +76,68 @@ class AgentResponseReplayCacheTests(unittest.TestCase):
 
 
 class AgentResponseReplayRouteTests(unittest.IsolatedAsyncioTestCase):
+    async def test_session_retry_replays_once_but_later_history_change_conflicts(self):
+        from app.api.v1.routers.agent import _run_agent_request
+
+        cache = AgentResponseReplayCache(ttl_seconds=30, max_entries=4)
+        orchestrator = Mock()
+        orchestrator.respond = AsyncMock(return_value=response("session answer"))
+        payload = AgentChatRequest(
+            message="session question",
+            sessionId="ags_12345678",
+        )
+
+        class SessionService:
+            def __init__(self):
+                self.history = ()
+                self.appended = 0
+
+            def require_owned(self, _user_id, _session_id):
+                return None
+
+            def context(self, _user_id, _session_id):
+                return self.history
+
+            def append_exchange(
+                self,
+                _user_id,
+                _session_id,
+                _request_id,
+                user_message,
+                assistant_message,
+            ):
+                self.appended += 1
+                self.history += (
+                    AgentHistoryMessage(role="user", content=user_message),
+                    AgentHistoryMessage(role="assistant", content=assistant_message),
+                )
+
+        sessions = SessionService()
+        with (
+            patch("app.api.v1.routers.agent.AGENT_SESSIONS_ENABLED", True),
+            patch(
+                "app.api.v1.routers.agent.get_agent_session_service",
+                return_value=sessions,
+            ),
+            patch(
+                "app.api.v1.routers.agent.get_agent_response_replay_cache",
+                return_value=cache,
+            ),
+        ):
+            first = await _run_agent_request(payload, {"id": 7}, orchestrator, "request-1")
+            replayed = await _run_agent_request(payload, {"id": 7}, orchestrator, "request-1")
+            sessions.history += (
+                AgentHistoryMessage(role="user", content="later question"),
+                AgentHistoryMessage(role="assistant", content="later answer"),
+            )
+            with self.assertRaises(HTTPException) as conflict:
+                await _run_agent_request(payload, {"id": 7}, orchestrator, "request-1")
+
+        self.assertEqual(first, replayed)
+        self.assertEqual(1, sessions.appended)
+        orchestrator.respond.assert_awaited_once()
+        self.assertEqual(409, conflict.exception.status_code)
+
     async def test_completed_request_is_replayed_without_second_model_call(self):
         from app.api.v1.routers.agent import _run_agent_request
 

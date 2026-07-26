@@ -19,12 +19,19 @@ from app.agent.governance import (
     AgentGovernanceRejected,
     AgentRuntimeGovernance,
 )
-from app.agent.providers import AgentEvidenceItem, ProviderError, ProviderRequest, ProviderResult
+from app.agent.providers import (
+    AgentEvidenceItem,
+    ProviderConversationMessage,
+    ProviderError,
+    ProviderRequest,
+    ProviderResult,
+)
 from app.agent.providers.fake import FakeProvider
 from app.agent.providers.openai_compatible import OpenAICompatibleProvider
 from app.agent.schemas import (
     AgentChatRequest,
     AgentCitation,
+    AgentHistoryMessage,
     AgentLinkCard,
     AgentPageContext,
     AgentStreamEvent,
@@ -158,6 +165,46 @@ class AgentIncrementalStreamingTest(unittest.IsolatedAsyncioTestCase):
 
 
 class AgentOrchestratorTest(unittest.IsolatedAsyncioTestCase):
+    async def test_fake_provider_receives_history_without_exposing_it_in_fallback(self):
+        history = (
+            AgentHistoryMessage(role="user", content="private earlier question"),
+            AgentHistoryMessage(role="assistant", content="private earlier answer"),
+        )
+        provider = FakeProvider()
+        orchestrator = AgentOrchestrator(provider=provider)
+        with patch(
+            "app.agent.orchestrator.draft_agent_response",
+            return_value=grounded_response(),
+        ):
+            await orchestrator.respond(
+                AgentChatRequest(message="RAG"),
+                history=history,
+            )
+        self.assertEqual(
+            (
+                ProviderConversationMessage(
+                    role="user",
+                    content="private earlier question",
+                ),
+                ProviderConversationMessage(
+                    role="assistant",
+                    content="private earlier answer",
+                ),
+            ),
+            provider.requests[0].history,
+        )
+
+        with patch(
+            "app.agent.orchestrator.draft_agent_response",
+            return_value=grounded_response(),
+        ):
+            fallback = await AgentOrchestrator().respond(
+                AgentChatRequest(message="RAG"),
+                history=history,
+            )
+        self.assertNotIn("private earlier question", fallback.model_dump_json())
+        self.assertNotIn("private earlier answer", fallback.model_dump_json())
+
     async def test_provider_replaces_only_answer_and_receives_bounded_evidence(self):
         provider = FakeProvider(answer="RAG 通过检索站内资料增强生成回答。")
         orchestrator = AgentOrchestrator(provider=provider)
@@ -318,6 +365,26 @@ class AgentOrchestratorTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("sensitive_input", response.meta.fallbackReason)
         self.assertEqual([], provider.requests)
 
+    async def test_sensitive_history_never_reaches_provider(self):
+        provider = FakeProvider()
+        orchestrator = AgentOrchestrator(provider=provider)
+        history = (
+            AgentHistoryMessage(
+                role="user",
+                content="Authorization: Bearer abcdefghijklmnop",
+            ),
+        )
+        with patch(
+            "app.agent.orchestrator.draft_agent_response",
+            return_value=grounded_response(),
+        ):
+            response = await orchestrator.respond(
+                AgentChatRequest(message="RAG"),
+                history=history,
+            )
+        self.assertEqual("sensitive_input", response.meta.fallbackReason)
+        self.assertEqual([], provider.requests)
+
     async def test_total_timeout_falls_back_and_task_cancellation_propagates(self):
         timeout_provider = FakeProvider(delay_seconds=0.05)
         timeout_orchestrator = AgentOrchestrator(provider=timeout_provider, timeout_seconds=0.001)
@@ -423,6 +490,42 @@ class AgentOrchestratorTest(unittest.IsolatedAsyncioTestCase):
 
 
 class AgentGovernanceTest(unittest.IsolatedAsyncioTestCase):
+    def test_history_is_included_in_provider_input_budget(self):
+        guard = AgentCostGuard(
+            max_input_tokens=10000,
+            max_output_tokens=100,
+            input_cny_per_million=1,
+            output_cny_per_million=1,
+            per_request_cost_cny=1,
+            per_user_daily_cost_cny=1,
+            global_daily_cost_cny=1,
+            global_monthly_cost_cny=1,
+        )
+        without_history = ProviderRequest(
+            request_id="budget-without-history",
+            prompt_version="v1",
+            system_instruction="system",
+            user_message="question",
+            evidence=(),
+            max_output_chars=1000,
+        )
+        with_history = ProviderRequest(
+            request_id="budget-with-history",
+            prompt_version="v1",
+            system_instruction="system",
+            user_message="question",
+            evidence=(),
+            max_output_chars=1000,
+            history=(
+                ProviderConversationMessage(role="user", content="h" * 1000),
+            ),
+        )
+
+        without_tokens, _ = guard.estimate_request(without_history)
+        with_tokens, _ = guard.estimate_request(with_history)
+
+        self.assertGreaterEqual(with_tokens - without_tokens, 1000)
+
     async def test_admission_gate_enforces_per_user_global_and_releases_after_cancellation(self):
         gate = AgentAdmissionGate(
             per_user_limit=1,
@@ -615,6 +718,75 @@ class AgentGovernanceTest(unittest.IsolatedAsyncioTestCase):
 
 
 class OpenAICompatibleProviderTest(unittest.IsolatedAsyncioTestCase):
+    async def test_history_is_serialized_between_system_and_current_user_only(self):
+        captured = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured["body"] = json.loads(request.content)
+            return httpx.Response(
+                200,
+                json={
+                    "choices": [
+                        {
+                            "message": {"content": "grounded answer"},
+                            "finish_reason": "stop",
+                        }
+                    ]
+                },
+            )
+
+        provider_request = ProviderRequest(
+            request_id="request-history",
+            prompt_version="v1",
+            system_instruction="system boundary",
+            user_message="current question",
+            evidence=(
+                AgentEvidenceItem(
+                    citation_id="learning_node:rag",
+                    source_type="learning_node",
+                    source_key="rag",
+                    title="RAG",
+                    summary="site summary",
+                    href="learn-node.html?slug=rag",
+                ),
+            ),
+            max_output_chars=1000,
+            history=(
+                ProviderConversationMessage(
+                    role="user",
+                    content="history-only-user-marker",
+                ),
+                ProviderConversationMessage(
+                    role="assistant",
+                    content="history-only-assistant-marker",
+                ),
+            ),
+        )
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            provider = OpenAICompatibleProvider(
+                base_url="https://provider.example.test/v1",
+                api_key="secret",
+                model="model",
+                timeout_seconds=2,
+                max_retries=0,
+                max_output_tokens=100,
+                client=client,
+            )
+            await provider.generate(provider_request)
+
+        messages = captured["body"]["messages"]
+        self.assertEqual(
+            ["system", "user", "assistant", "user"],
+            [message["role"] for message in messages],
+        )
+        self.assertEqual("system boundary", messages[0]["content"])
+        self.assertEqual("history-only-user-marker", messages[1]["content"])
+        self.assertEqual("history-only-assistant-marker", messages[2]["content"])
+        self.assertNotIn("history-only", messages[0]["content"])
+        self.assertNotIn("history-only", messages[3]["content"])
+        self.assertIn("current question", messages[3]["content"])
+        self.assertIn("learning_node:rag", messages[3]["content"])
+
     async def test_success_contract_uses_bearer_auth_and_returns_project_dto(self):
         captured = {}
 
