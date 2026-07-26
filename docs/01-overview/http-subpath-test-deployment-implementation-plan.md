@@ -20,6 +20,7 @@
 - 数据库内头像路径继续保存为 `/uploads/...`；部署前缀只在浏览器 URL 投影层添加。
 - 所有新增后端入口使用严格 Pydantic 模型，未知字段拒绝；所有受限操作以后端拒绝为准，前端隐藏只用于改善体验。
 - 每个任务先写失败测试，再做最小实现，再运行目标验证；不要一次性批量实现后补测试。
+- Task 11 仅修改面向人工阅读的文档，按用户确认采用结构化人工审查，不为证明文案存在而新增源码文本断言；其引用的脚本和配置仍由前序行为测试覆盖。
 - 每完成一个任务，更新 `docs/00-index/http-test-deployment-file-index.md` 的批次、文件、真实命令、真实结果、残留风险和最小回滚路径。
 - 不触碰或暂存仓库中的 `.tmp_ci.txt`、`.tmp_push_ci.txt` 或其他用户已有改动。
 
@@ -866,22 +867,16 @@ git commit -m "test: gate HTTP test deployment profile"
 - Modify: `docs/00-index/documentation-map.md`
 - Modify: `README.md`
 
-### Step 1: 写运行手册内容检查
+### Step 1: 执行运行手册结构审查
 
-- [ ] 在 `tests/test_http_test_overlay.py` 增加文档契约断言：
+- [ ] 按以下清单人工审查运行手册，不新增只检查 Markdown 文案或源码文本的测试：
   - 含备份、预检、安装、初始化测试账号、启动 8001、Nginx reload、smoke、8002 手工预览、停止、回滚。
   - 每个服务器命令明确执行身份和工作目录。
   - 明确不把真实 secret、账号或 API key 写进 shell history；建议使用权限为 600 的 EnvironmentFile 和交互式编辑。
   - 明确公网 HTTP 风险、测试数据可被窃听、禁止真实隐私数据。
   - 明确登录不自动导入游客历史。
   - HTTP 测试候选与生产发布分别给结论，生产继续 `NO-GO`。
-- [ ] 运行：
-
-```powershell
-python -m pytest tests/test_http_test_overlay.py -q
-```
-
-Expected: 运行手册不存在，测试失败。
+- [ ] 把审查结果记录到文件索引；前序任务对运行手册引用的脚本、配置和路由行为负责，文档本身不以文本匹配制造假覆盖率。
 
 ### Step 2: 编写并交叉链接
 
