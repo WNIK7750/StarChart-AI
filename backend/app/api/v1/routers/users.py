@@ -4,6 +4,7 @@ from fastapi import APIRouter, Cookie, Depends, File, HTTPException, Query, Requ
 from pydantic import Field
 
 from app.api.v1.routers.auth import get_current_user
+from app.api.v1.dependencies.deployment_policy import require_deployment_action
 from app.core.config import AVATAR_MAX_UPLOAD_BYTES, REFRESH_COOKIE_NAME
 from app.core.security import hash_token
 from app.users.account.service import get_account_service
@@ -112,7 +113,11 @@ def get_account(current_user: dict = Depends(get_current_user)):
     return _users_call(lambda: get_account_service().get_account(current_user["id"]))
 
 
-@router.patch("/me/account", response_model=AccountUpdateResponse)
+@router.patch(
+    "/me/account",
+    response_model=AccountUpdateResponse,
+    dependencies=[Depends(require_deployment_action("identity_update"))],
+)
 def update_account(payload: AccountUpdate, request: Request, current_user: dict = Depends(get_current_user)):
     return _audited_call(
         lambda: get_account_service().update_account(
@@ -127,7 +132,11 @@ def update_account(payload: AccountUpdate, request: Request, current_user: dict 
     )
 
 
-@router.patch("/me/password", response_model=StatusMessageResponse)
+@router.patch(
+    "/me/password",
+    response_model=StatusMessageResponse,
+    dependencies=[Depends(require_deployment_action("password_update"))],
+)
 def update_password(payload: PasswordUpdate, request: Request, current_user: dict = Depends(get_current_user)):
     return _audited_call(
         lambda: get_security_service().update_password(
@@ -148,7 +157,11 @@ def get_security_questions(current_user: dict = Depends(get_current_user)):
     return get_security_service().list_security_questions(current_user["id"])
 
 
-@router.put("/me/security-questions", response_model=SecurityQuestionsResponse)
+@router.put(
+    "/me/security-questions",
+    response_model=SecurityQuestionsResponse,
+    dependencies=[Depends(require_deployment_action("security_questions_update"))],
+)
 def update_security_questions(payload: SecurityQuestionsUpdate, request: Request, current_user: dict = Depends(get_current_user)):
     return _audited_call(
         lambda: get_security_service().replace_security_questions(
