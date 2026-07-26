@@ -1,7 +1,7 @@
 # HTTP 测试部署文件索引
 
 > 用途：作为 HTTP 子路径测试部署的文件路由、实现进度、验证证据和回滚同步入口。
-> 状态：设计与实施计划已完成；任务 1 至任务 9 已完成，Tasks 4–6 Agent 全流程审查发现的两项 Important 竞态已在本地修复并验证；隔离部署覆盖层已纳入 deny-first 发布包，服务器尚未修改。
+> 状态：设计与实施计划已完成；任务 1 至任务 10 已完成，Tasks 4–6 Agent 全流程审查发现的两项 Important 竞态已在本地修复并验证；隔离部署覆盖层已纳入 deny-first 发布包和专项门禁，服务器尚未修改。
 > 日期：2026-07-26。
 > 权威性：本索引记录本任务事实，不替代当前审计报告、生产发布清单或服务器实际运行记录。
 
@@ -41,10 +41,11 @@
 | `frontend/assistant.html` | 游客状态与清除入口 | 已完成任务 6 |
 | Users 授权与命令边界 | 唯一测试账号的身份、恢复、隐私和删除限制 | 候选，精确文件待实现计划复核 |
 | `scripts/provision-http-test-account.py` | 无命令行秘密的一次性测试账号初始化 | 已完成任务 7 |
-| `tests/` | 前缀、Agent 会话历史、测试账号限制、游客无服务端写入、初始化器和发布包回归 | 任务 1 至任务 9 已按范围更新 |
+| `tests/` | 前缀、Agent 会话历史、测试账号限制、游客无服务端写入、初始化器、发布包和专项门禁回归 | 任务 1 至任务 10 已按范围更新 |
 | `deploy/http-test/` | Nginx、systemd、项目选择页、无秘密环境模板和脚本 | 已完成任务 8，并在任务 9 纳入发布 allowlist；仅本地结构、shell 语法和发布包选择已验证 |
+| `scripts/verify-http-test-deployment.ps1` | 顺序运行 Tasks 1–9 聚焦功能流并产生本次结构化计数 | 已完成任务 10；已接入 foundation 本地门禁和 CI |
 | `docs/04-operations/` | 后续部署、验证、备份与回滚运行手册 | 候选，未创建 |
-| `docs/06-evidence/` | 后续脱敏机器证据 | 候选，未创建 |
+| `docs/06-evidence/platform/http-test-deployment-manifest.json` | 无内容、无秘密的本地专项门禁机器证据 | 已由任务 10 生成；所有外部验证仍为 `not_run` |
 
 ### 3.1 实施批次：2026-07-26，任务 1（运行时配置档）
 
@@ -145,6 +146,15 @@
 - GREEN 证据：`.\.venv\Scripts\python.exe -m unittest tests.test_release_http_test_overlay tests.test_http_test_overlay -v` 通过 16 项，最近一次耗时 6.523 秒；`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-release-package.ps1 -ValidateOnly` 退出码 0 并返回上述三个真实计数；`git diff --check` 退出码 0。
 - 未读取真实 `.env` 或凭据，未调用网络、服务器或 Provider，未生成或部署真实发布版本，Linux Nginx/systemd、HTTPS、备份恢复、服务器 smoke 和回滚仍为 `NOT RUN`。最小回滚路径为回退任务 9 提交；发布包尚未部署，因此不涉及服务器或数据回滚。
 
+### 3.11 实施批次：2026-07-26，任务 10（专项门禁与无秘密机器证据）
+
+- 已新增 `scripts/verify-http-test-deployment.ps1`、`scripts/build-http-test-deployment-manifest.py`、`scripts/check-no-secrets.py`、两项专项测试和 `docs/06-evidence/platform/http-test-deployment-manifest.json`，并把专项门禁接入 `scripts/verify-foundation.ps1`；foundation CI 增加部署覆盖层和平台证据的路径触发，原 quality/foundation/agent 三个 job 的拆分不变，未注入测试账号密码或 Provider key。
+- 门禁使用一次性运行 ID、系统临时目录和临时数据库，顺序运行 Tasks 1–9 的 Python/Node 功能范围、发布包 `ValidateOnly` 和秘密扫描。每组计数从本次进程输出写入严格结构化结果；生成器只接受名称、schema 和运行 ID 全部匹配的七组结果，任一失败都在原子替换前退出并保留上一份通过证据。
+- 秘密扫描器支持文件和目录的显式项目内路径，只报告相对文件、行号和规则名，不回显匹配值；真实 `.env`、数据库、uploads、二进制、超大文件和项目外路径在读取内容前 fail closed。测试夹具只使用代码中拼接且标记为 `synthetic-test-only` 的合成值；未读取任何真实 `.env`。
+- RED 证据：计划中的 `.\.venv\Scripts\python.exe -m pytest tests/test_http_test_manifest.py tests/test_no_secrets.py -q` 因隔离解释器未安装 pytest，以 `No module named pytest` 退出；匹配 unittest 首次运行 8 项，因构建器和扫描器不存在出现 1 个失败、4 个错误。首次门禁集成还分别暴露 Windows PowerShell 将既有 stderr 警告提升为终止错误、结构化 JSON 带 BOM 两个兼容边界；两次均在 manifest 写入前失败，未覆盖证据。
+- GREEN 证据：`.\.venv\Scripts\python.exe -m unittest tests.test_http_test_manifest tests.test_no_secrets -v` 通过 9 项。最近一次完整 `scripts/verify-http-test-deployment.ps1` 在 28.4 秒内退出码 0，本次真实计数为 runtime 49、policy 8、agentHistory 74、guestAgent 27、frontend 47、overlay 19、release 4；发布验证返回 `fileCount=362`、`forbiddenCount=0`、`deploymentOverlayCount=10`。
+- 机器证据的 `sourceCommit` 为 `WORKTREE`，`containsSecrets=false`；`serverDeployment`、`providerPreview`、`https`、`backupRestore` 和 `rollback` 全部保持 `not_run`。未访问网络、服务器或 Provider，未执行部署、HTTPS、备份恢复或回滚。最小回滚路径为回退任务 10 提交；证据为生成文件，不代表服务器或生产通过。
+
 ## 4. 强制同步字段
 
 每次实现或部署更新都必须追加：
@@ -176,10 +186,10 @@
 ## 6. 当前结论
 
 - 设计：已由用户确认。
-- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 9 已完成，其余任务尚未执行。
+- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 10 已完成，其余任务尚未执行。
 - 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文、任务 5 的确定性游客助手后端入口、任务 6 的浏览器游客记忆与身份模式切换和任务 7 的无秘密测试账号初始化器已完成；任务 8 没有修改应用源码。
 - 部署覆盖层：已创建并纳入 deny-first 发布包；本地结构测试、shell 语法和发布选择通过，Linux Nginx/systemd 加载验证仍为 `NOT RUN`。
-- 本地专项测试：任务 1 至任务 9 已按各自范围运行并通过；其余专项测试未运行。
+- 本地专项测试：任务 1 至任务 10 已按各自范围运行并通过；最新专项门禁七组真实计数已写入无秘密 manifest，其余专项测试未运行。
 - 全量门禁：未因本设计重新运行。
 - 服务器部署：未执行。
 - HTTP 测试候选：`NO-GO`，仍等待后续功能、部署覆盖层和服务器验证。
