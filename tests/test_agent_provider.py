@@ -63,6 +63,17 @@ async def no_sleep(_seconds: float) -> None:
     return None
 
 
+async def wait_for_provider_request(
+    provider: FakeProvider,
+    task: asyncio.Task,
+) -> None:
+    """Wait for provider admission without hiding an early task failure."""
+    while not provider.requests:
+        if task.done():
+            await task
+        await asyncio.sleep(0)
+
+
 class AgentStreamingContractTest(unittest.TestCase):
     def test_buffered_event_projection_preserves_one_canonical_response(self):
         response = grounded_response()
@@ -464,19 +475,25 @@ class AgentGovernanceTest(unittest.IsolatedAsyncioTestCase):
             provider=provider,
             governance=AgentRuntimeGovernance(admission, generous_cost),
         )
-        first = asyncio.create_task(
-            orchestrator.respond(AgentChatRequest(message="RAG"), user_key="user:1")
-        )
-        while not provider.requests:
-            await asyncio.sleep(0)
-        limited = await orchestrator.respond(
-            AgentChatRequest(message="RAG"),
-            user_key="user:1",
-        )
-        self.assertEqual("deterministic", limited.meta.mode)
-        self.assertEqual("capacity_limited", limited.meta.fallbackReason)
-        self.assertEqual(1, len(provider.requests))
-        await first
+        with patch(
+            "app.agent.orchestrator.draft_agent_response",
+            return_value=grounded_response(),
+        ):
+            first = asyncio.create_task(
+                orchestrator.respond(AgentChatRequest(message="RAG"), user_key="user:1")
+            )
+            await asyncio.wait_for(
+                wait_for_provider_request(provider, first),
+                timeout=2,
+            )
+            limited = await orchestrator.respond(
+                AgentChatRequest(message="RAG"),
+                user_key="user:1",
+            )
+            self.assertEqual("deterministic", limited.meta.mode)
+            self.assertEqual("capacity_limited", limited.meta.fallbackReason)
+            self.assertEqual(1, len(provider.requests))
+            await first
 
         budget_provider = FakeProvider()
         tiny_cost = AgentCostGuard(
@@ -501,10 +518,14 @@ class AgentGovernanceTest(unittest.IsolatedAsyncioTestCase):
                 tiny_cost,
             ),
         )
-        exceeded = await budget_orchestrator.respond(
-            AgentChatRequest(message="RAG"),
-            user_key="user:2",
-        )
+        with patch(
+            "app.agent.orchestrator.draft_agent_response",
+            return_value=grounded_response(),
+        ):
+            exceeded = await budget_orchestrator.respond(
+                AgentChatRequest(message="RAG"),
+                user_key="user:2",
+            )
         self.assertEqual("budget_exceeded", exceeded.meta.fallbackReason)
         self.assertEqual([], budget_provider.requests)
 
