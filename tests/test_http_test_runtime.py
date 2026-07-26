@@ -5,7 +5,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from app.api.v1.routers import common
 from app.core.config import (
     DEV_SECRET_KEY,
     normalize_public_base_path,
@@ -69,6 +74,76 @@ def preview_environment(temp_root: Path, **overrides) -> dict[str, str]:
 
 
 class HttpTestRuntimeTest(unittest.TestCase):
+    def test_public_runtime_exposes_only_http_test_capabilities(self):
+        app = FastAPI()
+        app.include_router(common.router, prefix="/api/v1")
+        with (
+            patch.object(common, "APP_ENV", "http_test", create=True),
+            patch.object(common, "PUBLIC_BASE_PATH", "/StarChart-AI", create=True),
+            patch.object(common, "HTTP_TEST_GUEST_AGENT_ENABLED", True, create=True),
+            patch.object(common, "AGENT_SESSIONS_ENABLED", False, create=True),
+        ):
+            response = TestClient(app).get("/api/v1/runtime/public")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "deploymentProfile": "http_test",
+                "publicBasePath": "/StarChart-AI",
+                "auth": {
+                    "registration": False,
+                    "recovery": False,
+                    "identityChanges": False,
+                    "privacyWrites": False,
+                },
+                "agent": {
+                    "guestChat": True,
+                    "authenticatedSessions": False,
+                },
+            },
+            response.json(),
+        )
+
+    def test_public_runtime_keeps_normal_auth_features_without_leaking_configuration(self):
+        app = FastAPI()
+        app.include_router(common.router, prefix="/api/v1")
+        for profile in ("development", "test"):
+            with (
+                self.subTest(profile=profile),
+                patch.object(common, "APP_ENV", profile, create=True),
+                patch.object(common, "PUBLIC_BASE_PATH", "", create=True),
+                patch.object(common, "HTTP_TEST_GUEST_AGENT_ENABLED", True, create=True),
+                patch.object(common, "AGENT_SESSIONS_ENABLED", True, create=True),
+            ):
+                response = TestClient(app).get("/api/v1/runtime/public")
+
+            self.assertEqual(200, response.status_code)
+            payload = response.json()
+            self.assertEqual(
+                {
+                    "registration": True,
+                    "recovery": True,
+                    "identityChanges": True,
+                    "privacyWrites": True,
+                },
+                payload["auth"],
+            )
+            self.assertEqual(
+                {"guestChat": False, "authenticatedSessions": True},
+                payload["agent"],
+            )
+            serialized = response.text.lower()
+            for forbidden in (
+                "username",
+                "database",
+                "upload_dir",
+                "provider",
+                "base_url",
+                "secret",
+                "api_key",
+            ):
+                self.assertNotIn(forbidden, serialized)
+
     def test_http_test_accepts_explicit_http_origin_and_external_storage(self):
         validate_runtime_security(**safe_runtime())
 

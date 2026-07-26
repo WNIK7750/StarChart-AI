@@ -2,10 +2,21 @@ import sqlite3
 
 from fastapi import APIRouter, HTTPException
 
-from app.core.config import MIGRATIONS_DIR
+from app.core.config import (
+    AGENT_SESSIONS_ENABLED,
+    APP_ENV,
+    HTTP_TEST_GUEST_AGENT_ENABLED,
+    MIGRATIONS_DIR,
+    PUBLIC_BASE_PATH,
+)
 from app.db.database import get_connection
 from app.platform.navigation import get_navigation_items
-from app.platform.schemas import HealthResponse, NavigationResponse, ReadinessResponse
+from app.platform.schemas import (
+    HealthResponse,
+    NavigationResponse,
+    PublicRuntimeCapabilities,
+    ReadinessResponse,
+)
 
 router = APIRouter(tags=["common"])
 
@@ -13,6 +24,25 @@ router = APIRouter(tags=["common"])
 @router.get("/navigation", response_model=NavigationResponse)
 def get_navigation():
     return {"items": get_navigation_items()}
+
+
+@router.get("/runtime/public", response_model=PublicRuntimeCapabilities)
+def get_public_runtime():
+    restricted_auth = APP_ENV == "http_test"
+    return {
+        "deploymentProfile": APP_ENV,
+        "publicBasePath": PUBLIC_BASE_PATH,
+        "auth": {
+            "registration": not restricted_auth,
+            "recovery": not restricted_auth,
+            "identityChanges": not restricted_auth,
+            "privacyWrites": not restricted_auth,
+        },
+        "agent": {
+            "guestChat": restricted_auth and HTTP_TEST_GUEST_AGENT_ENABLED,
+            "authenticatedSessions": AGENT_SESSIONS_ENABLED,
+        },
+    }
 
 
 def check_database_ready(conn: sqlite3.Connection, expected_migrations: set[str]) -> dict:

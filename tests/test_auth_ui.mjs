@@ -70,3 +70,52 @@ test("password recovery uses an external one-time credential instead of security
   assert.match(api, /password-reset\/confirm/);
   assert.doesNotMatch(api, /password-reset\/security\/verify/);
 });
+
+test("http-test auth capabilities conservatively hide registration and recovery", async () => {
+  const values = new Map();
+  globalThis.window = {
+    AI_NAV_PUBLIC_BASE_PATH: "/StarChart-AI",
+    location: { origin: "http://localhost" },
+    localStorage: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+      removeItem: (key) => values.delete(key),
+    },
+  };
+  globalThis.localStorage = globalThis.window.localStorage;
+  const moduleUrl = pathToFileURL(path.join(root, "frontend/assets/js/auth-ui.js"));
+  const auth = await import(`${moduleUrl.href}?capabilities=${Date.now()}`);
+
+  assert.deepEqual(
+    auth.publicAuthEntryVisibility({
+      auth: { registration: false, recovery: false },
+    }),
+    { registration: false, recovery: false },
+  );
+  assert.deepEqual(
+    auth.publicAuthEntryVisibility(null),
+    { registration: false, recovery: false },
+  );
+  const registerTab = { hidden: false };
+  const registerForm = { hidden: false };
+  const resetEntries = [{ hidden: false }, { hidden: false }];
+  const resetForms = [{ hidden: false }, { hidden: false }];
+  const panel = {
+    querySelector: (selector) => ({
+      '[data-auth-tab="register"]': registerTab,
+      '[data-auth-form="register"]': registerForm,
+      "[data-auth-form].active": null,
+    })[selector] ?? null,
+    querySelectorAll: (selector) => ({
+      '[data-auth-tab^="reset"]': resetEntries,
+      '[data-auth-form^="reset"]': resetForms,
+    })[selector] ?? [],
+  };
+  auth.applyPublicAuthCapabilities(null, panel);
+  assert.equal(registerTab.hidden, true);
+  assert.equal(registerForm.hidden, true);
+  assert.deepEqual(resetEntries.map((entry) => entry.hidden), [true, true]);
+  assert.deepEqual(resetForms.map((entry) => entry.hidden), [true, true]);
+  delete globalThis.localStorage;
+  delete globalThis.window;
+});
