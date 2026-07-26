@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=starchart-ai
-Group=starchart-ai
+User=starchart-ai-provider-preview
+Group=starchart-ai-provider-preview
 WorkingDirectory=/opt/starchart-ai/current
 EnvironmentFile=/etc/starchart-ai/provider-preview.env
 Environment=PYTHONPATH=/opt/starchart-ai/current/backend
@@ -20,7 +20,10 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
+UMask=0077
 ReadOnlyPaths=/opt/starchart-ai
 ReadWritePaths=/srv/starchart-ai-provider-preview
+InaccessiblePaths=-/srv/starchart-ai-http-test
+InaccessiblePaths=-/etc/starchart-ai/http-test.env
 RestrictSUIDSGID=true
 LockPersonality=true

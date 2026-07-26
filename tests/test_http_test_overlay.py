@@ -100,12 +100,17 @@ class HttpTestServiceOverlayTests(unittest.TestCase):
     def test_units_are_isolated_hardened_and_single_worker(self) -> None:
         public = read_overlay("systemd/starchart-ai-http-test.service")
         preview = read_overlay("systemd/starchart-ai-provider-preview.service")
-        self.assertIn("User=starchart-ai", public)
-        self.assertIn("User=starchart-ai", preview)
+        self.assertIn("User=starchart-ai-http-test", public)
+        self.assertIn("Group=starchart-ai-http-test", public)
+        self.assertIn("User=starchart-ai-provider-preview", preview)
+        self.assertIn("Group=starchart-ai-provider-preview", preview)
         for unit in (public, preview):
             self.assertNotIn("User=root", unit)
             self.assertIn("NoNewPrivileges=true", unit)
             self.assertIn("PrivateTmp=true", unit)
+            self.assertIn("ProtectSystem=strict", unit)
+            self.assertIn("ProtectHome=true", unit)
+            self.assertIn("UMask=0077", unit)
             self.assertRegex(unit, r"Environment=AI_NAV_API_WORKERS=1")
             self.assertIn("ReadOnlyPaths=/opt/starchart-ai", unit)
             self.assertIn("WorkingDirectory=/opt/starchart-ai/current", unit)
@@ -118,6 +123,10 @@ class HttpTestServiceOverlayTests(unittest.TestCase):
         self.assertIn("EnvironmentFile=/etc/starchart-ai/provider-preview.env", preview)
         self.assertIn("ReadWritePaths=/srv/starchart-ai-http-test", public)
         self.assertIn("ReadWritePaths=/srv/starchart-ai-provider-preview", preview)
+        self.assertIn("InaccessiblePaths=-/srv/starchart-ai-provider-preview", public)
+        self.assertIn("InaccessiblePaths=-/etc/starchart-ai/provider-preview.env", public)
+        self.assertIn("InaccessiblePaths=-/srv/starchart-ai-http-test", preview)
+        self.assertIn("InaccessiblePaths=-/etc/starchart-ai/http-test.env", preview)
         self.assertIn("AI_NAV_DATABASE_PATH=/srv/starchart-ai-http-test/data/ai_nav.sqlite3", public)
         self.assertIn("AI_NAV_UPLOAD_DIR=/srv/starchart-ai-http-test/uploads", public)
         self.assertIn("AI_NAV_APP_PORT=8001", public)
@@ -202,6 +211,34 @@ class HttpTestScriptAndHubTests(unittest.TestCase):
         ):
             self.assertIn(expected, script)
         self.assertNotRegex(script, r"\b(rm|mv|cp|install|mkdir|chmod|chown|systemctl\s+(?:start|stop|restart|reload))\b")
+        self.assertIn('phase="${1:-before-first-start}"', script)
+        self.assertIn("LEGACY_LISTENER_MISSING ${endpoint}", script)
+        self.assertIn("NEW_LISTENER_ALREADY_PRESENT ${endpoint}", script)
+        self.assertIn("check_listener_present 127.0.0.1:8000", script)
+        self.assertIn("check_listener_absent 127.0.0.1:8001", script)
+        self.assertIn("check_listener_absent 127.0.0.1:8002", script)
+        self.assertIn("before-provider-preview)", script)
+        self.assertRegex(
+            script,
+            r"(?s)before-provider-preview\).*check_listener_present 127\.0\.0\.1:8001"
+            r".*check_listener_absent 127\.0\.0\.1:8002",
+        )
+        self.assertRegex(script, r'if\s+\[\[\s+-n\s+"\$\{rows\}"\s+\]\]')
+
+    def test_installer_creates_distinct_service_identities_and_private_files(self) -> None:
+        script = read_overlay("scripts/install-overlay.sh")
+        self.assertIn("starchart-ai-http-test", script)
+        self.assertIn("starchart-ai-provider-preview", script)
+        self.assertRegex(
+            script,
+            r"install -d -o starchart-ai-http-test -g starchart-ai-http-test -m 0700",
+        )
+        self.assertRegex(
+            script,
+            r"install -d -o starchart-ai-provider-preview -g starchart-ai-provider-preview -m 0700",
+        )
+        self.assertIn("-g starchart-ai-http-test", script)
+        self.assertIn("-g starchart-ai-provider-preview", script)
 
     def test_smoke_only_calls_local_deterministic_public_paths(self) -> None:
         script = read_overlay("scripts/smoke-test.sh")

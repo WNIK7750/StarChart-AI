@@ -12,7 +12,7 @@
 - **生产发布**：保持 `NO-GO`。HTTP 测试通过不能替代 HTTPS、合规、容量、告警、备份恢复、回滚和外部签收。
 - 公网 8001 只使用 `deterministic` Provider；8002 只监听 `127.0.0.1`，不配置公网或 Nginx 入口。
 - 不在命令参数、聊天、Git、日志或 shell history 中输入真实 secret、账号、密码、API Key、Cookie 或 Token。
-- 两个 EnvironmentFile 均由 root 交互编辑，所有者为 root，权限固定为 `0600`。模板中的 `0640` 只是安装初态，填写任何值前必须收紧。
+- 两个 EnvironmentFile 均由 root 交互编辑，所有者为 root，分别归属对应服务的专用组，权限固定为 `0640`；两个服务身份不能读取对方文件。
 - HTTP 流量可被窃听或篡改。只使用虚构测试数据，禁止真实姓名、联系方式、头像、对话、文件和其他隐私数据。
 - 登录后不自动导入游客历史；游客浏览器数据与测试账号服务端数据保持隔离。
 
@@ -24,7 +24,8 @@
 | --- | --- | --- |
 | 本地构建与检查 | 本地仓库维护者 | 仓库根目录 `ai-nav-fullstack/` |
 | 文件安装、备份、Nginx、systemd | 服务器 sudo 管理员 | `/opt/starchart-ai/current` 或命令明确指定的目录 |
-| 应用进程与账号初始化 | 专用用户 `starchart-ai` | `/opt/starchart-ai/current` |
+| 公网测试进程与账号初始化 | 专用用户 `starchart-ai-http-test` | `/opt/starchart-ai/current` |
+| Provider 预览进程与账号初始化 | 专用用户 `starchart-ai-provider-preview` | `/opt/starchart-ai/current` |
 | SSH 隧道 | 操作人本机账号 | 任意本机目录 |
 
 以下变量都不是秘密，可在服务器管理员的临时 shell 中设置：
@@ -70,7 +71,7 @@ sudo nginx -T
 首次安装覆盖层前，`preflight.sh` 所要求的目录和 env 文件尚不存在，因此应在安装模板后、填写配置前运行。若是更新部署，则先运行：
 
 ```bash
-sudo deploy/http-test/scripts/preflight.sh
+sudo deploy/http-test/scripts/preflight.sh before-first-start
 ```
 
 执行身份：服务器 sudo 管理员。工作目录：`/opt/starchart-ai/current`。创建可恢复备份：
@@ -107,9 +108,10 @@ sudo /opt/starchart-ai/venv/bin/pip install -r /opt/starchart-ai/current/backend
 
 ```bash
 sudo deploy/http-test/scripts/install-overlay.sh
-sudo chown root:root /etc/starchart-ai/http-test.env /etc/starchart-ai/provider-preview.env
-sudo chmod 0600 /etc/starchart-ai/http-test.env /etc/starchart-ai/provider-preview.env
-sudo deploy/http-test/scripts/preflight.sh
+sudo chown root:starchart-ai-http-test /etc/starchart-ai/http-test.env
+sudo chown root:starchart-ai-provider-preview /etc/starchart-ai/provider-preview.env
+sudo chmod 0640 /etc/starchart-ai/http-test.env /etc/starchart-ai/provider-preview.env
+sudo deploy/http-test/scripts/preflight.sh before-first-start
 ```
 
 `install-overlay.sh` 会备份活动 Nginx 文件、安装模板、执行 `nginx -t`，并仅在语法通过时 reload；它不会生成凭据。首次安装时新路由可能在 8001 启动前短暂返回不可用，因此应在维护窗口内紧接着完成第 6–8 节。旧站 8000、`/chat`、`/health` 和 `/chat-widget.js` 必须持续检查。
@@ -120,13 +122,14 @@ sudo deploy/http-test/scripts/preflight.sh
 
 ```bash
 sudoedit /etc/starchart-ai/http-test.env
-sudo chmod 0600 /etc/starchart-ai/http-test.env
-sudo deploy/http-test/scripts/preflight.sh
+sudo chown root:starchart-ai-http-test /etc/starchart-ai/http-test.env
+sudo chmod 0640 /etc/starchart-ai/http-test.env
+sudo deploy/http-test/scripts/preflight.sh before-first-start
 ```
 
 只填写模板中的空变量；`AI_NAV_SECRET_KEY` 使用服务器上安全生成的随机值，CORS 使用获批的 HTTP origin，账号标识使用获批的唯一测试标识。不要把实际值复制到工单或本手册。
 
-账号初始化必须在交互式终端完成，不接受命令行密码或密码环境变量。执行身份最终降为 `starchart-ai`，工作目录为 `/opt/starchart-ai/current`：
+账号初始化必须在交互式终端完成，不接受命令行密码或密码环境变量。执行身份最终降为 `starchart-ai-http-test`，工作目录为 `/opt/starchart-ai/current`：
 
 ```bash
 sudo bash -lc '
@@ -136,7 +139,7 @@ sudo bash -lc '
   export AI_NAV_DATABASE_PATH=/srv/starchart-ai-http-test/data/ai_nav.sqlite3
   export AI_NAV_UPLOAD_DIR=/srv/starchart-ai-http-test/uploads
   cd /opt/starchart-ai/current
-  exec runuser -u starchart-ai --preserve-environment -- \
+  exec runuser -u starchart-ai-http-test --preserve-environment -- \
     /opt/starchart-ai/venv/bin/python scripts/provision-http-test-account.py
 '
 ```
@@ -178,11 +181,12 @@ sudo deploy/http-test/scripts/smoke-test.sh
 
 ```bash
 sudoedit /etc/starchart-ai/provider-preview.env
-sudo chmod 0600 /etc/starchart-ai/provider-preview.env
-sudo deploy/http-test/scripts/preflight.sh
+sudo chown root:starchart-ai-provider-preview /etc/starchart-ai/provider-preview.env
+sudo chmod 0640 /etc/starchart-ai/provider-preview.env
+sudo deploy/http-test/scripts/preflight.sh before-provider-preview
 ```
 
-API Key 只在上述 root-only 文件中交互填写。确认 HTTPS Provider URL、允许主机、模型、超时、重试以及单次/日/月成本上限后，按第 6 节相同方式运行初始化器，但改用 `provider-preview.env`、`/srv/starchart-ai-provider-preview/` 的独立数据库和上传目录。
+API Key 只在上述 root 管理、Provider 预览专用组可读的文件中交互填写。确认 HTTPS Provider URL、允许主机、模型、超时、重试以及单次/日/月成本上限后，按第 6 节相同方式运行初始化器，但改用 `provider-preview.env`、`/srv/starchart-ai-provider-preview/` 的独立数据库和上传目录。
 
 ```bash
 sudo bash -lc '
@@ -192,7 +196,7 @@ sudo bash -lc '
   export AI_NAV_DATABASE_PATH=/srv/starchart-ai-provider-preview/data/ai_nav.sqlite3
   export AI_NAV_UPLOAD_DIR=/srv/starchart-ai-provider-preview/uploads
   cd /opt/starchart-ai/current
-  exec runuser -u starchart-ai --preserve-environment -- \
+  exec runuser -u starchart-ai-provider-preview --preserve-environment -- \
     /opt/starchart-ai/venv/bin/python scripts/provision-http-test-account.py
 '
 ```

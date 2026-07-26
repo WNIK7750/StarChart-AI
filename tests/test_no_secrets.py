@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -20,6 +22,54 @@ def load_scanner():
 
 
 class NoSecretsScannerTests(unittest.TestCase):
+    def test_paths_file_scans_exact_members_without_echoing_values(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            member = root / "member.txt"
+            member.write_text(
+                "key = sk-" + ("syntheticfixturevalue" * 2) + "\n",
+                encoding="utf-8",
+            )
+            paths_file = root / "members.txt"
+            paths_file.write_text(str(member) + "\n", encoding="utf-8")
+
+            process = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCANNER_PATH),
+                    "--paths-file",
+                    str(paths_file),
+                ],
+                cwd=root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(process.returncode, 0)
+            self.assertIn("PROVIDER_API_KEY", process.stdout)
+            self.assertNotIn(member.read_text(encoding="utf-8").strip(), process.stdout)
+
+    def test_release_asset_mode_allows_only_known_image_binaries(self) -> None:
+        scanner = load_scanner()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            image = root / "logo.png"
+            executable = root / "payload.bin"
+            image.write_bytes(b"\x00synthetic image")
+            executable.write_bytes(b"\x00synthetic executable")
+
+            findings = scanner.scan_paths(
+                [image, executable],
+                allowed_root=root,
+                allow_release_assets=True,
+            )
+
+            self.assertEqual(
+                [(finding.path.name, finding.rule) for finding in findings],
+                [("payload.bin", "BINARY_ARTIFACT")],
+            )
+
     def test_scanner_reports_rule_and_location_without_echoing_secret_values(self):
         scanner = load_scanner()
         synthetic_private = "-----BEGIN " + "PRIVATE KEY-----"

@@ -132,14 +132,14 @@
 - Nginx 只使用 `127.0.0.1:8000` 与 `127.0.0.1:8001` 两个具名 upstream，未提供 8002 公网 location；`/StarChart-AI` 与 `/old-ai-nav` 规范化到尾斜杠，前者剥离前缀并设置 `X-Forwarded-Prefix`。游客端点使用独立 `10r/m`、`burst=5 nodelay`、64 KiB 请求体和 20 秒读写超时。旧 `/chat`、`/health`、`/chat-widget.js` 精确路由位于项目选择页静态回退之前。
 - 项目选择页只链接相对的旧站与 StarChart-AI 两张卡片，不包含脚本、追踪器或内联秘密。旧站如果还依赖未登记的根相对静态资源，必须在服务器只读预检中按实际资源添加精确兼容路由；当前覆盖层有意不增加会覆盖项目选择页的宽泛旧站 fallback。
 - 两个 systemd 单元都以专用非 root 用户运行，固定 `AI_NAV_API_WORKERS=1`，启用 `NoNewPrivileges`、`PrivateTmp` 和只读应用目录，只允许各自的 `/srv` 数据根写入。公网单元固定 8001、deterministic/live off；预览单元固定 loopback 8002、独立数据库和上传目录且没有默认自动启动目标。
-- `install-overlay.sh` 只安装仓库模板、先备份现有 Nginx 配置并仅在 `nginx -t` 成功后 reload，不生成秘密；`preflight.sh` 只读检查端口、目录、环境文件权限、数据库路径隔离和 Nginx 语法；`smoke-test.sh` 只访问本机 8001 健康路径及经本机 Nginx 的公开 deterministic 页面和运行能力端点，不创建账号、不访问 8002。
+- `install-overlay.sh` 只安装仓库模板、先备份现有 Nginx 配置并仅在 `nginx -t` 成功后 reload，不生成秘密；公网与 Provider 预览分别使用 `starchart-ai-http-test`、`starchart-ai-provider-preview` 身份、私有数据目录和专属环境文件组，systemd 显式屏蔽对方目录与环境文件。`preflight.sh` 以 `before-first-start`/`before-provider-preview` 阶段契约解析 `ss` 行并检查旧 8000 存在、新端口处于预期状态，同时只读检查目录、环境文件权限、数据库路径隔离和 Nginx 语法；`smoke-test.sh` 只访问本机 8001 健康路径及经本机 Nginx 的公开 deterministic 页面和运行能力端点，不创建账号、不访问 8002。
 - RED 证据：计划中的 `.\.venv\Scripts\python.exe -m pytest tests/test_http_test_overlay.py -q` 因隔离解释器未安装 pytest，以 `No module named pytest` 退出；匹配 unittest 首次运行 11 项，其中 10 项因覆盖层文件不存在而失败、1 项空目录扫描通过。
 - GREEN 证据：`.\.venv\Scripts\python.exe -m unittest tests.test_http_test_overlay -v` 通过 11 项。Windows 的 WSL `bash` 入口因本机实例权限错误未能运行；随后使用本机 Git for Windows Bash 对三个脚本执行相同 `bash -n` 语法验证，两套 Git Bash 入口均退出码 0。
 - 当前环境不存在可调用的 Nginx 和 `systemd-analyze`，所以真实 `nginx -t -c <staged-config>` 与 systemd unit 加载验证均为 `NOT RUN`。未执行脚本、未访问网络或服务器、未调用 Provider、未读取真实 `.env`，也未进行实际备份、reload、smoke、部署或回滚。最小回滚路径为回退任务 8 提交；覆盖层尚未部署，因此不涉及服务器或数据回滚。
 
 ### 3.10 实施批次：2026-07-26，任务 9（发布包覆盖层与秘密排除）
 
-- 已修改 `scripts/build-release-package.ps1`，把 `deploy/http-test` 加入明确允许根目录；发布选择继续从固定根目录和固定单文件清单开始，不扫描仓库根目录或用户临时文件。`ValidateOnly` 仅新增不含内容的 `deploymentOverlayCount`，本次真实工作树结果为 `fileCount=362`、`forbiddenCount=0`、`deploymentOverlayCount=10`。
+- 已修改 `scripts/build-release-package.ps1`，把 `deploy/http-test` 加入明确允许根目录，并把运行时所需的 `scripts/provision-http-test-account.py` 与发布内容扫描器加入固定单文件清单；发布选择继续从固定根目录和固定单文件清单开始，不扫描仓库根目录或用户临时文件。选择完成和暂存完成后都会对精确成员运行脱敏内容扫描，只有已知图片扩展名允许二进制/大文件。`ValidateOnly` 仅输出不含内容的计数，本次真实工作树结果为 `fileCount=365`、`forbiddenCount=0`、`deploymentOverlayCount=10`。
 - 发布脚本现在先枚举每个允许根目录，再对秘密、运行时数据库、上传内容、日志、备份和 Provider 响应证据执行 fail-closed 检查，不再把这些高风险产物静默过滤后继续构建。环境文件只对文件名为 `env.example` 或以 `.env.example` 结尾的模板开放显式例外；模板内容仍由后续任务 10 的秘密扫描器负责检查。
 - 已新增 `tests/test_release_http_test_overlay.py` 并扩展 `tests/test_http_test_overlay.py`。测试在系统临时目录创建完全合成的最小发布树，验证覆盖层和环境模板进入 zip，普通 `.env`、`.sqlite3`、uploads、备份、日志、systemd 实际环境文件和 Provider 响应证据均使构建失败，并确认 `.tmp_ci.txt`、`.tmp_push_ci.txt`、`.git`、测试结果和本机绝对路径不进入 zip。
 - RED 证据：计划中的 `.\.venv\Scripts\python.exe -m pytest tests/test_release_http_test_overlay.py tests/test_http_test_overlay.py -q` 因隔离解释器未安装 pytest，以 `No module named pytest` 退出；匹配 unittest 首次运行 16 项，按预期暴露覆盖层未入包、缺少 `deploymentOverlayCount`，以及 7 类禁止产物被静默跳过。
@@ -152,7 +152,7 @@
 - 门禁使用一次性运行 ID、系统临时目录和临时数据库，顺序运行 Tasks 1–9 的 Python/Node 功能范围、发布包 `ValidateOnly` 和秘密扫描。每组计数从本次进程输出写入严格结构化结果；生成器只接受名称、schema 和运行 ID 全部匹配的七组结果，任一失败都在原子替换前退出并保留上一份通过证据。
 - 秘密扫描器支持文件和目录的显式项目内路径，只报告相对文件、行号和规则名，不回显匹配值；真实 `.env`、数据库、uploads、二进制、超大文件和项目外路径在读取内容前 fail closed。测试夹具只使用代码中拼接且标记为 `synthetic-test-only` 的合成值；未读取任何真实 `.env`。
 - RED 证据：计划中的 `.\.venv\Scripts\python.exe -m pytest tests/test_http_test_manifest.py tests/test_no_secrets.py -q` 因隔离解释器未安装 pytest，以 `No module named pytest` 退出；匹配 unittest 首次运行 8 项，因构建器和扫描器不存在出现 1 个失败、4 个错误。首次门禁集成还分别暴露 Windows PowerShell 将既有 stderr 警告提升为终止错误、结构化 JSON 带 BOM 两个兼容边界；两次均在 manifest 写入前失败，未覆盖证据。
-- GREEN 证据：`.\.venv\Scripts\python.exe -m unittest tests.test_http_test_manifest tests.test_no_secrets -v` 通过 9 项。最近一次完整 `scripts/verify-http-test-deployment.ps1` 在 28.4 秒内退出码 0，本次真实计数为 runtime 49、policy 8、agentHistory 74、guestAgent 27、frontend 47、overlay 19、release 4；发布验证返回 `fileCount=362`、`forbiddenCount=0`、`deploymentOverlayCount=10`。
+- GREEN 证据：最近一次定向 overlay/release/scanner 组合测试通过 26 项。最近一次完整 `scripts/verify-http-test-deployment.ps1` 退出码 0，本次真实计数为 runtime 49、policy 8、agentHistory 74、guestAgent 27、frontend 47、overlay 20、release 6；发布验证返回 `fileCount=365`、`forbiddenCount=0`、`deploymentOverlayCount=10`。
 - 机器证据的 `sourceCommit` 为 `WORKTREE`，`containsSecrets=false`；`serverDeployment`、`providerPreview`、`https`、`backupRestore` 和 `rollback` 全部保持 `not_run`。未访问网络、服务器或 Provider，未执行部署、HTTPS、备份恢复或回滚。最小回滚路径为回退任务 10 提交；证据为生成文件，不代表服务器或生产通过。
 
 ### 3.12 实施批次：2026-07-27，任务 11（运行手册与文档治理）

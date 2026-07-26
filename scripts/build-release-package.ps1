@@ -1,11 +1,28 @@
 param(
   [string]$OutputPath = "",
+  [string]$PythonExecutable = "",
   [switch]$ValidateOnly
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
+
+if (-not $PythonExecutable) {
+  $venvPython = Join-Path $root ".venv/Scripts/python.exe"
+  if (Test-Path -LiteralPath $venvPython) {
+    $PythonExecutable = $venvPython
+  } else {
+    $pythonCommand = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $pythonCommand) {
+      $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+    }
+    if (-not $pythonCommand) {
+      throw "Python is required to scan release content."
+    }
+    $PythonExecutable = $pythonCommand.Source
+  }
+}
 
 function Get-ReleaseRelativePath {
   param([string]$BasePath, [string]$FullPath)
@@ -28,6 +45,8 @@ $allowedFiles = @(
   "database/schema.sql",
   "database/seed.sql",
   "database/learning_content.sql",
+  "scripts/check-no-secrets.py",
+  "scripts/provision-http-test-account.py",
   "production.env.example",
   "README.md"
 )
@@ -87,6 +106,39 @@ $forbidden = @(
 if ($forbidden.Count -gt 0) {
   throw "Release selection contains forbidden secrets, runtime data, logs, backups, or provider evidence."
 }
+
+function Invoke-ReleaseSecretScan {
+  param(
+    [string]$ScanRoot,
+    [System.IO.FileInfo[]]$SelectedFiles
+  )
+  $scanner = Join-Path $ScanRoot "scripts/check-no-secrets.py"
+  if (-not (Test-Path -LiteralPath $scanner)) {
+    throw "Release secret scanner is missing."
+  }
+  $scanPaths = @($SelectedFiles | ForEach-Object { $_.FullName })
+  $pathList = [IO.Path]::GetTempFileName()
+  try {
+    [IO.File]::WriteAllLines($pathList, $scanPaths, [Text.UTF8Encoding]::new($false))
+    Push-Location $ScanRoot
+    try {
+      $scanOutput = @(
+        & $PythonExecutable $scanner --paths-file $pathList --allow-release-assets 2>&1
+      )
+      if ($LASTEXITCODE -ne 0) {
+        $safeDetails = ($scanOutput -join [Environment]::NewLine)
+        throw "Release content scan failed.`n${safeDetails}"
+      }
+    } finally {
+      Pop-Location
+    }
+  } finally {
+    Remove-Item -LiteralPath $pathList -Force -ErrorAction SilentlyContinue
+  }
+}
+
+Invoke-ReleaseSecretScan -ScanRoot $root -SelectedFiles $files
+
 if ($ValidateOnly) {
   $deploymentOverlayCount = @(
     $files | Where-Object {
@@ -122,6 +174,8 @@ try {
     New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
     Copy-Item -LiteralPath $file.FullName -Destination $destination
   }
+  $stagedFiles = @(Get-ChildItem -LiteralPath $stageRoot -Recurse -File)
+  Invoke-ReleaseSecretScan -ScanRoot $stageRoot -SelectedFiles $stagedFiles
   Compress-Archive -Path (Join-Path $stageRoot "*") -DestinationPath $resolvedOutput
 } finally {
   if (Test-Path -LiteralPath $stageRoot) {

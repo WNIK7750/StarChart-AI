@@ -9,6 +9,7 @@ from typing import NamedTuple, Sequence
 
 MAX_FILE_BYTES = 1024 * 1024
 DATABASE_SUFFIXES = {".db", ".sqlite", ".sqlite3"}
+RELEASE_ASSET_SUFFIXES = {".ico", ".jpg", ".jpeg", ".png", ".webp"}
 IGNORED_DIRECTORY_NAMES = {".git", ".venv", "__pycache__", "node_modules"}
 TEST_PLACEHOLDERS = (
     "synthetic-test-only",
@@ -64,7 +65,11 @@ def _is_within(path: Path, root: Path) -> bool:
     return True
 
 
-def _forbidden_path_finding(path: Path) -> Finding | None:
+def _forbidden_path_finding(
+    path: Path,
+    *,
+    allow_release_assets: bool = False,
+) -> Finding | None:
     if _is_sensitive_env_file(path):
         return Finding(path, 0, "SENSITIVE_ENV_FILE")
     if path.suffix.lower() in DATABASE_SUFFIXES:
@@ -77,13 +82,22 @@ def _forbidden_path_finding(path: Path) -> Finding | None:
         size = path.stat().st_size
     except OSError:
         return Finding(path, 0, "UNREADABLE_FILE")
-    if size > MAX_FILE_BYTES:
+    if size > MAX_FILE_BYTES and not (
+        allow_release_assets and path.suffix.lower() in RELEASE_ASSET_SUFFIXES
+    ):
         return Finding(path, 0, "OVERSIZED_FILE")
     return None
 
 
-def _scan_file(path: Path) -> list[Finding]:
-    forbidden = _forbidden_path_finding(path)
+def _scan_file(
+    path: Path,
+    *,
+    allow_release_assets: bool = False,
+) -> list[Finding]:
+    forbidden = _forbidden_path_finding(
+        path,
+        allow_release_assets=allow_release_assets,
+    )
     if forbidden is not None:
         return [forbidden]
     try:
@@ -92,10 +106,14 @@ def _scan_file(path: Path) -> list[Finding]:
     except OSError:
         return [Finding(path, 0, "UNREADABLE_FILE")]
     if b"\x00" in prefix:
+        if allow_release_assets and path.suffix.lower() in RELEASE_ASSET_SUFFIXES:
+            return []
         return [Finding(path, 0, "BINARY_ARTIFACT")]
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
+        if allow_release_assets and path.suffix.lower() in RELEASE_ASSET_SUFFIXES:
+            return []
         return [Finding(path, 0, "BINARY_ARTIFACT")]
 
     findings: list[Finding] = []
@@ -135,6 +153,7 @@ def scan_paths(
     paths: Sequence[Path],
     *,
     allowed_root: Path,
+    allow_release_assets: bool = False,
 ) -> list[Finding]:
     root = allowed_root.resolve()
     findings: list[Finding] = []
@@ -155,7 +174,9 @@ def scan_paths(
             if resolved in seen:
                 continue
             seen.add(resolved)
-            findings.extend(_scan_file(path))
+            findings.extend(
+                _scan_file(path, allow_release_assets=allow_release_assets)
+            )
     return findings
 
 
@@ -173,14 +194,40 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Scan scoped project paths without echoing matched values."
     )
-    parser.add_argument("--paths", nargs="+", type=Path, required=True)
+    path_source = parser.add_mutually_exclusive_group(required=True)
+    path_source.add_argument("--paths", nargs="+", type=Path)
+    path_source.add_argument(
+        "--paths-file",
+        type=Path,
+        help="UTF-8 file containing one scoped path per line.",
+    )
+    parser.add_argument(
+        "--allow-release-assets",
+        action="store_true",
+        help="Allow only known image asset suffixes to be binary or oversized.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     root = Path.cwd().resolve()
-    findings = scan_paths(args.paths, allowed_root=root)
+    paths = args.paths
+    if args.paths_file is not None:
+        try:
+            paths = [
+                Path(line)
+                for line in args.paths_file.read_text(encoding="utf-8").splitlines()
+                if line
+            ]
+        except (OSError, UnicodeDecodeError):
+            print("PATH_LIST_UNREADABLE")
+            return 1
+    findings = scan_paths(
+        paths,
+        allowed_root=root,
+        allow_release_assets=args.allow_release_assets,
+    )
     for finding in findings:
         print(format_finding(finding, root))
     if findings:

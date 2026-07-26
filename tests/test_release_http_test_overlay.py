@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -22,6 +23,11 @@ class ReleaseHttpTestOverlayTests(unittest.TestCase):
         self.root = Path(self.temporary_directory.name)
         (self.root / "scripts").mkdir()
         shutil.copy2(SCRIPT, self.root / "scripts" / SCRIPT.name)
+        shutil.copy2(
+            ROOT / "scripts" / "check-no-secrets.py",
+            self.root / "scripts" / "check-no-secrets.py",
+        )
+        self._write("scripts/provision-http-test-account.py", "print('provision')\n")
         self._write("backend/run.py", "print('release fixture')\n")
         self._write("deploy/http-test/env.example", "AI_NAV_SECRET_KEY=\n")
         self._write(
@@ -51,6 +57,8 @@ class ReleaseHttpTestOverlayTests(unittest.TestCase):
                 "Bypass",
                 "-File",
                 str(self.root / "scripts" / SCRIPT.name),
+                "-PythonExecutable",
+                sys.executable,
                 *arguments,
             ],
             cwd=self.root,
@@ -88,6 +96,8 @@ class ReleaseHttpTestOverlayTests(unittest.TestCase):
         self.assertIn("deploy/http-test/provider-preview.env.example", members)
         self.assertIn("deploy/http-test/nginx/ai-nav.conf", members)
         self.assertIn("frontend/public.env.example", members)
+        self.assertIn("scripts/provision-http-test-account.py", members)
+        self.assertIn("scripts/check-no-secrets.py", members)
         environment_members = [
             name
             for name in members
@@ -140,6 +150,26 @@ class ReleaseHttpTestOverlayTests(unittest.TestCase):
         self.assertTrue(all(not Path(name).is_absolute() for name in members))
         self.assertTrue(all(":" not in name for name in members))
         self.assertTrue(all(str(self.root).replace("\\", "/") not in name for name in members))
+
+    def test_selected_member_with_provider_key_shape_fails_redacted(self) -> None:
+        synthetic_value = "sk-" + ("syntheticfixturevalue" * 2)
+        self._write("backend/run.py", f'VALUE = "{synthetic_value}"\n')
+
+        result = self._run("-ValidateOnly")
+
+        self.assertNotEqual(result.returncode, 0)
+        combined = result.stdout + result.stderr
+        self.assertIn("PROVIDER_API_KEY", combined)
+        self.assertNotIn(synthetic_value, combined)
+
+    def test_builder_scans_exact_selected_and_staged_member_sets(self) -> None:
+        script = (self.root / "scripts" / SCRIPT.name).read_text(encoding="utf-8")
+        self.assertIn("Invoke-ReleaseSecretScan -ScanRoot $root -SelectedFiles $files", script)
+        self.assertIn("$stagedFiles = @(Get-ChildItem -LiteralPath $stageRoot -Recurse -File)", script)
+        self.assertIn(
+            "Invoke-ReleaseSecretScan -ScanRoot $stageRoot -SelectedFiles $stagedFiles",
+            script,
+        )
 
 
 if __name__ == "__main__":
