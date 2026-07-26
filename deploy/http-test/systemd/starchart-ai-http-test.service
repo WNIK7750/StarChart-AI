@@ -1,0 +1,32 @@
+[Unit]
+Description=StarChart AI public deterministic HTTP test
+After=network.target
+
+[Service]
+Type=simple
+User=starchart-ai
+Group=starchart-ai
+WorkingDirectory=/opt/starchart-ai/current
+EnvironmentFile=/etc/starchart-ai/http-test.env
+Environment=PYTHONPATH=/opt/starchart-ai/current/backend
+Environment=AI_NAV_APP_HOST=127.0.0.1
+Environment=AI_NAV_APP_PORT=8001
+Environment=AI_NAV_API_WORKERS=1
+Environment=AI_NAV_DATABASE_PATH=/srv/starchart-ai-http-test/data/ai_nav.sqlite3
+Environment=AI_NAV_UPLOAD_DIR=/srv/starchart-ai-http-test/uploads
+Environment=AI_NAV_AGENT_PROVIDER=deterministic
+Environment=AI_NAV_AGENT_PROVIDER_LIVE_ENABLED=0
+ExecStart=/opt/starchart-ai/venv/bin/python backend/run.py
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/starchart-ai
+ReadWritePaths=/srv/starchart-ai-http-test
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

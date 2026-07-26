@@ -42,7 +42,7 @@
 | Users 授权与命令边界 | 唯一测试账号的身份、恢复、隐私和删除限制 | 候选，精确文件待实现计划复核 |
 | `scripts/provision-http-test-account.py` | 无命令行秘密的一次性测试账号初始化 | 已完成任务 7 |
 | `tests/` | 前缀、Agent 会话历史、测试账号限制、游客无服务端写入和初始化器回归 | 任务 1 至任务 7 已按范围更新 |
-| `deploy/http-test/` | Nginx、systemd、项目选择页、无秘密环境模板和脚本 | 候选，未创建 |
+| `deploy/http-test/` | Nginx、systemd、项目选择页、无秘密环境模板和脚本 | 已完成任务 8；仅本地结构和 shell 语法已验证 |
 | `docs/04-operations/` | 后续部署、验证、备份与回滚运行手册 | 候选，未创建 |
 | `docs/06-evidence/` | 后续脱敏机器证据 | 候选，未创建 |
 
@@ -125,6 +125,17 @@
 - GREEN 证据：`.\.venv\Scripts\python.exe -m unittest tests.test_provision_http_test_account -v` 通过 7 项；设置 `PYTHONPATH=backend` 后，`.\.venv\Scripts\python.exe -m unittest tests.test_provision_http_test_account tests.test_users_services -q` 通过 56 项，最终运行耗时 23.950 秒。首次未设置 `PYTHONPATH` 的合并回归因无法导入 `app` 快速退出，修正测试环境后同一范围通过；Users 回归仍输出既有 Starlette TestClient 弃用警告。
 - 未读取真实 `.env`、真实账号、凭据或用户数据，未调用 Provider、网络或服务器；未对实际数据库执行初始化。CI、服务器、HTTPS、备份恢复、真实回滚和生产验证仍未执行。最小回滚路径为回退任务 7 提交；若仅回滚一次真实初始化，应在服务停止且已备份的前提下移除该隔离测试数据库和空上传目录，而不是修改项目数据库。
 
+### 3.9 实施批次：2026-07-26，任务 8（隔离 HTTP 测试部署覆盖层）
+
+- 已新增 `deploy/http-test/` 下的两个空敏感值环境模板、Nginx 覆盖配置、两个 systemd 单元、项目选择页和三个部署辅助脚本，并新增 `tests/test_http_test_overlay.py`。覆盖层不包含公网 IP、账号、密码、可用服务端密钥、API Key、数据库、上传内容或本机绝对路径。
+- Nginx 只使用 `127.0.0.1:8000` 与 `127.0.0.1:8001` 两个具名 upstream，未提供 8002 公网 location；`/StarChart-AI` 与 `/old-ai-nav` 规范化到尾斜杠，前者剥离前缀并设置 `X-Forwarded-Prefix`。游客端点使用独立 `10r/m`、`burst=5 nodelay`、64 KiB 请求体和 20 秒读写超时。旧 `/chat`、`/health`、`/chat-widget.js` 精确路由位于项目选择页静态回退之前。
+- 项目选择页只链接相对的旧站与 StarChart-AI 两张卡片，不包含脚本、追踪器或内联秘密。旧站如果还依赖未登记的根相对静态资源，必须在服务器只读预检中按实际资源添加精确兼容路由；当前覆盖层有意不增加会覆盖项目选择页的宽泛旧站 fallback。
+- 两个 systemd 单元都以专用非 root 用户运行，固定 `AI_NAV_API_WORKERS=1`，启用 `NoNewPrivileges`、`PrivateTmp` 和只读应用目录，只允许各自的 `/srv` 数据根写入。公网单元固定 8001、deterministic/live off；预览单元固定 loopback 8002、独立数据库和上传目录且没有默认自动启动目标。
+- `install-overlay.sh` 只安装仓库模板、先备份现有 Nginx 配置并仅在 `nginx -t` 成功后 reload，不生成秘密；`preflight.sh` 只读检查端口、目录、环境文件权限、数据库路径隔离和 Nginx 语法；`smoke-test.sh` 只访问本机 8001 健康路径及经本机 Nginx 的公开 deterministic 页面和运行能力端点，不创建账号、不访问 8002。
+- RED 证据：计划中的 `.\.venv\Scripts\python.exe -m pytest tests/test_http_test_overlay.py -q` 因隔离解释器未安装 pytest，以 `No module named pytest` 退出；匹配 unittest 首次运行 11 项，其中 10 项因覆盖层文件不存在而失败、1 项空目录扫描通过。
+- GREEN 证据：`.\.venv\Scripts\python.exe -m unittest tests.test_http_test_overlay -v` 通过 11 项。Windows 的 WSL `bash` 入口因本机实例权限错误未能运行；随后使用本机 Git for Windows Bash 对三个脚本执行相同 `bash -n` 语法验证，两套 Git Bash 入口均退出码 0。
+- 当前环境不存在可调用的 Nginx 和 `systemd-analyze`，所以真实 `nginx -t -c <staged-config>` 与 systemd unit 加载验证均为 `NOT RUN`。未执行脚本、未访问网络或服务器、未调用 Provider、未读取真实 `.env`，也未进行实际备份、reload、smoke、部署或回滚。最小回滚路径为回退任务 8 提交；覆盖层尚未部署，因此不涉及服务器或数据回滚。
+
 ## 4. 强制同步字段
 
 每次实现或部署更新都必须追加：
@@ -156,10 +167,10 @@
 ## 6. 当前结论
 
 - 设计：已由用户确认。
-- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 7 已完成，其余任务尚未执行。
-- 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文、任务 5 的确定性游客助手后端入口、任务 6 的浏览器游客记忆与身份模式切换和任务 7 的无秘密测试账号初始化器已完成；其余应用功能尚未开始。
-- 部署覆盖层：未创建。
-- 本地专项测试：任务 1 至任务 7 已运行并通过；其余专项测试未运行。
+- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 8 已完成，其余任务尚未执行。
+- 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文、任务 5 的确定性游客助手后端入口、任务 6 的浏览器游客记忆与身份模式切换和任务 7 的无秘密测试账号初始化器已完成；任务 8 没有修改应用源码。
+- 部署覆盖层：已创建；本地结构测试和 shell 语法通过，Linux Nginx/systemd 加载验证仍为 `NOT RUN`。
+- 本地专项测试：任务 1 至任务 8 已按各自范围运行并通过；其余专项测试未运行。
 - 全量门禁：未因本设计重新运行。
 - 服务器部署：未执行。
 - HTTP 测试候选：`NO-GO`，仍等待后续功能、部署覆盖层和服务器验证。

@@ -1,0 +1,26 @@
+[Unit]
+Description=StarChart AI loopback Provider preview
+After=network.target
+
+[Service]
+Type=simple
+User=starchart-ai
+Group=starchart-ai
+WorkingDirectory=/opt/starchart-ai/current
+EnvironmentFile=/etc/starchart-ai/provider-preview.env
+Environment=PYTHONPATH=/opt/starchart-ai/current/backend
+Environment=AI_NAV_APP_HOST=127.0.0.1
+Environment=AI_NAV_APP_PORT=8002
+Environment=AI_NAV_API_WORKERS=1
+Environment=AI_NAV_DATABASE_PATH=/srv/starchart-ai-provider-preview/data/ai_nav.sqlite3
+Environment=AI_NAV_UPLOAD_DIR=/srv/starchart-ai-provider-preview/uploads
+ExecStart=/opt/starchart-ai/venv/bin/python backend/run.py
+Restart=no
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/starchart-ai
+ReadWritePaths=/srv/starchart-ai-provider-preview
+RestrictSUIDSGID=true
+LockPersonality=true
