@@ -119,3 +119,15 @@ test("http-test auth capabilities conservatively hide registration and recovery"
   delete globalThis.localStorage;
   delete globalThis.window;
 });
+
+test("assistant identity changes preserve the isolated guest-memory boundary", () => {
+  const assistant = read("frontend/assets/js/assistant-page.js");
+  assert.match(assistant, /getAccessToken\(\)/);
+  assert.match(assistant, /window\.addEventListener\("ai-nav-auth-changed"/);
+  assert.match(assistant, /renderGuestConversation/);
+  assert.doesNotMatch(assistant, /importGuest|migrateGuest|syncGuest/);
+  const authChangeHandler = assistant.match(
+    /window\.addEventListener\("ai-nav-auth-changed", \(\) => \{([\s\S]*?)\n\}\);/,
+  )?.[1] || "";
+  assert.doesNotMatch(authChangeHandler, /clearGuestConversations|appendGuestMessage|recentGuestHistory/);
+});

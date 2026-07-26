@@ -1,7 +1,7 @@
 # HTTP 测试部署文件索引
 
 > 用途：作为 HTTP 子路径测试部署的文件路由、实现进度、验证证据和回滚同步入口。
-> 状态：设计与实施计划已完成；任务 1 至任务 5 已完成，其中任务 5 新增了不接触用户态写入或真实 Provider 的确定性游客助手入口；部署覆盖层和服务器尚未修改。
+> 状态：设计与实施计划已完成；任务 1 至任务 6 已完成，其中任务 6 新增了有界浏览器游客记忆与不混合数据的身份模式切换；部署覆盖层和服务器尚未修改。
 > 日期：2026-07-26。
 > 权威性：本索引记录本任务事实，不替代当前审计报告、生产发布清单或服务器实际运行记录。
 
@@ -36,10 +36,10 @@
 | `backend/app/api/v1/routers/agent.py` | 登录会话所有权、游客隔离入口、replay 与有界历史上下文编排 | 已完成任务 4、任务 5 |
 | `backend/app/agent/schemas.py` | 严格的登录会话历史消息与游客请求契约 | 已完成任务 4、任务 5 |
 | `frontend/assets/js/api.js` | 前缀感知的 API URL | 候选，未修改 |
-| `frontend/assets/js/assistant-page.js` | 游客本地会话、草案和登录能力切换 | 候选，未修改 |
-| `frontend/assistant.html` | 游客状态与清除入口 | 候选，未修改 |
+| `frontend/assets/js/assistant-page.js` | 游客本地会话、草案和登录能力切换 | 已完成任务 6 |
+| `frontend/assistant.html` | 游客状态与清除入口 | 已完成任务 6 |
 | Users 授权与命令边界 | 唯一测试账号的身份、恢复、隐私和删除限制 | 候选，精确文件待实现计划复核 |
-| `tests/` | 前缀、Agent 会话历史、测试账号限制和游客无服务端写入回归 | 任务 1 至任务 5 已按范围更新 |
+| `tests/` | 前缀、Agent 会话历史、测试账号限制和游客无服务端写入回归 | 任务 1 至任务 6 已按范围更新 |
 | `deploy/http-test/` | Nginx、systemd、项目选择页、无秘密环境模板和脚本 | 候选，未创建 |
 | `docs/04-operations/` | 后续部署、验证、备份与回滚运行手册 | 候选，未创建 |
 | `docs/06-evidence/` | 后续脱敏机器证据 | 候选，未创建 |
@@ -94,6 +94,15 @@
 - 首次未初始化数据库的 observability 回归因缺少 `tool_categories` 表失败；按 CI 方式初始化一次性隔离数据库后同一范围通过，未把该前置条件错误记为产品缺陷。Windows 环境没有可调用的 `powershell` 子进程且默认执行策略阻止脚本，最终在当前 PowerShell 进程使用仅进程级 Bypass 运行相同验证脚本。
 - 未读取真实 `.env`、凭据或用户内容，未调用真实 Provider/网络，未修改服务器、数据库 schema 或迁移。Nginx 独立游客限流仍属于后续任务；在此之前 HTTP 测试候选继续为 `NO-GO`。最小回滚路径为回退任务 5 提交。
 
+### 3.6 实施批次：2026-07-26，任务 6（浏览器游客记忆与身份模式切换）
+
+- 已新增 `frontend/assets/js/guest-agent-memory.js` 与 `tests/test_guest_agent_memory.mjs`，并修改 `frontend/assets/js/assistant-page.js`、`frontend/assistant.html`、`tests/test_agent_frontend.mjs` 和 `tests/test_auth_ui.mjs`。版本化键 `ai-nav:guest-agent:v1` 只保存游客会话消息，不保存 Token、账号资料或服务端标识。
+- 游客存储每次读取都会校验 schema、安全 role、7 天 TTL、最多 10 个会话和每会话 40 条消息；损坏 JSON、错误版本或不安全 role 会自愈为空。发往游客端点的当前会话历史保持完整消息边界，最多 12 条、合计不超过 12,000 字符；清除入口只删除本应用游客键并要求浏览器二次确认。
+- `assistant-page.js` 只以 `getAccessToken()` 和 `ai-nav-auth-changed` 决定模式。未登录请求固定发送至 `/agent/guest/chat`，不调用服务端 session、升级、归档或工作流保存入口；登录后继续使用原 `/agent/chat`、stream、sessions 与 workflows。登录事件不导入、不删除也不发送游客历史，退出后重新显示原浏览器游客历史，已登录写请求的 401 不会静默降级为游客写。
+- 游客工作流草稿可在页面内创建和编辑，但保存入口保持禁用并明确说明不能保存/归档且登录不会自动导入。游客消息仅在响应成功后成对写入本地历史；失败时保留显式重试或恢复输入，不向本地历史追加失败 exchange。
+- RED 证据：首次任务 Node 命令运行 9 个测试单元，其中 6 个通过、3 个按预期因游客存储模块、游客端点/UI 分支和身份事件处理尚不存在而失败。GREEN 证据：`node --test tests/test_guest_agent_memory.mjs tests/test_agent_frontend.mjs tests/test_auth_ui.mjs tests/test_agent_sse.mjs` 通过 17 个测试单元；当前 PowerShell 进程使用仅进程级 Bypass 执行 `scripts/verify-frontend.ps1`，通过 31 项前端入口回归、JavaScript 语法与 whitespace 检查；`git diff --check` 退出码为 0。
+- 计划中的 `powershell -ExecutionPolicy Bypass -File scripts/verify-frontend.ps1` 因当前 Windows 环境没有可调用的 `powershell` 子进程而未启动；随后在当前 PowerShell 进程执行相同脚本并通过。CI、服务器、真实 Provider、网络、HTTPS、备份恢复和生产验证均未执行；未读取真实 `.env` 或凭据，未修改后端、数据库、迁移或服务器。最小回滚路径为回退任务 6 提交。
+
 ## 4. 强制同步字段
 
 每次实现或部署更新都必须追加：
@@ -125,10 +134,10 @@
 ## 6. 当前结论
 
 - 设计：已由用户确认。
-- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 5 已完成，其余任务尚未执行。
-- 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文和任务 5 的确定性游客助手后端入口已完成；其余应用功能尚未开始。
+- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 6 已完成，其余任务尚未执行。
+- 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文、任务 5 的确定性游客助手后端入口和任务 6 的浏览器游客记忆与身份模式切换已完成；其余应用功能尚未开始。
 - 部署覆盖层：未创建。
-- 本地专项测试：任务 1 至任务 5 已运行并通过；其余专项测试未运行。
+- 本地专项测试：任务 1 至任务 6 已运行并通过；其余专项测试未运行。
 - 全量门禁：未因本设计重新运行。
 - 服务器部署：未执行。
 - HTTP 测试候选：`NO-GO`，仍等待后续功能、部署覆盖层和服务器验证。

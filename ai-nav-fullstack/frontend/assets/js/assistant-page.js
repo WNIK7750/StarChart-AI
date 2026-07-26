@@ -1,5 +1,20 @@
-import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPostStream } from "./api.js";
+import {
+  ApiError,
+  apiDelete,
+  apiGet,
+  apiPatch,
+  apiPost,
+  apiPostStream,
+  getAccessToken,
+} from "./api.js";
 import { consumeAgentEventStream } from "./agent-sse.js";
+import {
+  appendGuestMessage,
+  clearGuestConversations,
+  createGuestConversation,
+  loadGuestConversations,
+  recentGuestHistory,
+} from "./guest-agent-memory.js";
 import { saveAgentWorkflow } from "./users-api.js";
 
 const form = document.querySelector("#assistantForm");
@@ -15,7 +30,10 @@ const sessionList = document.querySelector("#sessionList");
 const sessionEmpty = document.querySelector("#sessionEmpty");
 const longConversationList = document.querySelector("#longConversationList");
 const longConversationEmpty = document.querySelector("#longConversationEmpty");
+const longConversationPanel = document.querySelector("#longConversationPanel");
 const newSessionButton = document.querySelector("#newSessionButton");
+const guestMemoryNotice = document.querySelector("#guestMemoryNotice");
+const clearGuestHistoryButton = document.querySelector("#clearGuestHistoryButton");
 const closeSessionsButton = document.querySelector("#closeSessionsButton");
 const mobileSessionsButton = document.querySelector("#mobileSessionsButton");
 const sessionRenameDialog = document.querySelector("#sessionRenameDialog");
@@ -31,6 +49,12 @@ let currentSessionId = null;
 let capabilitiesPromise = null;
 let sessionCreationBlocked = false;
 let renamingSession = null;
+let authenticatedMode = Boolean(getAccessToken());
+let assistantModeInitialized = false;
+
+function isAuthenticatedMode() {
+  return authenticatedMode;
+}
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -227,8 +251,45 @@ function renderLongConversationList(items = []) {
   setCurrentSession(currentSessionId);
 }
 
+function renderGuestSessionList(items = []) {
+  sessionList.replaceChildren();
+  items.forEach((conversation) => {
+    const row = element("div", "session-row");
+    const open = element("button", "session-open");
+    open.type = "button";
+    open.dataset.sessionId = conversation.id;
+    open.append(
+      element("strong", "", conversation.title),
+      element("span", "", `${conversation.messages.length} 条 · 浏览器内`),
+    );
+    row.appendChild(open);
+    sessionList.appendChild(row);
+  });
+  sessionEmpty.hidden = items.length > 0;
+  sessionEmpty.textContent = "还没有浏览器游客对话";
+  setCurrentSession(currentSessionId);
+}
+
+function renderGuestConversation(conversationId = currentSessionId) {
+  const conversations = loadGuestConversations();
+  const conversation = conversations.find((item) => item.id === conversationId)
+    || conversations[0]
+    || null;
+  renderGuestSessionList(conversations);
+  if (!conversation) {
+    setCurrentSession(null);
+    resetConversation();
+    status.textContent = "游客模式 · 浏览器内保存";
+    return;
+  }
+  messages.replaceChildren();
+  conversation.messages.forEach((message) => addMessage(message.role, message.content));
+  setCurrentSession(conversation.id);
+  status.textContent = "游客模式 · 浏览器内保存";
+}
+
 async function loadSessionList() {
-  if (!sessionAvailable) return;
+  if (!isAuthenticatedMode() || !sessionAvailable) return;
   try {
     const [shortResult, longResult] = await Promise.all([
       apiGet("/agent/sessions", { limit: 20, offset: 0 }, { retryCount: 0 }),
@@ -251,6 +312,14 @@ async function loadSessionList() {
 }
 
 async function createSession() {
+  if (!isAuthenticatedMode()) {
+    if (activeController) return;
+    const conversation = createGuestConversation("新对话");
+    renderGuestConversation(conversation.id);
+    closeMobileSessions();
+    input.focus();
+    return;
+  }
   if (!sessionAvailable || activeController) return;
   if (sessionCreationBlocked) {
     status.textContent = "请先完成当前对话";
@@ -279,6 +348,12 @@ async function createSession() {
 
 async function restoreSession(sessionId) {
   if (!sessionId || activeController) return;
+  if (!isAuthenticatedMode()) {
+    renderGuestConversation(sessionId);
+    closeMobileSessions();
+    input.focus();
+    return;
+  }
   status.textContent = "载入会话";
   try {
     const isLong = sessionId.startsWith("agl_");
@@ -307,6 +382,7 @@ async function restoreSession(sessionId) {
 }
 
 async function deleteSession(button) {
+  if (!isAuthenticatedMode()) return;
   const sessionId = button.dataset.deleteSessionId;
   if (!sessionId || activeController) return;
   if (button.dataset.confirmDelete !== "true") {
@@ -350,6 +426,7 @@ function openRenameSession(button) {
 }
 
 async function togglePinnedSession(button) {
+  if (!isAuthenticatedMode()) return;
   const sessionId = button.dataset.pinSessionId;
   if (!sessionId || activeController) return;
   button.disabled = true;
@@ -366,6 +443,7 @@ async function togglePinnedSession(button) {
 }
 
 async function upgradeSession(button) {
+  if (!isAuthenticatedMode()) return;
   const sessionId = button.dataset.upgradeSessionId;
   if (!sessionId || activeController) return;
   button.disabled = true;
@@ -433,11 +511,18 @@ function renderSteps(steps = [], draft = null) {
 }
 
 function buildSaveControl(draft) {
+  const guestDraft = !isAuthenticatedMode();
   const box = element("div", "save-workflow");
   const heading = element("div", "save-workflow-heading");
   heading.append(
     element("strong", "", "保存前检查草稿"),
-    element("p", "", "你可以修改标题、说明和步骤。只有确认后才会写入个人工作流。"),
+    element(
+      "p",
+      "",
+      guestDraft
+        ? "游客可在本页创建和编辑草稿，但不能保存或归档；登录不会自动导入这份草稿。"
+        : "你可以修改标题、说明和步骤。只有确认后才会写入个人工作流。",
+    ),
   );
 
   const editor = element("div", "workflow-draft-editor");
@@ -502,6 +587,7 @@ function buildSaveControl(draft) {
   const button = element("button", "", "保存工作流");
   button.type = "button";
   button.disabled = true;
+  if (guestDraft) button.title = "登录后重新生成并确认草稿，才能保存到个人工作流";
   let stableKey = `agent-${crypto.randomUUID()}`;
   let submittedPayload = null;
 
@@ -524,8 +610,15 @@ function buildSaveControl(draft) {
     })),
   });
 
-  checkbox.addEventListener("change", () => { button.disabled = !checkbox.checked; });
+  checkbox.addEventListener("change", () => {
+    button.disabled = guestDraft || !checkbox.checked;
+  });
   button.addEventListener("click", async () => {
+    if (!isAuthenticatedMode()) {
+      state.textContent = "游客草稿仅保留在本页，不能保存或归档。";
+      state.classList.add("error-line");
+      return;
+    }
     if (!submittedPayload) {
       const candidate = currentPayload();
       if (
@@ -631,12 +724,47 @@ async function canUseStream(signal) {
 }
 
 async function initializeSessions() {
+  if (!isAuthenticatedMode()) return;
   const available = await capabilities();
+  if (!isAuthenticatedMode()) return;
   sessionAvailable = available.sessions === true && available.transportVersion === 1;
   sessionPanel.hidden = !sessionAvailable;
   newSessionButton.hidden = !sessionAvailable;
   mobileSessionsButton.hidden = !sessionAvailable;
   if (sessionAvailable) await loadSessionList();
+}
+
+async function initializeAssistantMode() {
+  const nextAuthenticatedMode = Boolean(getAccessToken());
+  const modeChanged = assistantModeInitialized
+    && nextAuthenticatedMode !== authenticatedMode;
+  if (!modeChanged && assistantModeInitialized) return;
+  if (modeChanged && activeController) {
+    stopActiveRequest();
+  }
+  authenticatedMode = nextAuthenticatedMode;
+  assistantModeInitialized = true;
+  setCurrentSession(null);
+  resetConversation();
+  closeMobileSessions();
+  if (guestMemoryNotice) guestMemoryNotice.hidden = authenticatedMode;
+  if (longConversationPanel) longConversationPanel.hidden = !authenticatedMode;
+
+  if (!authenticatedMode) {
+    sessionAvailable = false;
+    sessionCreationBlocked = false;
+    sessionPanel.hidden = false;
+    newSessionButton.hidden = false;
+    mobileSessionsButton.hidden = false;
+    renderGuestConversation();
+    syncNewSessionButton();
+    return;
+  }
+
+  sessionPanel.hidden = true;
+  newSessionButton.hidden = true;
+  mobileSessionsButton.hidden = true;
+  await initializeSessions();
 }
 
 async function requestStream(payload, controller, stableRequestId) {
@@ -685,8 +813,15 @@ async function requestStream(payload, controller, stableRequestId) {
 async function submitMessage(message, options = {}) {
   const text = String(message || "").trim();
   if (!text || activeController) return;
+  const authenticatedRequest = isAuthenticatedMode();
   const stableRequestId = options.requestId || requestId();
-  const requestSessionId = options.sessionId ?? currentSessionId;
+  let requestSessionId = options.sessionId ?? currentSessionId;
+  if (!authenticatedRequest && !requestSessionId) {
+    const conversation = createGuestConversation(text.slice(0, 40));
+    requestSessionId = conversation.id;
+    setCurrentSession(requestSessionId);
+    renderGuestSessionList(loadGuestConversations());
+  }
   if (!options.retry) {
     addMessage("user", text);
     input.value = "";
@@ -703,9 +838,15 @@ async function submitMessage(message, options = {}) {
       message: text,
       pageContext: { page: "assistant", url: window.location.pathname },
     };
-    if (requestSessionId) payload.sessionId = requestSessionId;
+    if (authenticatedRequest && requestSessionId) payload.sessionId = requestSessionId;
     let response;
-    if (await canUseStream(controller.signal)) {
+    if (!authenticatedRequest) {
+      payload.history = recentGuestHistory(requestSessionId);
+      response = await apiPost("/agent/guest/chat", payload, {
+        signal: controller.signal,
+        headers: { "X-Request-Id": stableRequestId },
+      });
+    } else if (await canUseStream(controller.signal)) {
       const streamed = await requestStream(payload, controller, stableRequestId);
       response = streamed.response;
       answerBody = streamed.answerBody;
@@ -715,9 +856,16 @@ async function submitMessage(message, options = {}) {
         headers: { "X-Request-Id": stableRequestId },
       });
     }
+    if (authenticatedRequest !== isAuthenticatedMode()) return;
+    if (!authenticatedRequest) {
+      appendGuestMessage(requestSessionId, "user", text);
+      appendGuestMessage(requestSessionId, "assistant", response.answer);
+    }
     renderResponse(response, answerBody);
-    if (currentSessionId) await loadSessionList();
+    if (authenticatedRequest && currentSessionId) await loadSessionList();
+    else if (!authenticatedRequest) renderGuestSessionList(loadGuestConversations());
   } catch (error) {
+    if (authenticatedRequest !== isAuthenticatedMode()) return;
     answerBody ||= error?.answerBody || null;
     if (controller.signal.aborted || error?.code === "API_REQUEST_ABORTED") {
       if (answerBody) answerBody.textContent = "已停止生成。";
@@ -728,6 +876,7 @@ async function submitMessage(message, options = {}) {
       document.querySelector('[data-auth-trigger="login"]')?.click();
       status.textContent = "需要登录";
     } else if (canOfferRetry(error, answerBody)) {
+      if (!authenticatedRequest) input.value = text;
       renderRetry(answerBody, {
         message: text,
         requestId: stableRequestId,
@@ -735,6 +884,7 @@ async function submitMessage(message, options = {}) {
       });
       status.textContent = "连接中断";
     } else {
+      if (!authenticatedRequest) input.value = text;
       addMessage("assistant", error.message || "助手暂时不可用，请稍后重试。", true);
       status.textContent = "请求失败";
     }
@@ -808,6 +958,10 @@ sessionRenameCancel?.addEventListener("click", () => {
 });
 sessionRenameForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (!isAuthenticatedMode()) {
+    sessionRenameDialog?.close();
+    return;
+  }
   const title = sessionRenameInput?.value.trim() || "";
   if (!renamingSession?.sessionId || !title) {
     sessionRenameState.textContent = "标题不能为空";
@@ -830,4 +984,14 @@ document.addEventListener("click", (event) => {
   const button = event.target.closest("[data-prompt]");
   if (button) submitMessage(button.dataset.prompt);
 });
-void initializeSessions();
+clearGuestHistoryButton?.addEventListener("click", () => {
+  if (isAuthenticatedMode()) return;
+  if (!window.confirm("确定清除当前浏览器中的全部游客对话吗？此操作无法撤销。")) return;
+  clearGuestConversations();
+  renderGuestConversation(null);
+  status.textContent = "游客记录已清除";
+});
+window.addEventListener("ai-nav-auth-changed", () => {
+  void initializeAssistantMode();
+});
+void initializeAssistantMode();
