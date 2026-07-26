@@ -242,6 +242,7 @@ class SQLiteAuthenticationRepository:
             return conn.execute(
                 """
                 SELECT s.id, s.user_id AS userId, u.user_uid AS userUid,
+                       u.username AS username,
                        u.account_status AS accountStatus, u.token_version AS tokenVersion,
                         s.session_uid AS sessionUid,
                         COALESCE(s.token_family_uid, s.session_uid) AS tokenFamilyUid,
@@ -259,6 +260,7 @@ class SQLiteAuthenticationRepository:
             return conn.execute(
                 """
                 SELECT s.id, s.user_id AS userId, u.user_uid AS userUid,
+                       u.username AS username,
                        u.account_status AS accountStatus, u.token_version AS tokenVersion,
                        s.session_uid AS sessionUid,
                        COALESCE(s.token_family_uid, s.session_uid) AS tokenFamilyUid,
