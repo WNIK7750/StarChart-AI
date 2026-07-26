@@ -4,8 +4,9 @@ from typing import Literal, TypeVar
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import Field
 
-from app.api.v1.dependencies.authorization import require_permission
 from app.api.v1.routers.auth import get_current_user
+from app.api.v1.dependencies.authorization import require_permission
+from app.api.v1.dependencies.deployment_policy import require_deployment_action
 from app.users.audit.service import get_audit_service
 from app.users.common import StrictModel, UsersError, users_error_detail
 from app.users.privacy.service import get_privacy_service
@@ -69,7 +70,11 @@ def consent_status(current_user: dict = Depends(get_current_user)):
     return get_privacy_service().consent_status(current_user["id"])
 
 
-@router.put("/users/me/privacy/consents/{consent_type}", response_model=ConsentResponse)
+@router.put(
+    "/users/me/privacy/consents/{consent_type}",
+    response_model=ConsentResponse,
+    dependencies=[Depends(require_deployment_action("privacy_consent_update"))],
+)
 def update_consent(
     consent_type: Literal["privacy_policy", "agent_memory"],
     payload: ConsentUpdate,
@@ -99,7 +104,11 @@ def update_consent(
     return result
 
 
-@router.post("/users/me/privacy/export", response_model=DataExportResponse)
+@router.post(
+    "/users/me/privacy/export",
+    response_model=DataExportResponse,
+    dependencies=[Depends(require_deployment_action("privacy_export"))],
+)
 def export_data(
     payload: DataExportRequest,
     request: Request,
@@ -124,7 +133,12 @@ def current_deletion_request(current_user: dict = Depends(get_current_user)):
     return get_privacy_service().current_deletion_request(current_user["id"])
 
 
-@router.post("/users/me/privacy/deletion-requests", status_code=201, response_model=DataRequestResponse)
+@router.post(
+    "/users/me/privacy/deletion-requests",
+    status_code=201,
+    response_model=DataRequestResponse,
+    dependencies=[Depends(require_deployment_action("account_deletion_request"))],
+)
 def request_deletion(
     payload: DeletionRequestCreate,
     request: Request,
@@ -151,7 +165,11 @@ def request_deletion(
     return result
 
 
-@router.delete("/users/me/privacy/deletion-requests/{request_uid}", response_model=DataRequestResponse)
+@router.delete(
+    "/users/me/privacy/deletion-requests/{request_uid}",
+    response_model=DataRequestResponse,
+    dependencies=[Depends(require_deployment_action("account_deletion_cancel"))],
+)
 def cancel_deletion(
     request_uid: str,
     request: Request,

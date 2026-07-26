@@ -186,13 +186,25 @@ def get_current_user(authorization: str | None = Header(default=None)) -> dict:
     return _auth_call(lambda: get_authentication_service().current_user_from_token(token))
 
 
-@router.get("/username-available", response_model=UsernameAvailableResponse)
+from app.api.v1.dependencies.deployment_policy import require_deployment_action
+
+
+@router.get(
+    "/username-available",
+    response_model=UsernameAvailableResponse,
+    dependencies=[Depends(require_deployment_action("register"))],
+)
 def username_available(request: Request, username: str = Query(min_length=3, max_length=32)):
     _enforce_rate_limit("username_available", {"ip": _client_ip(request)})
     return _auth_call(lambda: get_authentication_service().username_available(username))
 
 
-@router.post("/register", status_code=201, response_model=AuthResponse)
+@router.post(
+    "/register",
+    status_code=201,
+    response_model=AuthResponse,
+    dependencies=[Depends(require_deployment_action("register"))],
+)
 def register(payload: RegisterRequest, request: Request, response: Response):
     _enforce_rate_limit("register", {"ip": _client_ip(request)})
     result = _auth_call(lambda: get_authentication_service().register(payload.model_dump(), _context(request)))
@@ -200,7 +212,11 @@ def register(payload: RegisterRequest, request: Request, response: Response):
     return _without_refresh_token(result)
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post(
+    "/login",
+    response_model=AuthResponse,
+    dependencies=[Depends(require_deployment_action("login"))],
+)
 def login(payload: LoginRequest, request: Request, response: Response):
     _enforce_rate_limit("login", {"ip": _client_ip(request), "identifier": payload.identifier})
     result = _auth_call(lambda: get_authentication_service().login(payload.model_dump(), _context(request)))
@@ -213,12 +229,21 @@ def _password_reset_start(payload: PasswordResetStartRequest, request: Request):
     return _auth_call(lambda: get_authentication_service().password_reset_start(payload.identifier, _context(request)))
 
 
-@router.post("/password-reset/start", response_model=StatusMessageResponse)
+@router.post(
+    "/password-reset/start",
+    response_model=StatusMessageResponse,
+    dependencies=[Depends(require_deployment_action("recovery"))],
+)
 def password_reset_start(payload: PasswordResetStartRequest, request: Request):
     return _password_reset_start(payload, request)
 
 
-@router.post("/password-reset/security/start", deprecated=True, response_model=StatusMessageResponse)
+@router.post(
+    "/password-reset/security/start",
+    deprecated=True,
+    response_model=StatusMessageResponse,
+    dependencies=[Depends(require_deployment_action("recovery"))],
+)
 def password_reset_security_start(payload: PasswordResetStartRequest, request: Request):
     return _password_reset_start(payload, request)
 
@@ -228,6 +253,7 @@ def password_reset_security_start(payload: PasswordResetStartRequest, request: R
     deprecated=True,
     response_model=StatusMessageResponse,
     responses={410: {"model": ErrorResponse}},
+    dependencies=[Depends(require_deployment_action("recovery"))],
 )
 def password_reset_security_verify(payload: PasswordResetVerifyRequest, request: Request):
     _enforce_rate_limit("password_reset_verify", {"ip": _client_ip(request), "challenge": payload.resetUid})
@@ -251,12 +277,21 @@ def _password_reset_confirm(payload: PasswordResetConfirmRequest, request: Reque
     )
 
 
-@router.post("/password-reset/confirm", response_model=StatusMessageResponse)
+@router.post(
+    "/password-reset/confirm",
+    response_model=StatusMessageResponse,
+    dependencies=[Depends(require_deployment_action("recovery"))],
+)
 def password_reset_confirm(payload: PasswordResetConfirmRequest, request: Request):
     return _password_reset_confirm(payload, request)
 
 
-@router.post("/password-reset/security/confirm", deprecated=True, response_model=StatusMessageResponse)
+@router.post(
+    "/password-reset/security/confirm",
+    deprecated=True,
+    response_model=StatusMessageResponse,
+    dependencies=[Depends(require_deployment_action("recovery"))],
+)
 def password_reset_security_confirm(payload: PasswordResetConfirmRequest, request: Request):
     return _password_reset_confirm(payload, request)
 

@@ -40,6 +40,7 @@ from app.users.authentication.repositories.sqlite import SQLiteAuthenticationRep
 from app.users.authentication.rate_limit import AuthRateLimiter, SQLiteAuthRateLimitRepository
 from app.users.authentication.recovery import MemoryPasswordRecoverySender
 from app.users.authentication.service import AuthenticationService, RequestContext
+from app.users import deployment_policy
 from app.users.common import StrictModel, UsersError
 from app.users.preferences.repositories.sqlite import SQLitePreferencesRepository
 from app.users.preferences.facade import UserPreferencesFacade
@@ -1535,6 +1536,15 @@ class UsersServicesTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "REFRESH_COOKIE_SECURE"):
             validate_runtime_security("production", "x" * 32, ("https://app.example.test",), False)
         validate_runtime_security("production", "x" * 32, ("https://app.example.test",), True)
+
+    def test_deployment_policy_keeps_non_http_test_service_behavior_unchanged(self):
+        for environment in ("development", "test"):
+            with patch.object(deployment_policy, "APP_ENV", environment):
+                deployment_policy.enforce_deployment_action("register")
+                deployment_policy.enforce_deployment_action(
+                    "login",
+                    login_identifier="alice",
+                )
 
     def test_production_runtime_rejects_reset_and_source_tree_storage(self):
         with tempfile.TemporaryDirectory() as temp_dir:
