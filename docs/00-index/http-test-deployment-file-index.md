@@ -1,7 +1,7 @@
 # HTTP 测试部署文件索引
 
 > 用途：作为 HTTP 子路径测试部署的文件路由、实现进度、验证证据和回滚同步入口。
-> 状态：设计与实施计划已完成；任务 1 至任务 7 已完成，Tasks 4–6 Agent 全流程审查发现的两项 Important 竞态已在本地修复并验证；部署覆盖层和服务器尚未修改。
+> 状态：设计与实施计划已完成；任务 1 至任务 9 已完成，Tasks 4–6 Agent 全流程审查发现的两项 Important 竞态已在本地修复并验证；隔离部署覆盖层已纳入 deny-first 发布包，服务器尚未修改。
 > 日期：2026-07-26。
 > 权威性：本索引记录本任务事实，不替代当前审计报告、生产发布清单或服务器实际运行记录。
 
@@ -41,8 +41,8 @@
 | `frontend/assistant.html` | 游客状态与清除入口 | 已完成任务 6 |
 | Users 授权与命令边界 | 唯一测试账号的身份、恢复、隐私和删除限制 | 候选，精确文件待实现计划复核 |
 | `scripts/provision-http-test-account.py` | 无命令行秘密的一次性测试账号初始化 | 已完成任务 7 |
-| `tests/` | 前缀、Agent 会话历史、测试账号限制、游客无服务端写入和初始化器回归 | 任务 1 至任务 7 已按范围更新 |
-| `deploy/http-test/` | Nginx、systemd、项目选择页、无秘密环境模板和脚本 | 已完成任务 8；仅本地结构和 shell 语法已验证 |
+| `tests/` | 前缀、Agent 会话历史、测试账号限制、游客无服务端写入、初始化器和发布包回归 | 任务 1 至任务 9 已按范围更新 |
+| `deploy/http-test/` | Nginx、systemd、项目选择页、无秘密环境模板和脚本 | 已完成任务 8，并在任务 9 纳入发布 allowlist；仅本地结构、shell 语法和发布包选择已验证 |
 | `docs/04-operations/` | 后续部署、验证、备份与回滚运行手册 | 候选，未创建 |
 | `docs/06-evidence/` | 后续脱敏机器证据 | 候选，未创建 |
 
@@ -136,6 +136,15 @@
 - GREEN 证据：`.\.venv\Scripts\python.exe -m unittest tests.test_http_test_overlay -v` 通过 11 项。Windows 的 WSL `bash` 入口因本机实例权限错误未能运行；随后使用本机 Git for Windows Bash 对三个脚本执行相同 `bash -n` 语法验证，两套 Git Bash 入口均退出码 0。
 - 当前环境不存在可调用的 Nginx 和 `systemd-analyze`，所以真实 `nginx -t -c <staged-config>` 与 systemd unit 加载验证均为 `NOT RUN`。未执行脚本、未访问网络或服务器、未调用 Provider、未读取真实 `.env`，也未进行实际备份、reload、smoke、部署或回滚。最小回滚路径为回退任务 8 提交；覆盖层尚未部署，因此不涉及服务器或数据回滚。
 
+### 3.10 实施批次：2026-07-26，任务 9（发布包覆盖层与秘密排除）
+
+- 已修改 `scripts/build-release-package.ps1`，把 `deploy/http-test` 加入明确允许根目录；发布选择继续从固定根目录和固定单文件清单开始，不扫描仓库根目录或用户临时文件。`ValidateOnly` 仅新增不含内容的 `deploymentOverlayCount`，本次真实工作树结果为 `fileCount=362`、`forbiddenCount=0`、`deploymentOverlayCount=10`。
+- 发布脚本现在先枚举每个允许根目录，再对秘密、运行时数据库、上传内容、日志、备份和 Provider 响应证据执行 fail-closed 检查，不再把这些高风险产物静默过滤后继续构建。环境文件只对文件名为 `env.example` 或以 `.env.example` 结尾的模板开放显式例外；模板内容仍由后续任务 10 的秘密扫描器负责检查。
+- 已新增 `tests/test_release_http_test_overlay.py` 并扩展 `tests/test_http_test_overlay.py`。测试在系统临时目录创建完全合成的最小发布树，验证覆盖层和环境模板进入 zip，普通 `.env`、`.sqlite3`、uploads、备份、日志、systemd 实际环境文件和 Provider 响应证据均使构建失败，并确认 `.tmp_ci.txt`、`.tmp_push_ci.txt`、`.git`、测试结果和本机绝对路径不进入 zip。
+- RED 证据：计划中的 `.\.venv\Scripts\python.exe -m pytest tests/test_release_http_test_overlay.py tests/test_http_test_overlay.py -q` 因隔离解释器未安装 pytest，以 `No module named pytest` 退出；匹配 unittest 首次运行 16 项，按预期暴露覆盖层未入包、缺少 `deploymentOverlayCount`，以及 7 类禁止产物被静默跳过。
+- GREEN 证据：`.\.venv\Scripts\python.exe -m unittest tests.test_release_http_test_overlay tests.test_http_test_overlay -v` 通过 16 项，最近一次耗时 6.523 秒；`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-release-package.ps1 -ValidateOnly` 退出码 0 并返回上述三个真实计数；`git diff --check` 退出码 0。
+- 未读取真实 `.env` 或凭据，未调用网络、服务器或 Provider，未生成或部署真实发布版本，Linux Nginx/systemd、HTTPS、备份恢复、服务器 smoke 和回滚仍为 `NOT RUN`。最小回滚路径为回退任务 9 提交；发布包尚未部署，因此不涉及服务器或数据回滚。
+
 ## 4. 强制同步字段
 
 每次实现或部署更新都必须追加：
@@ -167,10 +176,10 @@
 ## 6. 当前结论
 
 - 设计：已由用户确认。
-- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 8 已完成，其余任务尚未执行。
+- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 9 已完成，其余任务尚未执行。
 - 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文、任务 5 的确定性游客助手后端入口、任务 6 的浏览器游客记忆与身份模式切换和任务 7 的无秘密测试账号初始化器已完成；任务 8 没有修改应用源码。
-- 部署覆盖层：已创建；本地结构测试和 shell 语法通过，Linux Nginx/systemd 加载验证仍为 `NOT RUN`。
-- 本地专项测试：任务 1 至任务 8 已按各自范围运行并通过；其余专项测试未运行。
+- 部署覆盖层：已创建并纳入 deny-first 发布包；本地结构测试、shell 语法和发布选择通过，Linux Nginx/systemd 加载验证仍为 `NOT RUN`。
+- 本地专项测试：任务 1 至任务 9 已按各自范围运行并通过；其余专项测试未运行。
 - 全量门禁：未因本设计重新运行。
 - 服务器部署：未执行。
 - HTTP 测试候选：`NO-GO`，仍等待后续功能、部署覆盖层和服务器验证。

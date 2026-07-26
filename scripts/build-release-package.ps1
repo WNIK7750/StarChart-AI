@@ -18,7 +18,8 @@ $allowedRoots = @(
   "backend/app",
   "database/migrations",
   "frontend",
-  "docs/04-operations"
+  "docs/04-operations",
+  "deploy/http-test"
 )
 $allowedFiles = @(
   "backend/requirements.txt",
@@ -32,15 +33,42 @@ $allowedFiles = @(
 )
 $forbiddenPattern = '(^|[\\/])(__pycache__|uploads|test-results|htmlcov|\.idea|\.workbuddy)([\\/]|$)|(\.pyc|\.pyo|\.log|\.sqlite3(|-.*)|\.coverage|\.env)$|frontend - 副本'
 
+$excludedPattern = '(^|[\\/])(__pycache__|test-results|htmlcov|\.idea|\.workbuddy)([\\/]|$)|(\.pyc|\.pyo|\.coverage)$'
+$sensitivePattern = '(^|[\\/])(uploads|logs?|backups?)([\\/]|$)|(\.log|\.sqlite3(|-.*)|\.sqlite|\.db|\.bak|\.backup|\.old|\.orig|\.dump|\.zip|\.7z|\.tar|\.tar\.gz|\.sql\.gz)$|(^|[\\/])[^\\/]*(backup|dump)[^\\/]*$|(^|[\\/])[^\\/]*provider[^\\/]*(response|evidence)[^\\/]*$|(^|[\\/])[^\\/]*(response|evidence)[^\\/]*provider[^\\/]*$'
+
+function Test-EnvironmentTemplate {
+  param([string]$RelativePath)
+  $leaf = Split-Path -Leaf $RelativePath
+  return $leaf -eq "env.example" -or $leaf.EndsWith(".env.example", [StringComparison]::OrdinalIgnoreCase)
+}
+
+function Test-ForbiddenReleasePath {
+  param([string]$RelativePath)
+  $leaf = Split-Path -Leaf $RelativePath
+  if (($leaf -eq ".env" -or $leaf -match '(?i)\.env($|\.)') -and -not (Test-EnvironmentTemplate $RelativePath)) {
+    return $true
+  }
+  return $RelativePath -match $sensitivePattern
+}
+
 $files = @()
 foreach ($relativeRoot in $allowedRoots) {
   $sourceRoot = Join-Path $root $relativeRoot
   if (Test-Path -LiteralPath $sourceRoot) {
-    $files += Get-ChildItem -LiteralPath $sourceRoot -Recurse -File |
-      Where-Object {
+    $rootFiles = @(Get-ChildItem -LiteralPath $sourceRoot -Recurse -File)
+    $forbidden = @(
+      $rootFiles | Where-Object {
         $relative = Get-ReleaseRelativePath -BasePath $root -FullPath $_.FullName
-        $relative -notmatch $forbiddenPattern
+        Test-ForbiddenReleasePath $relative
       }
+    )
+    if ($forbidden.Count -gt 0) {
+      throw "Release selection contains forbidden secrets, runtime data, logs, backups, or provider evidence."
+    }
+    $files += $rootFiles | Where-Object {
+      $relative = Get-ReleaseRelativePath -BasePath $root -FullPath $_.FullName
+      $relative -notmatch $excludedPattern -and $relative -notmatch $forbiddenPattern
+    }
   }
 }
 foreach ($relativeFile in $allowedFiles) {
@@ -52,14 +80,25 @@ foreach ($relativeFile in $allowedFiles) {
 $files = $files | Sort-Object FullName -Unique
 $forbidden = @(
   $files | Where-Object {
-    (Get-ReleaseRelativePath -BasePath $root -FullPath $_.FullName) -match $forbiddenPattern
+    $relative = Get-ReleaseRelativePath -BasePath $root -FullPath $_.FullName
+    Test-ForbiddenReleasePath $relative
   }
 )
 if ($forbidden.Count -gt 0) {
-  throw "Release selection contains forbidden local artifacts."
+  throw "Release selection contains forbidden secrets, runtime data, logs, backups, or provider evidence."
 }
 if ($ValidateOnly) {
-  [ordered]@{ passed = $true; fileCount = $files.Count; forbiddenCount = 0 } |
+  $deploymentOverlayCount = @(
+    $files | Where-Object {
+      (Get-ReleaseRelativePath -BasePath $root -FullPath $_.FullName) -like "deploy\http-test\*"
+    }
+  ).Count
+  [ordered]@{
+    passed = $true
+    fileCount = $files.Count
+    forbiddenCount = 0
+    deploymentOverlayCount = $deploymentOverlayCount
+  } |
     ConvertTo-Json -Compress
   exit 0
 }
