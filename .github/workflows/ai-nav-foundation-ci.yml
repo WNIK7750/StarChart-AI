@@ -42,6 +42,8 @@ jobs:
     env:
       AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
       AI_NAV_DISABLE_DOTENV: "1"
+      AI_NAV_DATABASE_PATH: ${{ runner.temp }}\ai-nav-quality.sqlite3
+      PYTHONPATH: backend
       PYTHONUNBUFFERED: "1"
     defaults:
       run:
@@ -59,6 +61,9 @@ jobs:
       - name: 安装后端依赖
         shell: pwsh
         run: python -m pip install --disable-pip-version-check -r backend\requirements-dev.txt
+      - name: 初始化隔离测试数据库
+        shell: pwsh
+        run: python -c "from app.db.database import initialize_database; initialize_database()"
       - name: 验证质量门禁
         shell: pwsh
         timeout-minutes: 15
@@ -71,6 +76,8 @@ jobs:
     env:
       AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
       AI_NAV_DISABLE_DOTENV: "1"
+      AI_NAV_DATABASE_PATH: ${{ runner.temp }}\ai-nav-foundation.sqlite3
+      PYTHONPATH: backend
       PYTHONUNBUFFERED: "1"
     defaults:
       run:
@@ -103,6 +110,8 @@ jobs:
     env:
       AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
       AI_NAV_DISABLE_DOTENV: "1"
+      AI_NAV_DATABASE_PATH: ${{ runner.temp }}\ai-nav-agent.sqlite3
+      PYTHONPATH: backend
       PYTHONUNBUFFERED: "1"
     defaults:
       run:
@@ -123,6 +132,9 @@ jobs:
       - name: 安装后端依赖
         shell: pwsh
         run: python -m pip install --disable-pip-version-check -r backend\requirements.txt
+      - name: 初始化隔离测试数据库
+        shell: pwsh
+        run: python -c "from app.db.database import initialize_database; initialize_database()"
       - name: 验证 Agent 地基
         shell: pwsh
         timeout-minutes: 10
