@@ -1,4 +1,7 @@
+import asyncio
 from collections import OrderedDict
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
 import json
@@ -15,6 +18,11 @@ from app.core.config import (
 
 class AgentReplayConflict(Exception):
     pass
+
+
+def _privacy_key(principal: int | str, request_id: str) -> bytes:
+    value = f"{type(principal).__name__}:{principal}\0{request_id}"
+    return sha256(value.encode("utf-8")).digest()
 
 
 def request_fingerprint(
@@ -55,7 +63,7 @@ class AgentResponseReplayCache:
         self.max_entries = max_entries
         self.clock = clock
         self._entries: OrderedDict[
-            tuple[int, str],
+            bytes,
             tuple[float, str, AgentStructuredResponse],
         ] = OrderedDict()
         self._lock = Lock()
@@ -75,14 +83,14 @@ class AgentResponseReplayCache:
 
     def get(
         self,
-        user_id: int,
+        principal: int | str,
         request_id: str,
         fingerprint: str,
     ) -> AgentStructuredResponse | None:
         with self._lock:
             now = self.clock()
             self._purge_expired(now)
-            key = (user_id, request_id)
+            key = _privacy_key(principal, request_id)
             entry = self._entries.get(key)
             if entry is None:
                 return None
@@ -94,7 +102,7 @@ class AgentResponseReplayCache:
 
     def put(
         self,
-        user_id: int,
+        principal: int | str,
         request_id: str,
         fingerprint: str,
         response: AgentStructuredResponse,
@@ -102,7 +110,7 @@ class AgentResponseReplayCache:
         with self._lock:
             now = self.clock()
             self._purge_expired(now)
-            key = (user_id, request_id)
+            key = _privacy_key(principal, request_id)
             existing = self._entries.get(key)
             if existing is not None and existing[1] != fingerprint:
                 raise AgentReplayConflict()
@@ -116,9 +124,50 @@ class AgentResponseReplayCache:
                 self._entries.popitem(last=False)
 
 
+@dataclass(slots=True)
+class _SingleFlightEntry:
+    lock: asyncio.Lock
+    references: int = 0
+
+
+class AgentReplaySingleFlight:
+    """Serialize only requests sharing one privacy-safe replay key."""
+
+    def __init__(self):
+        self._entries: dict[bytes, _SingleFlightEntry] = {}
+        self._lock = Lock()
+
+    @asynccontextmanager
+    async def slot(self, principal: int | str, request_id: str):
+        key = _privacy_key(principal, request_id)
+        with self._lock:
+            entry = self._entries.get(key)
+            if entry is None:
+                entry = _SingleFlightEntry(lock=asyncio.Lock())
+                self._entries[key] = entry
+            entry.references += 1
+        acquired = False
+        try:
+            await entry.lock.acquire()
+            acquired = True
+            yield
+        finally:
+            if acquired:
+                entry.lock.release()
+            with self._lock:
+                entry.references -= 1
+                if entry.references == 0 and self._entries.get(key) is entry:
+                    self._entries.pop(key, None)
+
+
 @lru_cache(maxsize=1)
 def get_agent_response_replay_cache() -> AgentResponseReplayCache:
     return AgentResponseReplayCache(
         ttl_seconds=AGENT_RESPONSE_REPLAY_TTL_SECONDS,
         max_entries=AGENT_RESPONSE_REPLAY_MAX_ENTRIES,
     )
+
+
+@lru_cache(maxsize=1)
+def get_agent_replay_singleflight() -> AgentReplaySingleFlight:
+    return AgentReplaySingleFlight()

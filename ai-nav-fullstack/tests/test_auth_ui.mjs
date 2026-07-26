@@ -7,6 +7,31 @@ import { pathToFileURL } from "node:url";
 const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
+function accessToken(subject, nonce) {
+  const encode = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${encode({ alg: "none" })}.${encode({ sub: subject, nonce })}.signature`;
+}
+
+function deferred() {
+  let resolve;
+  const promise = new Promise((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
+}
+
+async function applyCurrentOperation(epoch, pending, apply, onStart = null) {
+  const operation = epoch.beginOperation();
+  onStart?.(operation);
+  try {
+    const result = await pending;
+    if (!operation.isCurrent()) return;
+    apply(result);
+  } finally {
+    operation.finish();
+  }
+}
+
 test("login dialog uses the site logo until a recent account avatar exists", () => {
   const source = read("frontend/assets/js/auth-ui.js");
   assert.match(source, /DEFAULT_AUTH_AVATAR = "assets\/img\/logo\.png"/);
@@ -123,6 +148,8 @@ test("http-test auth capabilities conservatively hide registration and recovery"
 test("assistant identity changes preserve the isolated guest-memory boundary", () => {
   const assistant = read("frontend/assets/js/assistant-page.js");
   assert.match(assistant, /getAccessToken\(\)/);
+  assert.match(assistant, /new AssistantSessionEpoch\(getAccessToken\(\)\)/);
+  assert.match(assistant, /sessionEpoch\.beginOperation\(\)/);
   assert.match(assistant, /window\.addEventListener\("ai-nav-auth-changed"/);
   assert.match(assistant, /renderGuestConversation/);
   assert.doesNotMatch(assistant, /importGuest|migrateGuest|syncGuest/);
@@ -130,4 +157,81 @@ test("assistant identity changes preserve the isolated guest-memory boundary", (
     /window\.addEventListener\("ai-nav-auth-changed", \(\) => \{([\s\S]*?)\n\}\);/,
   )?.[1] || "";
   assert.doesNotMatch(authChangeHandler, /clearGuestConversations|appendGuestMessage|recentGuestHistory/);
+});
+
+test("assistant session list and detail completions cannot render after identity transitions", async () => {
+  const moduleUrl = pathToFileURL(
+    path.join(root, "frontend/assets/js/assistant-session-epoch.js"),
+  );
+  const { AssistantSessionEpoch } = await import(`${moduleUrl.href}?test=${Date.now()}`);
+  const alice = accessToken("usr_alice", "first");
+  const bob = accessToken("usr_bob", "first");
+  const epoch = new AssistantSessionEpoch(alice);
+  const pendingList = deferred();
+  const pendingDetail = deferred();
+  const rendered = { titles: [], messages: [] };
+  let listSignal;
+  let detailSignal;
+
+  const listCompletion = applyCurrentOperation(epoch, pendingList.promise, (items) => {
+    rendered.titles = items;
+  }, (operation) => { listSignal = operation.signal; });
+  epoch.transition("");
+  assert.equal(listSignal.aborted, true);
+  pendingList.resolve(["Alice private session"]);
+  await listCompletion;
+
+  epoch.transition(alice);
+  const detailCompletion = applyCurrentOperation(epoch, pendingDetail.promise, (items) => {
+    rendered.messages = items;
+  }, (operation) => { detailSignal = operation.signal; });
+  epoch.transition(bob);
+  assert.equal(detailSignal.aborted, true);
+  pendingDetail.resolve(["Alice private message"]);
+  await detailCompletion;
+
+  assert.deepEqual(rendered, { titles: [], messages: [] });
+});
+
+test("assistant session mutations cannot update guest or another user after transition", async () => {
+  const moduleUrl = pathToFileURL(
+    path.join(root, "frontend/assets/js/assistant-session-epoch.js"),
+  );
+  const { AssistantSessionEpoch } = await import(`${moduleUrl.href}?test=${Date.now()}`);
+  const epoch = new AssistantSessionEpoch(accessToken("usr_alice", "first"));
+  const pendingCreate = deferred();
+  const state = { currentSessionId: "guest-session" };
+  let mutationSignal;
+
+  const completion = applyCurrentOperation(epoch, pendingCreate.promise, (sessionId) => {
+    state.currentSessionId = sessionId;
+  }, (operation) => { mutationSignal = operation.signal; });
+  epoch.transition(accessToken("usr_bob", "first"));
+  assert.equal(mutationSignal.aborted, true);
+  pendingCreate.resolve("alice-server-session");
+  await completion;
+
+  assert.equal(state.currentSessionId, "guest-session");
+});
+
+test("assistant same-user token refresh keeps the current session operation valid", async () => {
+  const moduleUrl = pathToFileURL(
+    path.join(root, "frontend/assets/js/assistant-session-epoch.js"),
+  );
+  const { AssistantSessionEpoch } = await import(`${moduleUrl.href}?test=${Date.now()}`);
+  const epoch = new AssistantSessionEpoch(accessToken("usr_alice", "first"));
+  const pendingList = deferred();
+  const rendered = [];
+  let refreshSignal;
+
+  const completion = applyCurrentOperation(epoch, pendingList.promise, (items) => {
+    rendered.push(...items);
+  }, (operation) => { refreshSignal = operation.signal; });
+  const changed = epoch.transition(accessToken("usr_alice", "refreshed"));
+  assert.equal(refreshSignal.aborted, false);
+  pendingList.resolve(["Alice current session"]);
+  await completion;
+
+  assert.equal(changed, false);
+  assert.deepEqual(rendered, ["Alice current session"]);
 });

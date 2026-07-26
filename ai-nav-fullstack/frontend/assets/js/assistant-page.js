@@ -8,6 +8,7 @@ import {
   getAccessToken,
 } from "./api.js";
 import { consumeAgentEventStream } from "./agent-sse.js";
+import { AssistantSessionEpoch } from "./assistant-session-epoch.js";
 import {
   appendGuestMessage,
   clearGuestConversations,
@@ -49,6 +50,7 @@ let currentSessionId = null;
 let capabilitiesPromise = null;
 let sessionCreationBlocked = false;
 let renamingSession = null;
+const sessionEpoch = new AssistantSessionEpoch(getAccessToken());
 let authenticatedMode = Boolean(getAccessToken());
 let assistantModeInitialized = false;
 
@@ -290,14 +292,25 @@ function renderGuestConversation(conversationId = currentSessionId) {
 
 async function loadSessionList() {
   if (!isAuthenticatedMode() || !sessionAvailable) return;
+  const operation = sessionEpoch.beginOperation();
   try {
     const [shortResult, longResult] = await Promise.all([
-      apiGet("/agent/sessions", { limit: 20, offset: 0 }, { retryCount: 0 }),
-      apiGet("/agent/long-conversations", { limit: 20, offset: 0 }, { retryCount: 0 }),
+      apiGet(
+        "/agent/sessions",
+        { limit: 20, offset: 0 },
+        { retryCount: 0, signal: operation.signal },
+      ),
+      apiGet(
+        "/agent/long-conversations",
+        { limit: 20, offset: 0 },
+        { retryCount: 0, signal: operation.signal },
+      ),
     ]);
+    if (!operation.isCurrent()) return;
     renderSessionList(shortResult.items || []);
     renderLongConversationList(longResult.items || []);
   } catch (error) {
+    if (!operation.isCurrent()) return;
     if (error?.status === 401) {
       sessionPanel.hidden = true;
       return;
@@ -308,6 +321,8 @@ async function loadSessionList() {
     longConversationEmpty.textContent = "长期对话暂时不可用";
     sessionCreationBlocked = true;
     syncNewSessionButton();
+  } finally {
+    operation.finish();
   }
 }
 
@@ -325,24 +340,31 @@ async function createSession() {
     status.textContent = "请先完成当前对话";
     return;
   }
+  const operation = sessionEpoch.beginOperation();
   newSessionButton.disabled = true;
   try {
-    const result = await apiPost("/agent/sessions", {});
+    const result = await apiPost("/agent/sessions", {}, { signal: operation.signal });
+    if (!operation.isCurrent()) return;
     resetConversation();
     setCurrentSession(result.session.sessionId);
     status.textContent = "短期会话已开启";
     await loadSessionList();
+    if (!operation.isCurrent()) return;
     closeMobileSessions();
     input.focus();
   } catch (error) {
+    if (!operation.isCurrent()) return;
     if (error?.code === "AGENT_SESSION_UNSTARTED_EXISTS") {
       status.textContent = "请先完成当前对话";
       await loadSessionList();
+      if (!operation.isCurrent()) return;
     } else {
       addMessage("assistant", error.message || "无法创建短期会话。", true);
     }
   } finally {
-    syncNewSessionButton();
+    const current = operation.isCurrent();
+    operation.finish();
+    if (current) syncNewSessionButton();
   }
 }
 
@@ -354,13 +376,15 @@ async function restoreSession(sessionId) {
     input.focus();
     return;
   }
+  const operation = sessionEpoch.beginOperation();
   status.textContent = "载入会话";
   try {
     const isLong = sessionId.startsWith("agl_");
     const result = await apiGet(conversationEndpoint(sessionId), {
       messageLimit: 100,
       messageOffset: 0,
-    }, { retryCount: 0 });
+    }, { retryCount: 0, signal: operation.signal });
+    if (!operation.isCurrent()) return;
     messages.replaceChildren();
     (result.messages || []).forEach((message) => addMessage(message.role, message.content));
     if (!result.messages?.length) resetConversation();
@@ -369,15 +393,19 @@ async function restoreSession(sessionId) {
     closeMobileSessions();
     input.focus();
   } catch (error) {
+    if (!operation.isCurrent()) return;
     if (
       error?.code === "AGENT_SESSION_NOT_FOUND"
       || error?.code === "AGENT_LONG_CONVERSATION_NOT_FOUND"
     ) {
       setCurrentSession(null);
       await loadSessionList();
+      if (!operation.isCurrent()) return;
     }
     addMessage("assistant", error.message || "无法载入短期会话。", true);
     status.textContent = "载入失败";
+  } finally {
+    operation.finish();
   }
 }
 
@@ -396,19 +424,25 @@ async function deleteSession(button) {
     }, 4000);
     return;
   }
+  const operation = sessionEpoch.beginOperation();
   button.disabled = true;
   try {
-    await apiDelete(conversationEndpoint(sessionId));
+    await apiDelete(conversationEndpoint(sessionId), { signal: operation.signal });
+    if (!operation.isCurrent()) return;
     if (currentSessionId === sessionId) {
       setCurrentSession(null);
       resetConversation();
       status.textContent = "会话已删除";
     }
     await loadSessionList();
+    if (!operation.isCurrent()) return;
   } catch (error) {
+    if (!operation.isCurrent()) return;
     button.disabled = false;
     button.textContent = "重试";
     addMessage("assistant", error.message || "删除会话失败。", true);
+  } finally {
+    operation.finish();
   }
 }
 
@@ -429,16 +463,22 @@ async function togglePinnedSession(button) {
   if (!isAuthenticatedMode()) return;
   const sessionId = button.dataset.pinSessionId;
   if (!sessionId || activeController) return;
+  const operation = sessionEpoch.beginOperation();
   button.disabled = true;
   try {
     await apiPatch(conversationEndpoint(sessionId), {
       pinned: button.dataset.pinned !== "true",
-    });
+    }, { signal: operation.signal });
+    if (!operation.isCurrent()) return;
     await loadSessionList();
+    if (!operation.isCurrent()) return;
   } catch (error) {
+    if (!operation.isCurrent()) return;
     addMessage("assistant", error.message || "无法更新会话置顶状态。", true);
   } finally {
-    button.disabled = false;
+    const current = operation.isCurrent();
+    operation.finish();
+    if (current) button.disabled = false;
   }
 }
 
@@ -446,22 +486,32 @@ async function upgradeSession(button) {
   if (!isAuthenticatedMode()) return;
   const sessionId = button.dataset.upgradeSessionId;
   if (!sessionId || activeController) return;
+  const operation = sessionEpoch.beginOperation();
   button.disabled = true;
   try {
-    const result = await apiPost(`/agent/sessions/${sessionId}/upgrade`, {});
+    const result = await apiPost(
+      `/agent/sessions/${sessionId}/upgrade`,
+      {},
+      { signal: operation.signal },
+    );
+    if (!operation.isCurrent()) return;
     if (currentSessionId === sessionId) {
       setCurrentSession(result.conversation.conversationId);
       status.textContent = "已升级为长期对话";
     }
     await loadSessionList();
+    if (!operation.isCurrent()) return;
   } catch (error) {
+    if (!operation.isCurrent()) return;
     if (error?.code === "AGENT_LONG_CONVERSATION_LIMIT_REACHED") {
       status.textContent = "最多保存三个长期对话";
     } else {
       addMessage("assistant", error.message || "无法升级为长期对话。", true);
     }
   } finally {
-    button.disabled = false;
+    const current = operation.isCurrent();
+    operation.finish();
+    if (current) button.disabled = false;
   }
 }
 
@@ -711,9 +761,17 @@ function renderResponse(response, answerBody = null) {
 
 async function capabilities(signal) {
   if (capabilitiesPromise) return capabilitiesPromise;
-  capabilitiesPromise = apiGet("/agent/capabilities", {}, { retryCount: 0, signal })
-    .catch(() => ({ stream: false, sessions: false, transportVersion: 1 }));
-  return capabilitiesPromise;
+  try {
+    const result = await apiGet("/agent/capabilities", {}, { retryCount: 0, signal });
+    if (signal?.aborted) throw signal.reason || new DOMException("Aborted", "AbortError");
+    capabilitiesPromise = Promise.resolve(result);
+    return result;
+  } catch (error) {
+    if (signal?.aborted || error?.code === "API_REQUEST_ABORTED") throw error;
+    const fallback = { stream: false, sessions: false, transportVersion: 1 };
+    capabilitiesPromise = Promise.resolve(fallback);
+    return fallback;
+  }
 }
 
 async function canUseStream(signal) {
@@ -725,25 +783,40 @@ async function canUseStream(signal) {
 
 async function initializeSessions() {
   if (!isAuthenticatedMode()) return;
-  const available = await capabilities();
-  if (!isAuthenticatedMode()) return;
-  sessionAvailable = available.sessions === true && available.transportVersion === 1;
-  sessionPanel.hidden = !sessionAvailable;
-  newSessionButton.hidden = !sessionAvailable;
-  mobileSessionsButton.hidden = !sessionAvailable;
-  if (sessionAvailable) await loadSessionList();
+  const operation = sessionEpoch.beginOperation();
+  try {
+    const available = await capabilities(operation.signal);
+    if (!operation.isCurrent()) return;
+    sessionAvailable = available.sessions === true && available.transportVersion === 1;
+    sessionPanel.hidden = !sessionAvailable;
+    newSessionButton.hidden = !sessionAvailable;
+    mobileSessionsButton.hidden = !sessionAvailable;
+    if (sessionAvailable) {
+      await loadSessionList();
+      if (!operation.isCurrent()) return;
+    }
+  } catch (error) {
+    if (operation.isCurrent()) throw error;
+  } finally {
+    operation.finish();
+  }
 }
 
 async function initializeAssistantMode() {
-  const nextAuthenticatedMode = Boolean(getAccessToken());
-  const modeChanged = assistantModeInitialized
-    && nextAuthenticatedMode !== authenticatedMode;
-  if (!modeChanged && assistantModeInitialized) return;
-  if (modeChanged && activeController) {
+  const token = getAccessToken();
+  const identityChanged = sessionEpoch.transition(token);
+  const nextAuthenticatedMode = Boolean(token);
+  if (!identityChanged && assistantModeInitialized) return;
+  if (identityChanged && activeController) {
     stopActiveRequest();
+    activeController = null;
+    sendButton.disabled = false;
+    stopButton.hidden = true;
   }
   authenticatedMode = nextAuthenticatedMode;
   assistantModeInitialized = true;
+  renamingSession = null;
+  if (sessionRenameDialog?.open) sessionRenameDialog.close();
   setCurrentSession(null);
   resetConversation();
   closeMobileSessions();
@@ -767,7 +840,7 @@ async function initializeAssistantMode() {
   await initializeSessions();
 }
 
-async function requestStream(payload, controller, stableRequestId) {
+async function requestStream(payload, controller, stableRequestId, operation) {
   let answerBody = null;
   let completedResponse = null;
   let started = false;
@@ -776,7 +849,9 @@ async function requestStream(payload, controller, stableRequestId) {
       signal: controller.signal,
       headers: { "X-Request-Id": stableRequestId },
     });
+    if (!operation.isCurrent()) throw operation.signal.reason;
     await consumeAgentEventStream(response, async (event) => {
+      if (!operation.isCurrent()) return;
       if (event.event === "response.started") {
         started = true;
         answerBody = addMessage("assistant", "");
@@ -788,9 +863,11 @@ async function requestStream(payload, controller, stableRequestId) {
         completedResponse = event.response;
       }
     }, { signal: controller.signal });
+    if (!operation.isCurrent()) throw operation.signal.reason;
     if (!completedResponse) throw new Error("流式回答缺少完成事件");
     return { response: completedResponse, answerBody };
   } catch (error) {
+    if (!operation.isCurrent()) throw operation.signal.reason || error;
     const canFallback = !started && (
       [404, 405, 503].includes(error.status)
       || ["AGENT_STREAM_DISABLED", "API_STREAM_CONTENT_TYPE_INVALID"].includes(error.code)
@@ -800,13 +877,12 @@ async function requestStream(payload, controller, stableRequestId) {
       throw error;
     }
     streamAvailable = false;
-    return {
-      response: await apiPost("/agent/chat", payload, {
-        signal: controller.signal,
-        headers: { "X-Request-Id": stableRequestId },
-      }),
-      answerBody: null,
-    };
+    const response = await apiPost("/agent/chat", payload, {
+      signal: controller.signal,
+      headers: { "X-Request-Id": stableRequestId },
+    });
+    if (!operation.isCurrent()) throw operation.signal.reason;
+    return { response, answerBody: null };
   }
 }
 
@@ -826,6 +902,7 @@ async function submitMessage(message, options = {}) {
     addMessage("user", text);
     input.value = "";
   }
+  const operation = sessionEpoch.beginOperation();
   const controller = new AbortController();
   activeController = controller;
   sendButton.disabled = true;
@@ -846,26 +923,41 @@ async function submitMessage(message, options = {}) {
         signal: controller.signal,
         headers: { "X-Request-Id": stableRequestId },
       });
-    } else if (await canUseStream(controller.signal)) {
-      const streamed = await requestStream(payload, controller, stableRequestId);
-      response = streamed.response;
-      answerBody = streamed.answerBody;
+      if (!operation.isCurrent()) return;
     } else {
-      response = await apiPost("/agent/chat", payload, {
-        signal: controller.signal,
-        headers: { "X-Request-Id": stableRequestId },
-      });
+      const useStream = await canUseStream(controller.signal);
+      if (!operation.isCurrent()) return;
+      if (useStream) {
+        const streamed = await requestStream(
+          payload,
+          controller,
+          stableRequestId,
+          operation,
+        );
+        if (!operation.isCurrent()) return;
+        response = streamed.response;
+        answerBody = streamed.answerBody;
+      } else {
+        response = await apiPost("/agent/chat", payload, {
+          signal: controller.signal,
+          headers: { "X-Request-Id": stableRequestId },
+        });
+        if (!operation.isCurrent()) return;
+      }
     }
-    if (authenticatedRequest !== isAuthenticatedMode()) return;
     if (!authenticatedRequest) {
       appendGuestMessage(requestSessionId, "user", text);
       appendGuestMessage(requestSessionId, "assistant", response.answer);
     }
     renderResponse(response, answerBody);
-    if (authenticatedRequest && currentSessionId) await loadSessionList();
-    else if (!authenticatedRequest) renderGuestSessionList(loadGuestConversations());
+    if (authenticatedRequest && currentSessionId) {
+      await loadSessionList();
+      if (!operation.isCurrent()) return;
+    } else if (!authenticatedRequest) {
+      renderGuestSessionList(loadGuestConversations());
+    }
   } catch (error) {
-    if (authenticatedRequest !== isAuthenticatedMode()) return;
+    if (!operation.isCurrent()) return;
     answerBody ||= error?.answerBody || null;
     if (controller.signal.aborted || error?.code === "API_REQUEST_ABORTED") {
       if (answerBody) answerBody.textContent = "已停止生成。";
@@ -889,11 +981,15 @@ async function submitMessage(message, options = {}) {
       status.textContent = "请求失败";
     }
   } finally {
+    const current = operation.isCurrent();
+    operation.finish();
     if (activeController === controller) activeController = null;
-    sendButton.disabled = false;
-    stopButton.hidden = true;
-    syncNewSessionButton();
-    input.focus();
+    if (current) {
+      sendButton.disabled = false;
+      stopButton.hidden = true;
+      syncNewSessionButton();
+      input.focus();
+    }
   }
 }
 
@@ -968,16 +1064,27 @@ sessionRenameForm?.addEventListener("submit", async (event) => {
     return;
   }
   const submit = sessionRenameForm.querySelector('button[type="submit"]');
+  const sessionId = renamingSession.sessionId;
+  const operation = sessionEpoch.beginOperation();
   submit.disabled = true;
   sessionRenameState.textContent = "保存中";
   try {
-    await apiPatch(conversationEndpoint(renamingSession.sessionId), { title });
+    await apiPatch(
+      conversationEndpoint(sessionId),
+      { title },
+      { signal: operation.signal },
+    );
+    if (!operation.isCurrent()) return;
     sessionRenameDialog.close();
     await loadSessionList();
+    if (!operation.isCurrent()) return;
   } catch (error) {
+    if (!operation.isCurrent()) return;
     sessionRenameState.textContent = error.message || "标题保存失败";
   } finally {
-    submit.disabled = false;
+    const current = operation.isCurrent();
+    operation.finish();
+    if (current) submit.disabled = false;
   }
 });
 document.addEventListener("click", (event) => {

@@ -17,6 +17,7 @@ from app.agent.orchestrator import AgentOrchestrator
 from app.agent.observability import get_agent_metrics
 from app.agent.replay import (
     AgentReplayConflict,
+    get_agent_replay_singleflight,
     get_agent_response_replay_cache,
     request_fingerprint,
 )
@@ -182,6 +183,24 @@ async def _run_agent_request(
     *,
     on_answer_delta=None,
 ) -> AgentStructuredResponse:
+    async with get_agent_replay_singleflight().slot(current_user["id"], request_id):
+        return await _run_serialized_agent_request(
+            payload,
+            current_user,
+            orchestrator,
+            request_id,
+            on_answer_delta=on_answer_delta,
+        )
+
+
+async def _run_serialized_agent_request(
+    payload: AgentChatRequest,
+    current_user: dict,
+    orchestrator: AgentOrchestrator,
+    request_id: str,
+    *,
+    on_answer_delta=None,
+) -> AgentStructuredResponse:
     session_service = None
     history = ()
     if payload.sessionId:
@@ -240,8 +259,10 @@ async def _run_agent_request(
     if on_answer_delta is not None:
         response_options["on_answer_delta"] = on_answer_delta
     result = await orchestrator.respond(payload, user_context, **response_options)
-    if session_service and payload.sessionId:
-        try:
+
+    async def finalize_response() -> None:
+        nonlocal fingerprint, history
+        if session_service and payload.sessionId:
             await run_in_threadpool(
                 session_service.append_exchange,
                 current_user["id"],
@@ -256,21 +277,36 @@ async def _run_agent_request(
                 payload.sessionId,
             )
             fingerprint = request_fingerprint(payload, history=history)
-        except AgentSessionError as exc:
-            _session_error(exc)
-    try:
         replay_cache.put(
             current_user["id"],
             request_id,
             fingerprint,
             result,
         )
+
+    finalization = asyncio.create_task(finalize_response())
+    try:
+        await asyncio.shield(finalization)
+    except asyncio.CancelledError:
+        await finalization
+        raise
+    except AgentSessionError as exc:
+        _session_error(exc)
     except AgentReplayConflict as exc:
         _replay_conflict(exc)
     return result
 
 
 async def _run_guest_agent_request(
+    payload: AgentGuestChatRequest,
+    request_id: str,
+    guest_key: str,
+) -> AgentStructuredResponse:
+    async with get_agent_replay_singleflight().slot(guest_key, request_id):
+        return await _run_serialized_guest_agent_request(payload, request_id, guest_key)
+
+
+async def _run_serialized_guest_agent_request(
     payload: AgentGuestChatRequest,
     request_id: str,
     guest_key: str,
