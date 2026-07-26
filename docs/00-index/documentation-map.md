@@ -1,6 +1,6 @@
 # AI 知识导航文档地图
 
-> 版本：2026-07-25  
+> 版本：2026-07-26
 > 目标：让设计、实现、运维、审计和机器证据各有唯一入口。
 
 ## 1. 权威阅读顺序
@@ -73,6 +73,13 @@
 - `docs/02-architecture/decisions/`
 - `docs/04-operations/agent/`
 - `docs/06-evidence/agent/`
+
+### HTTP 测试部署
+
+- `docs/00-index/http-test-deployment-file-index.md`
+- `docs/02-architecture/deployment/http-subpath-test-deployment-design.md`
+
+当前状态仅为设计已确认；应用实现、部署覆盖层、服务器部署和真实 Provider 验证尚未开始。
 
 ### 审计整改提示词
 
