@@ -5,6 +5,9 @@ function publicPathError(message) {
 }
 
 function validatePathname(pathname) {
+  if (/%(?:2f|5c)/i.test(pathname)) {
+    throw publicPathError("encoded path separators are not allowed");
+  }
   if (
     !pathname.startsWith("/")
     || pathname.startsWith("//")
