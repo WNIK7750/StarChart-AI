@@ -232,7 +232,9 @@ class AgentGuestEndpointTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(200, response.status_code, response.text)
         replay_keys = tuple(self.replay._entries)
         self.assertEqual(
-            (f"guest:{expected_digest}", "guest-replay-1"),
+            hashlib.sha256(
+                f"str:guest:{expected_digest}\0guest-replay-1".encode("utf-8")
+            ).digest(),
             replay_keys[0],
         )
         observable = response.text + "\n".join(captured.output) + repr(replay_keys)

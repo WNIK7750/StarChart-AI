@@ -43,10 +43,13 @@ assert.match(script, /apiPost\("\/agent\/chat"/);
 assert.match(script, /apiPostStream\("\/agent\/chat\/stream"/);
 assert.match(script, /apiGet\("\/agent\/capabilities"/);
 assert.match(script, /apiPost\("\/agent\/sessions"/);
-assert.match(script, /apiGet\("\/agent\/long-conversations"/);
-assert.match(script, /apiDelete\(conversationEndpoint\(sessionId\)\)/);
+assert.match(script, /apiGet\(\s*"\/agent\/long-conversations"/);
+assert.match(
+  script,
+  /apiDelete\(conversationEndpoint\(sessionId\), \{ signal: operation\.signal \}\)/,
+);
 assert.match(script, /apiPatch\(conversationEndpoint\(sessionId\)/);
-assert.match(script, /apiPost\(`\/agent\/sessions\/\$\{sessionId\}\/upgrade`/);
+assert.match(script, /apiPost\(\s*`\/agent\/sessions\/\$\{sessionId\}\/upgrade`/);
 assert.match(script, /AGENT_SESSION_UNSTARTED_EXISTS/);
 assert.match(script, /AGENT_LONG_CONVERSATION_LIMIT_REACHED/);
 assert.match(script, /sessionCreationBlocked = items\.some/);

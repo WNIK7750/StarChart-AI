@@ -6,6 +6,7 @@ from fastapi import HTTPException
 
 from app.agent.replay import (
     AgentReplayConflict,
+    AgentReplaySingleFlight,
     AgentResponseReplayCache,
     request_fingerprint,
 )
@@ -75,7 +76,239 @@ class AgentResponseReplayCacheTests(unittest.TestCase):
         self.assertEqual("2", cache.get(7, "request-2", fingerprints[2]).answer)
 
 
+class AgentReplaySingleFlightTests(unittest.IsolatedAsyncioTestCase):
+    async def test_different_keys_run_concurrently_and_completed_keys_are_released(self):
+        singleflight = AgentReplaySingleFlight()
+        both_acquired = asyncio.Event()
+        release = asyncio.Event()
+        acquired = 0
+
+        async def use_slot(request_id):
+            nonlocal acquired
+            async with singleflight.slot(7, request_id):
+                acquired += 1
+                if acquired == 2:
+                    both_acquired.set()
+                await release.wait()
+
+        first = asyncio.create_task(use_slot("request-one"))
+        second = asyncio.create_task(use_slot("request-two"))
+        await asyncio.wait_for(both_acquired.wait(), timeout=1)
+        release.set()
+        await asyncio.gather(first, second)
+
+        self.assertEqual({}, singleflight._entries)
+
+
 class AgentResponseReplayRouteTests(unittest.IsolatedAsyncioTestCase):
+    async def test_concurrent_identical_session_requests_generate_append_and_cache_once(self):
+        from app.api.v1.routers.agent import _run_agent_request
+
+        class CountingCache(AgentResponseReplayCache):
+            def __init__(self):
+                super().__init__(ttl_seconds=30, max_entries=4)
+                self.put_count = 0
+
+            def put(self, *args):
+                self.put_count += 1
+                return super().put(*args)
+
+        class SessionService:
+            def __init__(self):
+                self.history = ()
+                self.appended = 0
+
+            def require_owned(self, _user_id, _session_id):
+                return None
+
+            def context(self, _user_id, _session_id):
+                return self.history
+
+            def append_exchange(
+                self,
+                _user_id,
+                _session_id,
+                _request_id,
+                user_message,
+                assistant_message,
+            ):
+                self.appended += 1
+                self.history += (
+                    AgentHistoryMessage(role="user", content=user_message),
+                    AgentHistoryMessage(role="assistant", content=assistant_message),
+                )
+
+        cache = CountingCache()
+        sessions = SessionService()
+        started = asyncio.Event()
+        release = asyncio.Event()
+        generated = 0
+
+        async def respond(*_args, **_kwargs):
+            nonlocal generated
+            generated += 1
+            started.set()
+            await release.wait()
+            return response(f"answer-{generated}")
+
+        orchestrator = Mock()
+        orchestrator.respond = respond
+        payload = AgentChatRequest(
+            message="same question",
+            sessionId="ags_12345678",
+        )
+        with (
+            patch("app.api.v1.routers.agent.AGENT_SESSIONS_ENABLED", True),
+            patch(
+                "app.api.v1.routers.agent.get_agent_session_service",
+                return_value=sessions,
+            ),
+            patch(
+                "app.api.v1.routers.agent.get_agent_response_replay_cache",
+                return_value=cache,
+            ),
+        ):
+            first_task = asyncio.create_task(
+                _run_agent_request(payload, {"id": 7}, orchestrator, "request-concurrent")
+            )
+            await started.wait()
+            second_task = asyncio.create_task(
+                _run_agent_request(payload, {"id": 7}, orchestrator, "request-concurrent")
+            )
+            await asyncio.sleep(0)
+            release.set()
+            first, second = await asyncio.gather(first_task, second_task)
+
+        self.assertEqual(first, second)
+        self.assertEqual(1, generated)
+        self.assertEqual(1, sessions.appended)
+        self.assertEqual(1, cache.put_count)
+
+    async def test_concurrent_different_payload_with_same_request_id_returns_conflict(self):
+        from app.api.v1.routers.agent import _run_agent_request
+
+        cache = AgentResponseReplayCache(ttl_seconds=30, max_entries=4)
+        started = asyncio.Event()
+        release = asyncio.Event()
+        generated = 0
+
+        async def respond(*_args, **_kwargs):
+            nonlocal generated
+            generated += 1
+            started.set()
+            await release.wait()
+            return response("first answer")
+
+        orchestrator = Mock()
+        orchestrator.respond = respond
+        with patch(
+            "app.api.v1.routers.agent.get_agent_response_replay_cache",
+            return_value=cache,
+        ):
+            first_task = asyncio.create_task(
+                _run_agent_request(
+                    AgentChatRequest(message="first question"),
+                    {"id": 7},
+                    orchestrator,
+                    "request-conflict",
+                )
+            )
+            await started.wait()
+            conflicting_task = asyncio.create_task(
+                _run_agent_request(
+                    AgentChatRequest(message="different question"),
+                    {"id": 7},
+                    orchestrator,
+                    "request-conflict",
+                )
+            )
+            await asyncio.sleep(0)
+            release.set()
+            first = await first_task
+            with self.assertRaises(HTTPException) as conflict:
+                await conflicting_task
+
+        self.assertEqual("first answer", first.answer)
+        self.assertEqual(409, conflict.exception.status_code)
+        self.assertEqual(1, generated)
+
+    async def test_cancellation_during_session_finalization_cannot_leave_append_without_replay(self):
+        from app.api.v1.routers.agent import _run_agent_request
+
+        cache = AgentResponseReplayCache(ttl_seconds=30, max_entries=4)
+        post_append_context_started = asyncio.Event()
+        finish_context = asyncio.Event()
+
+        class SessionService:
+            def __init__(self):
+                self.history = ()
+                self.appended = 0
+                self.context_calls = 0
+
+            def require_owned(self, _user_id, _session_id):
+                return None
+
+            def context(self, _user_id, _session_id):
+                self.context_calls += 1
+                return self.history
+
+            def append_exchange(
+                self,
+                _user_id,
+                _session_id,
+                _request_id,
+                user_message,
+                assistant_message,
+            ):
+                self.appended += 1
+                self.history += (
+                    AgentHistoryMessage(role="user", content=user_message),
+                    AgentHistoryMessage(role="assistant", content=assistant_message),
+                )
+
+        sessions = SessionService()
+        async def controlled_threadpool(function, *args):
+            if function == sessions.context and sessions.context_calls == 1:
+                post_append_context_started.set()
+                await finish_context.wait()
+            return function(*args)
+
+        orchestrator = Mock()
+        orchestrator.respond = AsyncMock(return_value=response("finalized answer"))
+        payload = AgentChatRequest(
+            message="question finalized under cancellation",
+            sessionId="ags_12345678",
+        )
+        with (
+            patch("app.api.v1.routers.agent.AGENT_SESSIONS_ENABLED", True),
+            patch(
+                "app.api.v1.routers.agent.get_agent_session_service",
+                return_value=sessions,
+            ),
+            patch(
+                "app.api.v1.routers.agent.get_agent_response_replay_cache",
+                return_value=cache,
+            ),
+            patch(
+                "app.api.v1.routers.agent.run_in_threadpool",
+                side_effect=controlled_threadpool,
+            ),
+        ):
+            task = asyncio.create_task(
+                _run_agent_request(payload, {"id": 7}, orchestrator, "request-cancel-finalize")
+            )
+            await post_append_context_started.wait()
+            task.cancel()
+            finish_context.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+
+        fingerprint = request_fingerprint(payload, history=sessions.history)
+        replayed = cache.get(7, "request-cancel-finalize", fingerprint)
+        self.assertEqual(1, sessions.appended)
+        self.assertIsNotNone(replayed)
+        self.assertEqual("finalized answer", replayed.answer)
+
     async def test_session_retry_replays_once_but_later_history_change_conflicts(self):
         from app.api.v1.routers.agent import _run_agent_request
 

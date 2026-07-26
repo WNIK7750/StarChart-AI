@@ -1,7 +1,7 @@
 # HTTP 测试部署文件索引
 
 > 用途：作为 HTTP 子路径测试部署的文件路由、实现进度、验证证据和回滚同步入口。
-> 状态：设计与实施计划已完成；任务 1 至任务 6 已完成，其中任务 6 新增了有界浏览器游客记忆与不混合数据的身份模式切换；部署覆盖层和服务器尚未修改。
+> 状态：设计与实施计划已完成；任务 1 至任务 6 已完成，Tasks 4–6 Agent 全流程审查发现的两项 Important 竞态已在本地修复并验证；部署覆盖层和服务器尚未修改。
 > 日期：2026-07-26。
 > 权威性：本索引记录本任务事实，不替代当前审计报告、生产发布清单或服务器实际运行记录。
 
@@ -33,10 +33,11 @@
 | --- | --- | --- |
 | `backend/app/core/config.py` | 通用公开前缀与独立 `http_test` 配置验证 | 候选，未修改 |
 | `backend/app/main.py` | 复核 Nginx 剥离前缀后是否需要改动 | 已复核，无需修改；内部路径保持 `/api/v1`、`/uploads` 和 `/` |
-| `backend/app/api/v1/routers/agent.py` | 登录会话所有权、游客隔离入口、replay 与有界历史上下文编排 | 已完成任务 4、任务 5 |
+| `backend/app/api/v1/routers/agent.py` | 登录会话所有权、游客隔离入口、replay 与有界历史上下文编排 | 已完成任务 4、任务 5及合并审查修复 |
 | `backend/app/agent/schemas.py` | 严格的登录会话历史消息与游客请求契约 | 已完成任务 4、任务 5 |
 | `frontend/assets/js/api.js` | 前缀感知的 API URL | 候选，未修改 |
-| `frontend/assets/js/assistant-page.js` | 游客本地会话、草案和登录能力切换 | 已完成任务 6 |
+| `frontend/assets/js/assistant-page.js` | 游客本地会话、草案和登录能力切换 | 已完成任务 6 及合并审查修复 |
+| `frontend/assets/js/assistant-session-epoch.js` | 身份 epoch、会话异步操作取消与完成有效性 | 已新增；合并审查修复 |
 | `frontend/assistant.html` | 游客状态与清除入口 | 已完成任务 6 |
 | Users 授权与命令边界 | 唯一测试账号的身份、恢复、隐私和删除限制 | 候选，精确文件待实现计划复核 |
 | `tests/` | 前缀、Agent 会话历史、测试账号限制和游客无服务端写入回归 | 任务 1 至任务 6 已按范围更新 |
@@ -102,6 +103,17 @@
 - 游客工作流草稿可在页面内创建和编辑，但保存入口保持禁用并明确说明不能保存/归档且登录不会自动导入。游客消息仅在响应成功后成对写入本地历史；失败时保留显式重试或恢复输入，不向本地历史追加失败 exchange。
 - RED 证据：首次任务 Node 命令运行 9 个测试单元，其中 6 个通过、3 个按预期因游客存储模块、游客端点/UI 分支和身份事件处理尚不存在而失败。GREEN 证据：`node --test tests/test_guest_agent_memory.mjs tests/test_agent_frontend.mjs tests/test_auth_ui.mjs tests/test_agent_sse.mjs` 通过 17 个测试单元；当前 PowerShell 进程使用仅进程级 Bypass 执行 `scripts/verify-frontend.ps1`，通过 31 项前端入口回归、JavaScript 语法与 whitespace 检查；`git diff --check` 退出码为 0。
 - 计划中的 `powershell -ExecutionPolicy Bypass -File scripts/verify-frontend.ps1` 因当前 Windows 环境没有可调用的 `powershell` 子进程而未启动；随后在当前 PowerShell 进程执行相同脚本并通过。CI、服务器、真实 Provider、网络、HTTPS、备份恢复和生产验证均未执行；未读取真实 `.env` 或凭据，未修改后端、数据库、迁移或服务器。最小回滚路径为回退任务 6 提交。
+
+### 3.7 修复批次：2026-07-26，Tasks 4–6 Agent 全流程审查
+
+- 已新增 `frontend/assets/js/assistant-session-epoch.js`，并修改 `frontend/assets/js/assistant-page.js`、`backend/app/agent/replay.py`、`backend/app/api/v1/routers/agent.py` 及对应 Agent、游客和认证前端测试。没有数据库 schema、migration、Provider、网络、服务器或部署覆盖层变更。
+- 浏览器以访问令牌中的稳定 `sub` 判断真实身份转换；游客与用户、不同用户之间的转换会推进 epoch 并中止全部在途会话列表、详情、创建、删除、置顶、升级、重命名、能力初始化和聊天操作。每个异步完成点在改变 DOM 或页面状态前核对捕获的 epoch；同一 `sub` 的令牌刷新不推进 epoch、不取消当前操作，也不重置当前会话。
+- Agent replay 使用只含摘要的 `(principal, request_id)` 进程内 key，并以引用计数的逐 key single-flight 覆盖所有权/历史解析、replay 查询、生成、exchange 追加和 replay 完成。相同 key 的相同请求只生成、追加和缓存一次，跟随者复用首个结果；不同 payload 在首个完成后按完整历史指纹返回 409。不同 key 可并行，完成后 key 立即释放，不使用覆盖生成过程的全局粗锁，也不保留无界 key。
+- exchange 追加、追加后历史解析与 replay 写入由 cancellation-shielded finalizer 完成；取消发生在生成完成前时保持“未追加、未缓存”，发生在追加后完成阶段时会先完成 replay 再传播取消，避免“已追加但不可 replay”的中间状态。登录和游客入口均复用同一 single-flight 边界。
+- RED 证据：`node --test tests/test_auth_ui.mjs` 首次运行 10 项中 7 项通过、3 项因身份 epoch 模块尚不存在而失败；随后 mutation check 临时移除 epoch 推进/中止，同一命令 10 项中 8 项通过、2 项按预期显示旧用户会话标题、消息和 session ID 会写入新模式。三个聚焦 replay unittest 首次全部失败：相同并发请求发生重复生成/缓存冲突，不同 payload 生成次数为 2 而非 1，取消后出现已追加但缓存为空。
+- GREEN 证据：`.\.venv\Scripts\python.exe -m unittest tests.test_agent_replay tests.test_agent_sessions tests.test_agent_guest -q` 通过 29 项；`node --test tests/test_guest_agent_memory.mjs tests/test_agent_frontend.mjs tests/test_auth_ui.mjs tests/test_agent_sse.mjs` 通过 20 项；恢复 mutation 后 `node --test tests/test_auth_ui.mjs` 通过 10 项。
+- 全门禁证据：当前 PowerShell 进程执行 `scripts/verify-frontend.ps1`，通过 34 项前端测试、JavaScript 语法和 whitespace；在系统临时目录创建并初始化一次性数据库后执行 `scripts/verify-agent.ps1`，通过 112 项 Python、3 项 Node/SSE、Python 编译、评估清单、盲评协议清单、模型决策基线、前端语法与 whitespace。临时数据库随后删除；最终 `git diff --check` 退出码为 0。
+- 未读取真实 `.env`、凭据、Token 或用户内容，未调用真实 Provider、网络或服务器。CI、HTTPS、备份恢复、服务器验收和生产验证仍未执行；HTTP 测试候选与生产发布结论继续为 `NO-GO`。最小回滚路径为回退本修复批次提交，无需数据库回滚。
 
 ## 4. 强制同步字段
 
