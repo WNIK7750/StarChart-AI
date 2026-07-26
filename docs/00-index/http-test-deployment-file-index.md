@@ -44,6 +44,14 @@
 | `docs/04-operations/` | 后续部署、验证、备份与回滚运行手册 | 候选，未创建 |
 | `docs/06-evidence/` | 后续脱敏机器证据 | 候选，未创建 |
 
+### 3.1 实施批次：2026-07-26，任务 1（运行时配置档）
+
+- 已修改 `backend/app/core/config.py`、`backend/run.py`、`tests/test_http_test_runtime.py` 与 `tests/test_agent_provider.py`：增加 `http_test` 和 `provider_preview` 的启动期安全契约，以及可验证的公共路径、监听地址和端口配置。
+- `http_test` 保持确定性 Agent、关闭 live Provider、隔离持久化路径，并且仅允许显式 HTTP origin、非 Secure 的 lax refresh cookie 与固定公共前缀。
+- `provider_preview` 仅允许 loopback 监听、独立的外部持久化路径和完整的 HTTPS/allowlist/北京地域 Provider 安全约束；端口必须合法但不被固定为某一数值。
+- 本地回归已通过：隔离解释器的 unittest 运行 91 项测试；编译检查和 `git diff --check` 退出码均为 0。该解释器未安装 pytest，因此未将计划中的 pytest 命令误记为已运行。
+- 服务器操作、真实 Provider 调用、HTTPS、备份恢复和生产验证均未执行。最小回滚路径为回退本批次提交。
+
 ## 4. 强制同步字段
 
 每次实现或部署更新都必须追加：
@@ -75,11 +83,11 @@
 ## 6. 当前结论
 
 - 设计：已由用户确认。
-- 实施计划：已完成，共 13 个顺序任务；尚未执行计划内测试或修改应用。
-- 应用实现：未开始。
+- 实施计划：已完成，共 13 个顺序任务；任务 1 已完成，其余任务尚未执行。
+- 应用实现：任务 1 的运行时配置档已完成；其余应用功能尚未开始。
 - 部署覆盖层：未创建。
-- 本地专项测试：未运行。
+- 本地专项测试：任务 1 已运行并通过；其余专项测试未运行。
 - 全量门禁：未因本设计重新运行。
 - 服务器部署：未执行。
-- HTTP 测试候选：`NO-GO`，等待实现和验证。
+- HTTP 测试候选：`NO-GO`，仍等待后续功能、部署覆盖层和服务器验证。
 - 生产发布：`NO-GO`，HTTPS、外部签收和生产证据仍缺失。

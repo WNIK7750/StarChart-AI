@@ -27,6 +27,31 @@ def _env_csv(name: str, default: str = "") -> tuple[str, ...]:
 DEV_SECRET_KEY = "dev-secret-change-before-production"
 AGENT_STAGE1_DEFAULT_MODEL = "qwen3.5-flash"
 AGENT_STAGE1_UPGRADE_MODEL = "qwen3.7-plus"
+DEPLOYMENT_PROFILES = frozenset(
+    {"development", "test", "http_test", "provider_preview", "production"}
+)
+
+
+def normalize_public_base_path(value: str) -> str:
+    """Return a canonical, relative public deployment prefix."""
+    if not isinstance(value, str):
+        raise RuntimeError("AI_NAV_PUBLIC_BASE_PATH must be a path string")
+    normalized = value.strip()
+    if not normalized:
+        return ""
+    if (
+        not normalized.startswith("/")
+        or normalized.startswith("//")
+        or "\\" in normalized
+        or "?" in normalized
+        or "#" in normalized
+        or "://" in normalized
+    ):
+        raise RuntimeError("AI_NAV_PUBLIC_BASE_PATH must be a relative path prefix")
+    path_parts = normalized.split("/")
+    if any(part == ".." for part in path_parts):
+        raise RuntimeError("AI_NAV_PUBLIC_BASE_PATH cannot contain parent traversal")
+    return normalized.rstrip("/")
 
 
 def _normalize_host(value: str, setting_name: str) -> str:
@@ -57,12 +82,75 @@ def _normalize_host(value: str, setting_name: str) -> str:
     return ascii_host
 
 
+def _validate_explicit_origins(
+    cors_origins: tuple[str, ...],
+    *,
+    required_scheme: str,
+    profile_name: str,
+) -> None:
+    if not cors_origins:
+        raise RuntimeError(
+            f"{profile_name} AI_NAV_CORS_ALLOW_ORIGINS must list explicit {required_scheme.upper()} origins"
+        )
+    for origin in cors_origins:
+        parsed = urlparse(origin)
+        if (
+            parsed.scheme != required_scheme
+            or not parsed.netloc
+            or parsed.username
+            or parsed.password
+            or parsed.query
+            or parsed.fragment
+            or parsed.path not in {"", "/"}
+        ):
+            raise RuntimeError(
+                f"{profile_name} AI_NAV_CORS_ALLOW_ORIGINS entries must be {required_scheme.upper()} origins without credentials or paths"
+            )
+
+
+def _validate_non_development_security(
+    profile_name: str,
+    secret_key: str,
+    *,
+    reset_database_on_start: bool,
+    database_path: Path | None,
+    upload_dir: Path | None,
+    base_dir: Path,
+) -> None:
+    if secret_key == DEV_SECRET_KEY or len(secret_key) < 32:
+        raise RuntimeError(
+            f"{profile_name} AI_NAV_SECRET_KEY must be a non-default value of at least 32 characters"
+        )
+    if reset_database_on_start:
+        raise RuntimeError(
+            f"{profile_name} rejects RESET_DATABASE_ON_START=1; set RESET_DATABASE_ON_START=0"
+        )
+    resolved_base = base_dir.resolve()
+    for setting_name, configured_path in (
+        ("AI_NAV_DATABASE_PATH", database_path),
+        ("AI_NAV_UPLOAD_DIR", upload_dir),
+    ):
+        if configured_path is None:
+            continue
+        resolved_path = configured_path.expanduser().resolve()
+        if resolved_path == resolved_base or resolved_base in resolved_path.parents:
+            raise RuntimeError(
+                f"{profile_name} {setting_name} must use a persistent path outside the application source tree"
+            )
+
+
 def validate_runtime_security(
     environment: str,
     secret_key: str,
     cors_origins: tuple[str, ...],
     refresh_cookie_secure: bool,
     *,
+    public_base_path: str = "",
+    http_test_account_username: str = "",
+    agent_provider: str = "deterministic",
+    agent_provider_live_enabled: bool = False,
+    app_host: str = "127.0.0.1",
+    app_port: int = 8088,
     reset_database_on_start: bool = False,
     database_path: Path | None = None,
     upload_dir: Path | None = None,
@@ -75,8 +163,10 @@ def validate_runtime_security(
     avatar_max_frames: int = 1,
     avatar_processing_timeout_seconds: float = 2.0,
 ) -> None:
-    if environment not in {"development", "test", "production"}:
-        raise RuntimeError("AI_NAV_ENV must be development, test, or production")
+    if environment not in DEPLOYMENT_PROFILES:
+        raise RuntimeError(
+            "AI_NAV_ENV must be development, test, http_test, provider_preview, or production"
+        )
     if "*" in cors_origins:
         raise RuntimeError("AI_NAV_CORS_ALLOW_ORIGINS cannot contain wildcard origins")
     if refresh_cookie_samesite not in {"lax", "strict", "none"}:
@@ -95,49 +185,55 @@ def validate_runtime_security(
         raise RuntimeError("AVATAR_MAX_FRAMES must be between 1 and 10")
     if not 0.05 <= avatar_processing_timeout_seconds <= 10:
         raise RuntimeError("AVATAR_PROCESSING_TIMEOUT_SECONDS must be between 0.05 and 10")
+    if environment in DEPLOYMENT_PROFILES - {"development", "test"}:
+        _validate_non_development_security(
+            environment.replace("_", " ").title(),
+            secret_key,
+            reset_database_on_start=reset_database_on_start,
+            database_path=database_path,
+            upload_dir=upload_dir,
+            base_dir=base_dir,
+        )
     if environment == "production":
-        if secret_key == DEV_SECRET_KEY or len(secret_key) < 32:
-            raise RuntimeError("Production AI_NAV_SECRET_KEY must be a non-default value of at least 32 characters")
         if not refresh_cookie_secure:
             raise RuntimeError("Production requires AI_NAV_REFRESH_COOKIE_SECURE=1")
-        if reset_database_on_start:
-            raise RuntimeError(
-                "Production rejects RESET_DATABASE_ON_START=1; set RESET_DATABASE_ON_START=0"
-            )
-        if not cors_origins:
-            raise RuntimeError("Production AI_NAV_CORS_ALLOW_ORIGINS must list explicit HTTPS origins")
-        for origin in cors_origins:
-            parsed = urlparse(origin)
-            if (
-                parsed.scheme != "https"
-                or not parsed.netloc
-                or parsed.username
-                or parsed.password
-                or parsed.query
-                or parsed.fragment
-                or parsed.path not in {"", "/"}
-            ):
-                raise RuntimeError(
-                    "Production AI_NAV_CORS_ALLOW_ORIGINS entries must be HTTPS origins without credentials or paths"
-                )
-        resolved_base = base_dir.resolve()
-        for setting_name, configured_path in (
-            ("AI_NAV_DATABASE_PATH", database_path),
-            ("AI_NAV_UPLOAD_DIR", upload_dir),
-        ):
-            if configured_path is None:
-                continue
-            resolved_path = configured_path.expanduser().resolve()
-            if resolved_path == resolved_base or resolved_base in resolved_path.parents:
-                raise RuntimeError(
-                    f"Production {setting_name} must use a persistent path outside the application source tree"
-                )
+        _validate_explicit_origins(
+            cors_origins, required_scheme="https", profile_name="Production"
+        )
         for cidr in trusted_proxy_cidrs:
             network = ip_network(cidr, strict=False)
             if network.prefixlen == 0:
                 raise RuntimeError(
                     "Production AI_NAV_TRUSTED_PROXY_CIDRS cannot trust the entire address space"
                 )
+    if environment == "http_test":
+        _validate_explicit_origins(
+            cors_origins, required_scheme="http", profile_name="HTTP test"
+        )
+        if refresh_cookie_secure:
+            raise RuntimeError("HTTP test requires AI_NAV_REFRESH_COOKIE_SECURE=0")
+        if refresh_cookie_samesite != "lax":
+            raise RuntimeError("HTTP test requires AI_NAV_REFRESH_COOKIE_SAMESITE=lax")
+        if normalize_public_base_path(public_base_path) != "/StarChart-AI":
+            raise RuntimeError("HTTP test requires AI_NAV_PUBLIC_BASE_PATH=/StarChart-AI")
+        if not http_test_account_username.strip():
+            raise RuntimeError("HTTP test requires a non-empty HTTP_TEST_ACCOUNT_USERNAME")
+        if agent_provider != "deterministic":
+            raise RuntimeError("HTTP test requires AI_NAV_AGENT_PROVIDER=deterministic")
+        if agent_provider_live_enabled:
+            raise RuntimeError("HTTP test rejects a live Provider")
+    if environment == "provider_preview":
+        if not refresh_cookie_secure:
+            raise RuntimeError("Provider preview requires AI_NAV_REFRESH_COOKIE_SECURE=1")
+        _validate_explicit_origins(
+            cors_origins, required_scheme="https", profile_name="Provider preview"
+        )
+        if _normalize_host(app_host, "AI_NAV_APP_HOST") != "127.0.0.1":
+            raise RuntimeError("Provider preview requires AI_NAV_APP_HOST=127.0.0.1")
+        if not 1 <= app_port <= 65535:
+            raise RuntimeError("AI_NAV_APP_PORT must be between 1 and 65535")
+        if agent_provider != "openai_compatible":
+            raise RuntimeError("Provider preview requires AI_NAV_AGENT_PROVIDER=openai_compatible")
 
 
 def validate_agent_provider_config(
@@ -172,8 +268,8 @@ def validate_agent_provider_config(
         raise RuntimeError(
             "AI_NAV_AGENT_PROVIDER must be deterministic, fake, or openai_compatible"
         )
-    if environment == "production" and provider == "fake":
-        raise RuntimeError("Production cannot use AI_NAV_AGENT_PROVIDER=fake")
+    if environment in {"production", "provider_preview"} and provider == "fake":
+        raise RuntimeError("Production and provider_preview cannot use AI_NAV_AGENT_PROVIDER=fake")
     if live_enabled and provider != "openai_compatible":
         raise RuntimeError(
             "AI_NAV_AGENT_PROVIDER_LIVE_ENABLED=1 requires "
@@ -249,13 +345,13 @@ def validate_agent_provider_config(
         raise RuntimeError("AI_NAV_AGENT_PROVIDER_BASE_URL must be an absolute HTTP(S) URL")
     if parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise RuntimeError("AI_NAV_AGENT_PROVIDER_BASE_URL cannot contain credentials, query, or fragment")
-    if environment == "production" and parsed.scheme != "https":
-        raise RuntimeError("Production AI_NAV_AGENT_PROVIDER_BASE_URL must use HTTPS")
+    if environment in {"production", "provider_preview"} and parsed.scheme != "https":
+        raise RuntimeError("Production and provider_preview AI_NAV_AGENT_PROVIDER_BASE_URL must use HTTPS")
     if live_enabled and model != AGENT_STAGE1_DEFAULT_MODEL:
         raise RuntimeError(
             "Stage 1 live Provider model must remain qwen3.5-flash"
         )
-    if environment == "production":
+    if environment in {"production", "provider_preview"}:
         normalized_hosts = {
             _normalize_host(host, "AI_NAV_AGENT_PROVIDER_ALLOWED_HOSTS")
             for host in allowed_hosts
@@ -267,7 +363,7 @@ def validate_agent_provider_config(
             )
         if live_enabled and not provider_host.endswith(".cn-beijing.maas.aliyuncs.com"):
             raise RuntimeError(
-                "Stage 1 production Provider must use the approved Alibaba Cloud Beijing workspace host"
+                "Stage 1 production and provider_preview Provider must use the approved Alibaba Cloud Beijing workspace host"
             )
 
 
@@ -379,6 +475,16 @@ UPLOAD_DIR = Path(os.getenv("AI_NAV_UPLOAD_DIR", str(BASE_DIR / "uploads"))).exp
 API_PREFIX = "/api/v1"
 APP_NAME = "AI Knowledge Navigation API"
 APP_ENV = os.getenv("AI_NAV_ENV", "development").strip().lower()
+PUBLIC_BASE_PATH = normalize_public_base_path(os.getenv("AI_NAV_PUBLIC_BASE_PATH", ""))
+HTTP_TEST_ACCOUNT_USERNAME = os.getenv("AI_NAV_HTTP_TEST_ACCOUNT_USERNAME", "").strip()
+HTTP_TEST_GUEST_AGENT_ENABLED = _env_bool("AI_NAV_HTTP_TEST_GUEST_AGENT_ENABLED", "0")
+APP_HOST = os.getenv("AI_NAV_APP_HOST", "127.0.0.1").strip()
+APP_PORT = int(
+    os.getenv(
+        "AI_NAV_APP_PORT",
+        "8001" if APP_ENV == "http_test" else "8002" if APP_ENV == "provider_preview" else "8088",
+    )
+)
 HTTPS_CONFIRMED = _env_bool("AI_NAV_HTTPS_CONFIRMED", "0")
 API_WORKERS = int(
     os.getenv(
@@ -478,6 +584,12 @@ validate_runtime_security(
     SECRET_KEY,
     CORS_ALLOW_ORIGINS,
     REFRESH_COOKIE_SECURE,
+    public_base_path=PUBLIC_BASE_PATH,
+    http_test_account_username=HTTP_TEST_ACCOUNT_USERNAME,
+    agent_provider=os.getenv("AI_NAV_AGENT_PROVIDER", "deterministic").strip().lower(),
+    agent_provider_live_enabled=_env_bool("AI_NAV_AGENT_PROVIDER_LIVE_ENABLED"),
+    app_host=APP_HOST,
+    app_port=APP_PORT,
     reset_database_on_start=RESET_DATABASE_ON_START,
     database_path=DATABASE_PATH,
     upload_dir=UPLOAD_DIR,
@@ -489,5 +601,5 @@ validate_runtime_security(
     avatar_max_frames=AVATAR_MAX_FRAMES,
     avatar_processing_timeout_seconds=AVATAR_PROCESSING_TIMEOUT_SECONDS,
 )
-if APP_ENV == "production":
+if APP_ENV in {"production", "provider_preview"}:
     get_agent_provider_settings(APP_ENV)
