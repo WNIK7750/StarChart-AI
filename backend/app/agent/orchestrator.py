@@ -18,6 +18,7 @@ from app.agent.observability import build_agent_trace, get_agent_metrics
 from app.agent.providers import (
     AgentEvidenceItem,
     AgentProvider,
+    ProviderConversationMessage,
     ProviderError,
     ProviderRequest,
     ProviderResult,
@@ -25,7 +26,7 @@ from app.agent.providers import (
     ProviderTextDelta,
     StreamingAgentProvider,
 )
-from app.agent.schemas import AgentChatRequest, AgentStructuredResponse
+from app.agent.schemas import AgentChatRequest, AgentHistoryMessage, AgentStructuredResponse
 from app.agent.service import draft_agent_response
 
 
@@ -64,6 +65,7 @@ class AgentOrchestrator:
         request: AgentChatRequest,
         user_context: dict | None = None,
         *,
+        history: tuple[AgentHistoryMessage, ...] = (),
         request_id: str | None = None,
         user_key: str | None = None,
         provider_allowed: bool = True,
@@ -116,6 +118,13 @@ class AgentOrchestrator:
             )
         try:
             provider_user_message = validate_provider_user_message(request.message)
+            provider_history = tuple(
+                ProviderConversationMessage(
+                    role=message.role,
+                    content=validate_provider_user_message(message.content),
+                )
+                for message in history
+            )
             validate_provider_user_message(
                 "\n".join(
                     value
@@ -145,6 +154,7 @@ class AgentOrchestrator:
             user_message=provider_user_message,
             evidence=evidence,
             max_output_chars=self.max_output_chars,
+            history=provider_history,
         )
         try:
             result, charged_cny = await asyncio.wait_for(

@@ -3,6 +3,7 @@
 from app.agent.providers.base import (
     AgentEvidenceItem,
     AgentProvider,
+    ProviderConversationMessage,
     ProviderError,
     ProviderFailureKind,
     ProviderRequest,
@@ -16,6 +17,7 @@ from app.agent.providers.base import (
 __all__ = [
     "AgentEvidenceItem",
     "AgentProvider",
+    "ProviderConversationMessage",
     "ProviderError",
     "ProviderFailureKind",
     "ProviderRequest",

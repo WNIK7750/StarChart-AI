@@ -41,6 +41,10 @@ class OpenAICompatibleProvider(AgentProvider):
             "model": self.model,
             "messages": [
                 {"role": "system", "content": request.system_instruction},
+                *[
+                    {"role": message.role, "content": message.content}
+                    for message in request.history
+                ],
                 {"role": "user", "content": self._user_prompt(request)},
             ],
             "temperature": 0.1,

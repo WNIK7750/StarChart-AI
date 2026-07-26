@@ -8,6 +8,7 @@ from app.users.common import ResponseModel, StrictModel
 
 AgentIntent = Literal["qa", "navigation", "tool_recommendation", "workflow_generation", "learning_plan"]
 AgentSourceType = Literal["learning_node", "tool", "page"]
+AgentHistoryRole = Literal["user", "assistant"]
 
 
 class AgentPageContext(StrictModel):
@@ -49,6 +50,11 @@ class AgentChatRequest(StrictModel):
     message: str = Field(min_length=1, max_length=4000)
     sessionId: str | None = Field(default=None, max_length=128)
     pageContext: AgentPageContext = Field(default_factory=AgentPageContext)
+
+
+class AgentHistoryMessage(StrictModel):
+    role: AgentHistoryRole
+    content: str = Field(min_length=1, max_length=6000)
 
 
 class AgentCapabilities(StrictModel):

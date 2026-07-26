@@ -147,6 +147,7 @@ class AgentCostGuard:
         input_text = "\n".join(
             (
                 request.system_instruction,
+                *(message.content for message in request.history),
                 request.user_message,
                 *(
                     "\n".join(
