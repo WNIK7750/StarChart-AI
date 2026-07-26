@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const storage = new Map();
+const authEvents = [];
 globalThis.window = {
-  API_BASE: "/api/v1",
+  AI_NAV_PUBLIC_BASE_PATH: "/StarChart-AI",
   location: { origin: "http://localhost" },
+  dispatchEvent: (event) => authEvents.push(event),
   setTimeout,
   clearTimeout,
 };
@@ -14,6 +16,7 @@ globalThis.localStorage = {
   removeItem: (key) => storage.delete(key),
 };
 const {
+  API_BASE,
   ApiError,
   apiGet,
   apiPost,
@@ -24,14 +27,30 @@ const {
   saveAuthTokens,
 } = await import(`../frontend/assets/js/api.js?test=${Date.now()}`);
 
+test("all API requests share the deployment-prefixed API base", async () => {
+  assert.equal(API_BASE, "/StarChart-AI/api/v1");
+  let captured;
+  globalThis.fetch = async (url) => {
+    captured = url;
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  await apiPost("/auth/login", {});
+  assert.equal(captured, `${API_BASE}/auth/login`);
+});
+
 test("access tokens stay in memory and legacy storage is removed", () => {
   storage.set("ai_nav_access_token", "legacy-access");
   storage.set("ai_nav_refresh_token", "legacy-refresh");
   saveAuthTokens({ accessToken: "memory-access", refreshToken: "must-not-persist" });
+  assert.deepEqual(authEvents.at(-1).detail, { authenticated: true });
   assert.equal(getAccessToken(), "memory-access");
   assert.equal(storage.has("ai_nav_access_token"), false);
   assert.equal(storage.has("ai_nav_refresh_token"), false);
   clearAuthTokens();
+  assert.deepEqual(authEvents.at(-1).detail, { authenticated: false });
   assert.equal(getAccessToken(), "");
 });
 
@@ -47,7 +66,7 @@ test("page reload authentication is restored through the refresh cookie flow", a
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   };
   assert.equal(await restoreAuthSession(), "restored-access");
-  assert.equal(captured.url, "/api/v1/auth/refresh");
+  assert.equal(captured.url, `${API_BASE}/auth/refresh`);
   assert.equal(captured.options.credentials, "same-origin");
   assert.equal(storage.has("ai_nav_access_token"), false);
 });
@@ -131,7 +150,7 @@ test("stream requests keep auth server-side and require an SSE response", async 
   assert.equal(response.status, 200);
   assert.equal(captured.options.headers.Authorization, "Bearer stream-access-token");
   assert.equal(captured.options.headers.Accept, "text/event-stream");
-  assert.equal(captured.url, "/api/v1/agent/chat/stream");
+  assert.equal(captured.url, `${API_BASE}/agent/chat/stream`);
 
   globalThis.fetch = async () => new Response("{}", {
     status: 200,

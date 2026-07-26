@@ -19,7 +19,7 @@ assert.match(settingsHtml, /核对 Agent 保存的工作流步骤与工具状态
 
 const storage = new Map([["ai_nav_access_token", "test-access-token"]]);
 globalThis.window = {
-  API_BASE: "/api/v1",
+  AI_NAV_PUBLIC_BASE_PATH: "/StarChart-AI",
   location: { origin: "http://localhost" },
   localStorage: {
     getItem: (key) => storage.get(key) || null,
@@ -56,40 +56,43 @@ await users.saveAgentWorkflow(
   { confirmed: true, sourceType: "agent", title: "Research workflow", steps: [] },
   "agent-save-001",
 );
+await users.uploadUserAvatar(new FormData());
 
-assert.equal(requests[0].url, "/api/v1/auth/me");
+assert.equal(requests[0].url, "/StarChart-AI/api/v1/auth/me");
 assert.equal(requests[0].options.headers.Authorization, "Bearer test-access-token");
-assert.equal(requests[1].url, "/api/v1/users/me/profile");
+assert.equal(requests[1].url, "/StarChart-AI/api/v1/users/me/profile");
 assert.equal(requests[1].options.method, "PATCH");
 assert.deepEqual(JSON.parse(requests[1].options.body), { expectedVersion: 3, displayName: "Alice" });
-assert.equal(requests[2].url, "/api/v1/users/me/sessions/session%2Fwith%20space");
+assert.equal(requests[2].url, "/StarChart-AI/api/v1/users/me/sessions/session%2Fwith%20space");
 assert.equal(requests[2].options.method, "DELETE");
-assert.equal(requests[3].url, "/api/v1/users/me/preferences/context?consumer=learning");
-assert.equal(requests[4].url, "/api/v1/auth/logout");
+assert.equal(requests[3].url, "/StarChart-AI/api/v1/users/me/preferences/context?consumer=learning");
+assert.equal(requests[4].url, "/StarChart-AI/api/v1/auth/logout");
 assert.equal(requests[4].options.credentials, "same-origin");
-assert.equal(requests[5].url, "/api/v1/users/me/privacy/consents");
-assert.equal(requests[6].url, "/api/v1/users/me/privacy/consents/agent_memory");
+assert.equal(requests[5].url, "/StarChart-AI/api/v1/users/me/privacy/consents");
+assert.equal(requests[6].url, "/StarChart-AI/api/v1/users/me/privacy/consents/agent_memory");
 assert.equal(requests[6].options.method, "PUT");
 assert.deepEqual(JSON.parse(requests[6].options.body), { policyVersion: "2026-07-01", granted: true });
-assert.equal(requests[7].url, "/api/v1/users/me/privacy/export");
+assert.equal(requests[7].url, "/StarChart-AI/api/v1/users/me/privacy/export");
 assert.deepEqual(JSON.parse(requests[7].options.body), { currentPassword: "Current123" });
-assert.equal(requests[8].url, "/api/v1/users/me/privacy/deletion-requests");
-assert.equal(requests[9].url, "/api/v1/users/me/privacy/deletion-requests/datareq%2Fwith%20space");
+assert.equal(requests[8].url, "/StarChart-AI/api/v1/users/me/privacy/deletion-requests");
+assert.equal(requests[9].url, "/StarChart-AI/api/v1/users/me/privacy/deletion-requests/datareq%2Fwith%20space");
 assert.equal(requests[9].options.method, "DELETE");
-assert.equal(requests[10].url, "/api/v1/users/me/assets/workflows?status=active&page=2&pageSize=10");
-assert.equal(requests[11].url, "/api/v1/users/me/assets/workflows/workflow%2Fwith%20space/archive");
+assert.equal(requests[10].url, "/StarChart-AI/api/v1/users/me/assets/workflows?status=active&page=2&pageSize=10");
+assert.equal(requests[11].url, "/StarChart-AI/api/v1/users/me/assets/workflows/workflow%2Fwith%20space/archive");
 assert.deepEqual(JSON.parse(requests[11].options.body), { expectedVersion: 4 });
-assert.equal(requests[12].url, "/api/v1/users/me/assets/workflows/workflow%2Fwith%20space/restore");
+assert.equal(requests[12].url, "/StarChart-AI/api/v1/users/me/assets/workflows/workflow%2Fwith%20space/restore");
 assert.deepEqual(JSON.parse(requests[12].options.body), { expectedVersion: 5 });
-assert.equal(requests[13].url, "/api/v1/agent/workflows/save");
+assert.equal(requests[13].url, "/StarChart-AI/api/v1/agent/workflows/save");
 assert.equal(requests[13].options.headers["Idempotency-Key"], "agent-save-001");
 assert.equal(JSON.parse(requests[13].options.body).confirmed, true);
+assert.equal(requests[14].url, "/StarChart-AI/api/v1/users/me/avatar");
+assert.equal(requests[14].options.method, "POST");
 
 saveAuthTokens({ accessToken: "expired-access-token" });
 let protectedCalls = 0;
 let refreshCalls = 0;
 globalThis.fetch = async (url, options = {}) => {
-  if (url === "/api/v1/auth/refresh") {
+  if (url === "/StarChart-AI/api/v1/auth/refresh") {
     refreshCalls += 1;
     assert.equal(options.credentials, "same-origin");
     assert.equal(options.headers.Authorization, undefined);
@@ -100,7 +103,7 @@ globalThis.fetch = async (url, options = {}) => {
       json: async () => ({ accessToken: "renewed-access-token", tokenType: "Bearer", expiresIn: 1800 }),
     };
   }
-  if (url === "/api/v1/auth/me") {
+  if (url === "/StarChart-AI/api/v1/auth/me") {
     protectedCalls += 1;
     const renewed = options.headers.Authorization === "Bearer renewed-access-token";
     return {
@@ -140,5 +143,74 @@ assert.deepEqual(
   consumers.applyToolPreferences(tools, { freeFirst: true }).map((item) => item.name),
   ["Free", "Paid"],
 );
+
+const settings = await import(`../frontend/assets/js/settings.js?test=${Date.now()}`);
+assert.equal(
+  settings.projectAvatarUrl("/uploads/avatars/user.webp"),
+  "/StarChart-AI/uploads/avatars/user.webp",
+);
+assert.deepEqual(
+  settings.publicSettingsVisibility({
+    auth: {
+      identityChanges: false,
+      recovery: false,
+      privacyWrites: false,
+    },
+  }),
+  {
+    identityChanges: false,
+    passwordChanges: false,
+    recovery: false,
+    privacyWrites: false,
+  },
+);
+const element = () => ({ hidden: false, disabled: false });
+const accountSection = element();
+const accountLink = element();
+const securitySection = element();
+const securityLink = element();
+const passwordPanel = element();
+const recoveryPanel = element();
+const privacyLabel = element();
+const privacyInput = {
+  ...element(),
+  closest: () => privacyLabel,
+};
+const agentMemoryLabel = element();
+const agentMemoryInput = {
+  ...element(),
+  closest: () => agentMemoryLabel,
+};
+const availableSections = ["profile", "sessions", "preferences", "workflows"]
+  .map((name) => [`[data-section="${name}"]`, element()]);
+const capabilityElements = new Map([
+  ['[data-section="account"]', accountSection],
+  ['[data-section-link][href="#account"]', accountLink],
+  ['[data-section="security"]', securitySection],
+  ['[data-section-link][href="#security"]', securityLink],
+  ["[data-password-form]", { closest: () => passwordPanel }],
+  ["[data-security-form]", { closest: () => recoveryPanel }],
+  ["[data-privacy-consent-form] [name='privacyPolicy']", privacyInput],
+  ["[data-preferences-form] [name='agentMemoryEnabled']", agentMemoryInput],
+  ...availableSections,
+]);
+settings.applyPublicSettingsCapabilities(null, {
+  querySelector: (selector) => capabilityElements.get(selector) ?? null,
+});
+for (const restricted of [
+  accountSection,
+  accountLink,
+  securitySection,
+  securityLink,
+  passwordPanel,
+  recoveryPanel,
+  privacyLabel,
+  agentMemoryLabel,
+]) {
+  assert.equal(restricted.hidden, true);
+}
+assert.equal(privacyInput.disabled, true);
+assert.equal(agentMemoryInput.disabled, true);
+for (const [, available] of availableSections) assert.equal(available.hidden, false);
 
 console.log("users frontend facade tests passed");

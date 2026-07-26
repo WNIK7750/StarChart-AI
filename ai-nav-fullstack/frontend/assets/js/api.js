@@ -1,4 +1,10 @@
-const API_BASE = window.API_BASE || "/api/v1";
+import {
+  API_BASE,
+  withPublicBasePath,
+} from "./public-path.js";
+
+export { API_BASE } from "./public-path.js";
+
 const DEFAULT_TIMEOUT_MS = 10000;
 const RETRYABLE_STATUS = new Set([502, 503, 504]);
 const REFRESHABLE_AUTH_CODES = new Set(["AUTH_TOKEN_INVALID", "AUTH_TOKEN_EXPIRED"]);
@@ -20,9 +26,14 @@ export class ApiError extends Error {
 }
 
 function buildApiUrl(path) {
-  if (/^https?:\/\//.test(path)) return path;
-  if (path.startsWith(API_BASE)) return path;
-  return `${API_BASE}${path}`;
+  if (
+    path === API_BASE
+    || path.startsWith(`${API_BASE}/`)
+    || path.startsWith(`${API_BASE}?`)
+  ) {
+    return withPublicBasePath(path);
+  }
+  return withPublicBasePath(`${API_BASE}${path}`);
 }
 
 function authHeaders() {
@@ -77,12 +88,12 @@ function shouldRefresh(path) {
   if (!getAccessToken()) return false;
   const pathname = new URL(buildApiUrl(path), window.location.origin).pathname;
   return ![
-    "/api/v1/auth/login",
-    "/api/v1/auth/register",
-    "/api/v1/auth/refresh",
-    "/api/v1/auth/logout",
-    "/api/v1/auth/username-available",
-  ].some((excluded) => pathname === excluded || pathname.startsWith("/api/v1/auth/password-reset/"));
+    `${API_BASE}/auth/login`,
+    `${API_BASE}/auth/register`,
+    `${API_BASE}/auth/refresh`,
+    `${API_BASE}/auth/logout`,
+    `${API_BASE}/auth/username-available`,
+  ].some((excluded) => pathname === excluded || pathname.startsWith(`${API_BASE}/auth/password-reset/`));
 }
 
 function isRefreshableAuthFailure(response, data) {
@@ -270,12 +281,14 @@ export function saveAuthTokens(data) {
   if (data.accessToken) accessToken = data.accessToken;
   localStorage.removeItem("ai_nav_access_token");
   localStorage.removeItem("ai_nav_refresh_token");
+  dispatchAuthChanged();
 }
 
 export function clearAuthTokens() {
   accessToken = "";
   localStorage.removeItem("ai_nav_access_token");
   localStorage.removeItem("ai_nav_refresh_token");
+  dispatchAuthChanged();
 }
 
 export function getRefreshToken() {
@@ -284,6 +297,13 @@ export function getRefreshToken() {
 
 export function getAccessToken() {
   return accessToken;
+}
+
+function dispatchAuthChanged() {
+  if (typeof window.dispatchEvent !== "function") return;
+  window.dispatchEvent(new CustomEvent("ai-nav-auth-changed", {
+    detail: { authenticated: Boolean(accessToken) },
+  }));
 }
 
 export async function restoreAuthSession() {

@@ -1,8 +1,10 @@
 import {
+  apiGet,
   clearAuthTokens,
   getAccessToken,
   restoreAuthSession,
 } from "./api.js";
+import { withPublicBasePath } from "./public-path.js";
 import { rememberPrivacyConsent, rememberRecentAvatar } from "./auth-local-state.js";
 import { formatLearningTime, learningTimeTitle } from "./time-format.js";
 import { safeInternalHref } from "./url-safety.js";
@@ -52,6 +54,31 @@ let privacyPolicyVersion = null;
 let currentUser = null;
 let accountSnapshot = null;
 const CROP_RADIUS_RATIO = 0.39;
+let settingsVisibility = {
+  identityChanges: false,
+  passwordChanges: false,
+  recovery: false,
+  privacyWrites: false,
+};
+
+export function publicSettingsVisibility(runtime) {
+  const identityChanges = Boolean(runtime?.auth?.identityChanges);
+  return {
+    identityChanges,
+    passwordChanges: identityChanges,
+    recovery: Boolean(runtime?.auth?.recovery),
+    privacyWrites: Boolean(runtime?.auth?.privacyWrites),
+  };
+}
+
+export function projectAvatarUrl(url = "") {
+  if (!url) return "";
+  try {
+    return withPublicBasePath(url);
+  } catch {
+    return "";
+  }
+}
 
 const FORM_REGIONS = {
   profile: ["[data-profile-form]", "[data-profile-message]"],
@@ -130,14 +157,52 @@ function setContentLoading(selector, message = "正在读取...") {
   box.innerHTML = stateBlock(message, "", true);
 }
 
-function absoluteUrl(url = "") {
-  if (!url) return "";
-  if (/^https?:\/\//.test(url)) return url;
-  return url;
+function setSectionVisible(name, visible, root = document) {
+  const section = $(`[data-section="${name}"]`, root);
+  const link = $(`[data-section-link][href="#${name}"]`, root);
+  if (section) section.hidden = !visible;
+  if (link) link.hidden = !visible;
+}
+
+export function applyPublicSettingsCapabilities(runtime, root = document) {
+  settingsVisibility = publicSettingsVisibility(runtime);
+  setSectionVisible("account", settingsVisibility.identityChanges, root);
+
+  const passwordPanel = $("[data-password-form]", root)?.closest(".panel");
+  const recoveryPanel = $("[data-security-form]", root)?.closest(".panel");
+  if (passwordPanel) passwordPanel.hidden = !settingsVisibility.passwordChanges;
+  if (recoveryPanel) recoveryPanel.hidden = !settingsVisibility.recovery;
+  setSectionVisible(
+    "security",
+    settingsVisibility.passwordChanges || settingsVisibility.recovery,
+    root,
+  );
+
+  const privacyInput = $("[data-privacy-consent-form] [name='privacyPolicy']", root);
+  if (privacyInput) {
+    privacyInput.disabled = !settingsVisibility.privacyWrites;
+    const privacyWriteControl = privacyInput.closest("label");
+    if (privacyWriteControl) privacyWriteControl.hidden = !settingsVisibility.privacyWrites;
+  }
+  const agentMemoryInput = $("[data-preferences-form] [name='agentMemoryEnabled']", root);
+  if (agentMemoryInput) {
+    agentMemoryInput.disabled = !settingsVisibility.privacyWrites;
+    const agentMemoryControl = agentMemoryInput.closest("label");
+    if (agentMemoryControl) agentMemoryControl.hidden = !settingsVisibility.privacyWrites;
+  }
+}
+
+async function loadPublicSettingsCapabilities() {
+  try {
+    applyPublicSettingsCapabilities(await apiGet("/runtime/public"));
+  } catch {
+    applyPublicSettingsCapabilities(null);
+  }
 }
 
 function showSection(name = "profile") {
-  const sectionName = name || "profile";
+  const requested = $(`[data-section="${name || "profile"}"]`);
+  const sectionName = requested && !requested.hidden ? requested.dataset.section : "profile";
   $all("[data-section]").forEach((section) => {
     section.classList.toggle("active", section.dataset.section === sectionName);
   });
@@ -194,7 +259,7 @@ function confirmAction({ title, message, confirmLabel = "确认" }) {
 }
 
 function renderAvatar(url, remember = false) {
-  const src = absoluteUrl(url);
+  const src = projectAvatarUrl(url);
   if (remember) rememberRecentAvatar(url);
   $all("[data-avatar-preview], [data-avatar-small]").forEach((image) => {
     image.src = src || "assets/img/logo.png";
@@ -320,12 +385,13 @@ async function loadSecurityQuestions() {
 }
 
 async function loadAccount(user) {
-  await Promise.all([
-    loadAccountDetails(user),
+  const loaders = [
     loadProfile(user),
     loadPreferences(),
-    loadSecurityQuestions(),
-  ]);
+  ];
+  if (settingsVisibility.identityChanges) loaders.push(loadAccountDetails(user));
+  if (settingsVisibility.recovery) loaders.push(loadSecurityQuestions());
+  await Promise.all(loaders);
 }
 
 async function loadAtomicAreas() {
@@ -1017,22 +1083,32 @@ async function retryArea(area) {
 }
 
 async function init() {
+  applyPublicSettingsCapabilities(null);
   const user = await requireLogin();
   if (!user) return;
   currentUser = user;
   wireFormLabels();
+  await loadPublicSettingsCapabilities();
   showSection(window.location.hash.slice(1) || "profile");
-  setFormState("password", "idle");
+  if (settingsVisibility.passwordChanges) setFormState("password", "idle");
   await loadAccount(user);
   await loadAtomicAreas();
 
   window.addEventListener("hashchange", () => showSection(window.location.hash.slice(1) || "profile"));
   $("[data-profile-form]").addEventListener("submit", saveProfile);
-  $("[data-account-form]").addEventListener("submit", saveAccount);
-  $("[data-password-form]").addEventListener("submit", savePassword);
-  $("[data-security-form]").addEventListener("submit", saveSecurityQuestions);
+  if (settingsVisibility.identityChanges) {
+    $("[data-account-form]").addEventListener("submit", saveAccount);
+  }
+  if (settingsVisibility.passwordChanges) {
+    $("[data-password-form]").addEventListener("submit", savePassword);
+  }
+  if (settingsVisibility.recovery) {
+    $("[data-security-form]").addEventListener("submit", saveSecurityQuestions);
+  }
   $("[data-preferences-form]").addEventListener("submit", savePreferences);
-  $("[data-privacy-consent-form] [name='privacyPolicy']").addEventListener("change", savePrivacyConsent);
+  if (settingsVisibility.privacyWrites) {
+    $("[data-privacy-consent-form] [name='privacyPolicy']").addEventListener("change", savePrivacyConsent);
+  }
   $("[data-settings-legal]").addEventListener("click", (event) => {
     event.preventDefault();
     $("[data-settings-legal-dialog]").showModal();
@@ -1164,4 +1240,4 @@ async function init() {
   });
 }
 
-init();
+if (typeof document !== "undefined") init();

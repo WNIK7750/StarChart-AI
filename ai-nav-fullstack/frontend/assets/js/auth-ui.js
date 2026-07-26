@@ -1,9 +1,11 @@
 import {
+  apiGet,
   clearAuthTokens,
   getAccessToken,
   restoreAuthSession,
   saveAuthTokens,
 } from "./api.js";
+import { withPublicBasePath } from "./public-path.js";
 import {
   confirmPasswordReset,
   getCurrentUser,
@@ -23,6 +25,17 @@ import {
 const AUTH_STYLE_ID = "ai-nav-auth-style";
 const AUTH_PANEL_ID = "authPanel";
 const DEFAULT_AUTH_AVATAR = "assets/img/logo.png";
+let authEntryVisibility = {
+  registration: false,
+  recovery: false,
+};
+
+export function publicAuthEntryVisibility(runtime) {
+  return {
+    registration: Boolean(runtime?.auth?.registration),
+    recovery: Boolean(runtime?.auth?.recovery),
+  };
+}
 
 function escapeHtml(value = "") {
   return String(value)
@@ -49,6 +62,7 @@ function injectStyles() {
     .auth-options{display:flex;justify-content:space-between;gap:12px;align-items:center;color:#6b7c8d;font-size:13px}.auth-check{display:inline-flex;align-items:center;gap:7px;cursor:pointer}.auth-check input{width:17px;height:17px;accent-color:#249cf0}.auth-consent{display:flex;align-items:flex-start;gap:8px;color:#657789;font-size:12px;line-height:1.6}.auth-consent input{width:17px;height:17px;flex:0 0 auto;margin-top:2px;accent-color:#249cf0}.auth-consent button{display:inline;color:#167fd0;font-weight:750;text-decoration:underline;text-underline-offset:2px}.auth-consent button:hover{color:#075f9f}
     .auth-legal{margin:0 20px 20px;padding:18px;border:0;border-radius:16px;background:#fff;color:#31485c;box-shadow:0 12px 35px rgba(37,66,96,.18)}.auth-legal::backdrop{background:rgba(9,23,42,.35);backdrop-filter:blur(4px)}.auth-legal h2{font-size:17px}.auth-legal p{margin-top:10px;font-size:13px;line-height:1.75;color:#5c7184}.auth-legal .auth-ghost{width:100%;margin-top:14px}
     .reset-questions{display:grid;gap:12px}
+    .auth-form[hidden],.auth-tabs button[hidden],.auth-options button[hidden]{display:none!important}
     .user-menu{position:relative}.user-menu-btn{height:34px;display:inline-flex;align-items:center;gap:7px;padding:0 7px;border-radius:8px;background:transparent;color:#24292f;font-weight:700;white-space:nowrap;transition:background .16s,color .16s}.user-menu-btn:hover{background:rgba(31,35,40,.06)}.user-menu-btn.login-only{min-width:66px;justify-content:center;padding:0 12px;background:#24292f;color:#fff;font-weight:750;border-radius:8px}.user-menu-btn.login-only:hover{background:#32383f}.user-avatar{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#7c5cff,#5ee0ff);font-size:12px;overflow:hidden;border:1px solid rgba(31,35,40,.10)}.user-avatar img{width:100%;height:100%;object-fit:cover}
     .user-popover{position:absolute;right:0;top:40px;width:276px;z-index:80;display:none;border:1px solid #d8dee4;border-radius:8px;background:#fff;box-shadow:0 12px 28px rgba(31,35,40,.12);overflow:hidden;font-size:13px;line-height:1.35}.user-menu.open .user-popover{display:block}
     .user-popover-head{display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid #d8dee4}.user-popover-head .user-avatar{width:34px;height:34px}.user-popover-head strong{display:block;font-size:14px}.user-popover-head span{display:block;margin-top:2px;color:#57606a;font-size:12px}
@@ -133,8 +147,7 @@ function restoreConsentChoice() {
 function safeAvatarUrl(value) {
   if (!value) return DEFAULT_AUTH_AVATAR;
   try {
-    const url = new URL(value, document.baseURI);
-    return url.origin === window.location.origin ? url.href : DEFAULT_AUTH_AVATAR;
+    return withPublicBasePath(value);
   } catch {
     return DEFAULT_AUTH_AVATAR;
   }
@@ -146,6 +159,8 @@ function renderAuthDialogAvatar() {
 }
 
 function setAuthTab(mode) {
+  if (mode === "register" && !authEntryVisibility.registration) mode = "login";
+  if (mode.startsWith("reset") && !authEntryVisibility.recovery) mode = "login";
   const panel = authPanel();
   const authTabs = panel.querySelector("[data-auth-tabs]");
   authTabs.style.display = mode.startsWith("reset") ? "none" : "grid";
@@ -157,12 +172,41 @@ function setAuthTab(mode) {
   });
 }
 
+export function applyPublicAuthCapabilities(runtime, panel = authPanel()) {
+  authEntryVisibility = publicAuthEntryVisibility(runtime);
+  panel.querySelector('[data-auth-tab="register"]').hidden = !authEntryVisibility.registration;
+  panel.querySelectorAll('[data-auth-tab^="reset"]').forEach((entry) => {
+    entry.hidden = !authEntryVisibility.recovery;
+  });
+  panel.querySelector('[data-auth-form="register"]').hidden = !authEntryVisibility.registration;
+  panel.querySelectorAll('[data-auth-form^="reset"]').forEach((form) => {
+    form.hidden = !authEntryVisibility.recovery;
+  });
+  const activeForm = panel.querySelector("[data-auth-form].active");
+  if (
+    (activeForm?.dataset.authForm === "register" && !authEntryVisibility.registration)
+    || (activeForm?.dataset.authForm?.startsWith("reset") && !authEntryVisibility.recovery)
+  ) {
+    setAuthTab("login");
+  }
+}
+
+async function loadPublicAuthCapabilities() {
+  try {
+    applyPublicAuthCapabilities(await apiGet("/runtime/public"));
+  } catch {
+    applyPublicAuthCapabilities(null);
+  }
+}
+
 function userInitial(user) {
   return (user?.username || user?.email || "U").slice(0, 1).toUpperCase();
 }
 
 function avatarMarkup(user, avatarUrl = "") {
-  return avatarUrl ? `<img src="${escapeHtml(avatarUrl)}" alt="">` : escapeHtml(userInitial(user));
+  return avatarUrl
+    ? `<img src="${escapeHtml(safeAvatarUrl(avatarUrl))}" alt="">`
+    : escapeHtml(userInitial(user));
 }
 
 function findActionContainers() {
@@ -300,7 +344,8 @@ async function logout() {
 
 export async function initAuthUI() {
   injectStyles();
-  authPanel();
+  applyPublicAuthCapabilities(null, authPanel());
+  await loadPublicAuthCapabilities();
   document.addEventListener("click", async (event) => {
     const target = event.target;
     const trigger = target.closest("[data-auth-trigger]");
