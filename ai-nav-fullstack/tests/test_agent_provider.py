@@ -876,20 +876,22 @@ class AgentProviderConfigTest(unittest.TestCase):
 
     def test_provider_configuration_rejects_unsafe_or_incomplete_modes(self):
         validate_agent_provider_config(**self.valid())
-        with self.assertRaisesRegex(RuntimeError, "cannot use.*fake"):
-            validate_agent_provider_config(**self.valid(environment="production", provider="fake"))
+        for environment in ("production", "provider_preview"):
+            with self.subTest(environment=environment), self.assertRaisesRegex(RuntimeError, "cannot use.*fake"):
+                validate_agent_provider_config(**self.valid(environment=environment, provider="fake"))
         with self.assertRaisesRegex(RuntimeError, "requires"):
             validate_agent_provider_config(**self.valid(provider="openai_compatible"))
-        with self.assertRaisesRegex(RuntimeError, "must use HTTPS"):
-            validate_agent_provider_config(
-                **self.valid(
-                    environment="production",
-                    provider="openai_compatible",
-                    base_url="http://provider.example.test/v1",
-                    model="model",
-                    api_key="secret",
+        for environment in ("production", "provider_preview"):
+            with self.subTest(environment=environment), self.assertRaisesRegex(RuntimeError, "must use HTTPS"):
+                validate_agent_provider_config(
+                    **self.valid(
+                        environment=environment,
+                        provider="openai_compatible",
+                        base_url="http://provider.example.test/v1",
+                        model="model",
+                        api_key="secret",
+                    )
                 )
-            )
         with self.assertRaisesRegex(RuntimeError, "explicitly listed"):
             validate_agent_provider_config(
                 **self.valid(
@@ -952,29 +954,32 @@ class AgentProviderConfigTest(unittest.TestCase):
                 )
             )
 
-        with self.assertRaisesRegex(RuntimeError, "approved Alibaba Cloud Beijing"):
-            validate_agent_provider_config(
-                **self.valid(
-                    environment="production",
-                    provider="openai_compatible",
-                    base_url="https://provider.example.test/v1",
-                    model="qwen3.5-flash",
-                    api_key="secret",
-                    allowed_hosts=("provider.example.test",),
-                    live_enabled=True,
+        for environment in ("production", "provider_preview"):
+            with self.subTest(environment=environment), self.assertRaisesRegex(RuntimeError, "approved Alibaba Cloud Beijing"):
+                validate_agent_provider_config(
+                    **self.valid(
+                        environment=environment,
+                        provider="openai_compatible",
+                        base_url="https://provider.example.test/v1",
+                        model="qwen3.5-flash",
+                        api_key="secret",
+                        allowed_hosts=("provider.example.test",),
+                        live_enabled=True,
+                    )
                 )
-            )
-        validate_agent_provider_config(
-            **self.valid(
-                environment="production",
-                provider="openai_compatible",
-                base_url="https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
-                model="qwen3.5-flash",
-                api_key="secret",
-                allowed_hosts=("workspace.cn-beijing.maas.aliyuncs.com",),
-                live_enabled=True,
-            )
-        )
+        for environment in ("production", "provider_preview"):
+            with self.subTest(environment=environment):
+                validate_agent_provider_config(
+                    **self.valid(
+                        environment=environment,
+                        provider="openai_compatible",
+                        base_url="https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+                        model="qwen3.5-flash",
+                        api_key="secret",
+                        allowed_hosts=("workspace.cn-beijing.maas.aliyuncs.com",),
+                        live_enabled=True,
+                    )
+                )
 
         for overrides, message in (
             ({"per_user_concurrency": 2, "global_concurrency": 1}, "cannot exceed"),
