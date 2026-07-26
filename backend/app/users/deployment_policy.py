@@ -43,6 +43,22 @@ def _presented_identifier(value: str | None) -> str:
         raise DeploymentPolicyError() from exc
 
 
+def enforce_deployment_account(username: str | None) -> None:
+    if APP_ENV != "http_test":
+        return
+    try:
+        presented = normalize_username(username or "")
+    except UsersError as exc:
+        raise DeploymentPolicyError() from exc
+    configured = _configured_username()
+    if compare_digest(
+        presented.encode("utf-8"),
+        configured.encode("utf-8"),
+    ):
+        return
+    raise DeploymentPolicyError()
+
+
 def enforce_deployment_action(
     action: DeploymentAction,
     *,
@@ -51,11 +67,6 @@ def enforce_deployment_action(
     if APP_ENV != "http_test":
         return
     if action == "login":
-        configured = _configured_username()
-        presented = _presented_identifier(login_identifier)
-        if compare_digest(
-            presented.encode("utf-8"),
-            configured.encode("utf-8"),
-        ):
-            return
+        enforce_deployment_account(_presented_identifier(login_identifier))
+        return
     raise DeploymentPolicyError()

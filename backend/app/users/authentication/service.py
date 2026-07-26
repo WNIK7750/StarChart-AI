@@ -23,6 +23,7 @@ from app.users.authentication.ports import AuthenticationRepository
 from app.users.authentication.recovery import DisabledPasswordRecoverySender, PasswordRecoverySender
 from app.users.authentication.repositories.sqlite import SQLiteAuthenticationRepository
 from app.users.common import UsersError
+from app.users.deployment_policy import enforce_deployment_account
 from app.users.privacy.service import PrivacyService, get_privacy_service
 from app.users.security.service import validate_password_strength
 
@@ -215,6 +216,7 @@ class AuthenticationService:
         user = self.repository.get_current_user_by_uid(payload.get("sub"))
         if not user or user["account_status"] != "active":
             raise UsersError("ACCOUNT_UNAVAILABLE", "账号不可用", 401)
+        enforce_deployment_account(user["username"])
         if int(payload.get("ver", -1)) != int(user["token_version"]):
             raise UsersError("AUTH_TOKEN_EXPIRED", "登录已失效", 401)
         return user
@@ -228,12 +230,19 @@ class AuthenticationService:
         session = self.repository.find_refresh_session(refresh_hash)
         if not session:
             previous = self.repository.find_any_refresh_session(refresh_hash)
-            if previous and previous.get("revokedReason") == "rotated":
-                self.repository.revoke_token_family(previous["userId"], previous["tokenFamilyUid"], "replay_detected")
-                raise UsersError("REFRESH_TOKEN_REPLAYED", "刷新令牌已被重复使用，请重新登录", 401)
+            if previous:
+                enforce_deployment_account(previous["username"])
+                if previous.get("revokedReason") == "rotated":
+                    self.repository.revoke_token_family(
+                        previous["userId"],
+                        previous["tokenFamilyUid"],
+                        "replay_detected",
+                    )
+                    raise UsersError("REFRESH_TOKEN_REPLAYED", "刷新令牌已被重复使用，请重新登录", 401)
             raise UsersError("REFRESH_TOKEN_INVALID", "刷新令牌无效", 401)
         if not session or session["accountStatus"] != "active":
             raise UsersError("REFRESH_TOKEN_INVALID", "刷新令牌无效", 401)
+        enforce_deployment_account(session["username"])
         new_refresh_token = create_refresh_token()
         self.repository.rotate_refresh_session(
             session["id"],

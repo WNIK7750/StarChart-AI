@@ -2,6 +2,7 @@ import sqlite3
 import tempfile
 import unittest
 from contextlib import ExitStack
+from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
@@ -15,7 +16,7 @@ from app.api.v1.routers import agent as agent_router
 from app.api.v1.routers import auth as auth_router
 from app.api.v1.routers import privacy as privacy_router
 from app.api.v1.routers import users as users_router
-from app.core.security import hash_password, hash_token
+from app.core.security import create_access_token, hash_password, hash_token
 from app.db.database import apply_migrations, dict_factory
 from app.users.account.repositories.sqlite import SQLiteAccountRepository
 from app.users.account.service import AccountService
@@ -161,6 +162,7 @@ class HttpTestPolicyTest(unittest.TestCase):
         self.authorization = AuthorizationService(SQLiteAuthorizationRepository(connection_factory))
         self.agent_sessions = AgentSessionService(AgentSessionStore(connection_factory))
         self.demo_user = self.auth.repository.find_login_user("demo_fixture")
+        self.attack_user = self.auth.repository.find_login_user("attack_fixture")
         previous_avatar = self.upload_dir / "avatars" / "previous.webp"
         previous_avatar.parent.mkdir(parents=True, exist_ok=True)
         previous_avatar.write_bytes(b"synthetic previous avatar")
@@ -423,6 +425,93 @@ class HttpTestPolicyTest(unittest.TestCase):
                 """
             ),
         )
+
+    def test_http_test_rejects_other_account_refresh_before_rotation_or_audit(self):
+        session_count = self._database_value(
+            "SELECT COUNT(*) FROM user_sessions WHERE user_id = ?",
+            (self.attack_user["id"],),
+        )
+        audit_count = self._database_value(
+            """
+            SELECT COUNT(*) FROM user_audit_logs
+            WHERE target_user_id = ? AND action = 'users.auth.session_refreshed'
+            """,
+            (self.attack_user["id"],),
+        )
+        with self._policy_context(), self._service_context(), TestClient(self.app) as client:
+            response = client.post(
+                "/api/v1/auth/refresh",
+                json={"refreshToken": "synthetic-refresh-attack_fixture"},
+            )
+            self._assert_restricted(response)
+
+        self.assertEqual(
+            session_count,
+            self._database_value(
+                "SELECT COUNT(*) FROM user_sessions WHERE user_id = ?",
+                (self.attack_user["id"],),
+            ),
+        )
+        self.assertEqual(
+            0,
+            self._database_value(
+                """
+                SELECT COUNT(*) FROM user_sessions
+                WHERE user_id = ? AND (is_revoked != 0 OR revoked_reason IS NOT NULL)
+                """,
+                (self.attack_user["id"],),
+            ),
+        )
+        self.assertEqual(
+            audit_count,
+            self._database_value(
+                """
+                SELECT COUNT(*) FROM user_audit_logs
+                WHERE target_user_id = ? AND action = 'users.auth.session_refreshed'
+                """,
+                (self.attack_user["id"],),
+            ),
+        )
+
+    def test_http_test_rejects_other_account_preexisting_access_token(self):
+        access_token = create_access_token(
+            {
+                "sub": self.attack_user["user_uid"],
+                "typ": "access",
+                "ver": self.attack_user["token_version"],
+            },
+            timedelta(minutes=5),
+        )
+        previous_override = self.app.dependency_overrides.pop(
+            auth_router.get_current_user,
+        )
+        try:
+            with self._policy_context(), self._service_context(), TestClient(self.app) as client:
+                response = client.get(
+                    "/api/v1/auth/me",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+                self._assert_restricted(response)
+        finally:
+            self.app.dependency_overrides[auth_router.get_current_user] = previous_override
+
+    def test_http_test_configured_account_refresh_and_current_user_stay_available(self):
+        with self._policy_context(), self._service_context(), TestClient(self.app) as client:
+            self._login(client)
+            refreshed = client.post("/api/v1/auth/refresh")
+            self.assertEqual(200, refreshed.status_code)
+            access_token = refreshed.json()["accessToken"]
+            previous_override = self.app.dependency_overrides.pop(
+                auth_router.get_current_user,
+            )
+            try:
+                current = client.get(
+                    "/api/v1/auth/me",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+                self.assertEqual(200, current.status_code)
+            finally:
+                self.app.dependency_overrides[auth_router.get_current_user] = previous_override
 
     def test_http_test_keeps_profile_preferences_sessions_workflows_logout_and_reads(self):
         with self._policy_context(), self._service_context(), TestClient(self.app) as client:
