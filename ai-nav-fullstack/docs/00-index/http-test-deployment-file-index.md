@@ -1,23 +1,25 @@
 # HTTP 测试部署文件索引
 
 > 用途：作为 HTTP 子路径测试部署的文件路由、实现进度、验证证据和回滚同步入口。
-> 状态：设计阶段；应用源码、部署覆盖层和服务器尚未修改。
+> 状态：设计与实施计划已完成；应用源码、部署覆盖层和服务器尚未修改。
 > 日期：2026-07-26。
 > 权威性：本索引记录本任务事实，不替代当前审计报告、生产发布清单或服务器实际运行记录。
 
 ## 1. 阅读顺序
 
 1. `docs/02-architecture/deployment/http-subpath-test-deployment-design.md`
-2. 本文件
-3. 后续 HTTP 测试部署运行手册
-4. 对应源码、测试和部署覆盖层
-5. 本次重新运行产生的本地、CI 和服务器证据
+2. `docs/01-overview/http-subpath-test-deployment-implementation-plan.md`
+3. 本文件
+4. 后续 HTTP 测试部署运行手册
+5. 对应源码、测试和部署覆盖层
+6. 本次重新运行产生的本地、CI 和服务器证据
 
 ## 2. 当前登记
 
 | 文件 | 职责 | 状态 | 验证 | 回滚 |
 | --- | --- | --- | --- | --- |
 | `docs/02-architecture/deployment/http-subpath-test-deployment-design.md` | 已确认的架构、账号、助手、数据和运维边界 | 已新增 | 文档自审 | 删除该设计文件 |
+| `docs/01-overview/http-subpath-test-deployment-implementation-plan.md` | 13 个按 TDD 执行的实现、验证、部署与人工检查任务 | 已新增 | 文件与接口复核；未执行计划内命令 | 删除该计划文件 |
 | `docs/00-index/http-test-deployment-file-index.md` | 文件与证据同步入口 | 已新增 | 文档自审 | 删除该索引 |
 | `docs/00-index/documentation-map.md` | 将本任务接入全项目文档地图 | 已更新 | 路径检查 | 删除 HTTP 测试部署入口 |
 
@@ -25,12 +27,12 @@
 
 ## 3. 实现候选路由
 
-下表用于约束下一阶段的实现计划，不表示文件已经修改。准确范围必须在实现前复核，并在每次修改后更新状态。
+下表由实施计划复核后用于约束下一阶段实现，不表示文件已经修改。每次修改后必须更新状态。
 
 | 候选范围 | 预期职责 | 当前状态 |
 | --- | --- | --- |
 | `backend/app/core/config.py` | 通用公开前缀与独立 `http_test` 配置验证 | 候选，未修改 |
-| `backend/app/main.py` | 前缀感知的 API、上传和静态资源入口 | 候选，未修改 |
+| `backend/app/main.py` | 复核 Nginx 剥离前缀后是否需要改动 | 已复核，无需修改；内部路径保持 `/api/v1`、`/uploads` 和 `/` |
 | `backend/app/api/v1/routers/agent.py` | 游客聊天入口与有界历史上下文 | 候选，未修改 |
 | `backend/app/agent/schemas.py` | 严格的游客历史请求契约 | 候选，未修改 |
 | `frontend/assets/js/api.js` | 前缀感知的 API URL | 候选，未修改 |
@@ -73,6 +75,7 @@
 ## 6. 当前结论
 
 - 设计：已由用户确认。
+- 实施计划：已完成，共 13 个顺序任务；尚未执行计划内测试或修改应用。
 - 应用实现：未开始。
 - 部署覆盖层：未创建。
 - 本地专项测试：未运行。
