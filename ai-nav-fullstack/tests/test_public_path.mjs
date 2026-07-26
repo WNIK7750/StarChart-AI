@@ -54,6 +54,9 @@ test("unsafe and double-prefixed browser paths are rejected", () => {
     "https://example.test/uploads/avatar.webp",
     "//example.test/uploads/avatar.webp",
     "/uploads/../admin",
+    "/uploads%2Favatars/user.webp",
+    "/uploads%5Cavatars/user.webp",
+    "/StarChart-AI%2Fuploads/avatars/user.webp",
     "/StarChart-AI/StarChart-AI/uploads/avatar.webp",
   ]) {
     assert.throws(

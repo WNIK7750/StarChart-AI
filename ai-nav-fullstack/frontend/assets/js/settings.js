@@ -190,6 +190,18 @@ export function applyPublicSettingsCapabilities(runtime, root = document) {
     const agentMemoryControl = agentMemoryInput.closest("label");
     if (agentMemoryControl) agentMemoryControl.hidden = !settingsVisibility.privacyWrites;
   }
+  const deletionForm = $("[data-deletion-form]", root);
+  if (deletionForm) {
+    deletionForm.hidden = !settingsVisibility.privacyWrites;
+    deletionForm.disabled = !settingsVisibility.privacyWrites;
+    deletionForm.querySelectorAll?.("input, select, textarea, button").forEach((control) => {
+      control.disabled = !settingsVisibility.privacyWrites;
+    });
+  }
+  $all("[data-cancel-deletion]", root).forEach((control) => {
+    control.hidden = !settingsVisibility.privacyWrites;
+    control.disabled = !settingsVisibility.privacyWrites;
+  });
 }
 
 async function loadPublicSettingsCapabilities() {
@@ -401,13 +413,14 @@ async function loadAtomicAreas() {
 function renderDeletionStatus(request) {
   const box = $("[data-deletion-status]");
   const form = $("[data-deletion-form]");
+  if (!box || !form) return;
   if (!request) {
     box.textContent = "当前没有进行中的账号注销申请。";
-    form.hidden = false;
+    form.hidden = !settingsVisibility.privacyWrites;
     return;
   }
   box.innerHTML = `<div><strong>注销申请待执行</strong><p class="hint">计划执行时间：${escapeHtml(request.scheduledFor || "待定")}</p></div>
-    ${request.status === "pending" ? `<button class="btn subtle" type="button" data-cancel-deletion="${escapeHtml(request.requestUid)}">取消申请</button>` : ""}`;
+    ${request.status === "pending" && settingsVisibility.privacyWrites ? `<button class="btn subtle" type="button" data-cancel-deletion="${escapeHtml(request.requestUid)}">取消申请</button>` : ""}`;
   form.hidden = true;
 }
 
@@ -472,6 +485,7 @@ async function exportPrivacyData(event) {
 
 async function createDeletionRequest(event) {
   event.preventDefault();
+  if (!settingsVisibility.privacyWrites) return;
   const form = event.currentTarget;
   const accepted = await confirmAction({
     title: "确认申请注销账号",
@@ -1108,6 +1122,7 @@ async function init() {
   $("[data-preferences-form]").addEventListener("submit", savePreferences);
   if (settingsVisibility.privacyWrites) {
     $("[data-privacy-consent-form] [name='privacyPolicy']").addEventListener("change", savePrivacyConsent);
+    $("[data-deletion-form]")?.addEventListener("submit", createDeletionRequest);
   }
   $("[data-settings-legal]").addEventListener("click", (event) => {
     event.preventDefault();
@@ -1217,6 +1232,7 @@ async function init() {
     }
     const cancelDeletion = event.target.closest("[data-cancel-deletion]");
     if (cancelDeletion) {
+      if (!settingsVisibility.privacyWrites) return;
       const accepted = await confirmAction({
         title: "取消注销申请",
         message: "账号将继续保持正常使用。",

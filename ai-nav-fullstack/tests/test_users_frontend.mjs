@@ -41,17 +41,17 @@ saveAuthTokens({ accessToken: "test-access-token" });
 
 await users.getCurrentUser();
 await users.updateUserProfile({ expectedVersion: 3, displayName: "Alice" });
-await users.revokeUserSession("session/with space");
+await users.revokeUserSession("session with space");
 await users.getUserPreferenceContext("learning");
 await users.logoutUser();
 await users.getUserPrivacyConsents();
 await users.updateUserPrivacyConsent("agent_memory", { policyVersion: "2026-07-01", granted: true });
 await users.exportUserData("Current123");
 await users.requestUserDeletion({ currentPassword: "Current123", reasonCode: "unused" });
-await users.cancelUserDeletion("datareq/with space");
+await users.cancelUserDeletion("datareq with space");
 await users.listUserWorkflows({ status: "active", page: 2, pageSize: 10 });
-await users.archiveUserWorkflow("workflow/with space", 4);
-await users.restoreUserWorkflow("workflow/with space", 5);
+await users.archiveUserWorkflow("workflow with space", 4);
+await users.restoreUserWorkflow("workflow with space", 5);
 await users.saveAgentWorkflow(
   { confirmed: true, sourceType: "agent", title: "Research workflow", steps: [] },
   "agent-save-001",
@@ -63,7 +63,7 @@ assert.equal(requests[0].options.headers.Authorization, "Bearer test-access-toke
 assert.equal(requests[1].url, "/StarChart-AI/api/v1/users/me/profile");
 assert.equal(requests[1].options.method, "PATCH");
 assert.deepEqual(JSON.parse(requests[1].options.body), { expectedVersion: 3, displayName: "Alice" });
-assert.equal(requests[2].url, "/StarChart-AI/api/v1/users/me/sessions/session%2Fwith%20space");
+assert.equal(requests[2].url, "/StarChart-AI/api/v1/users/me/sessions/session%20with%20space");
 assert.equal(requests[2].options.method, "DELETE");
 assert.equal(requests[3].url, "/StarChart-AI/api/v1/users/me/preferences/context?consumer=learning");
 assert.equal(requests[4].url, "/StarChart-AI/api/v1/auth/logout");
@@ -75,12 +75,12 @@ assert.deepEqual(JSON.parse(requests[6].options.body), { policyVersion: "2026-07
 assert.equal(requests[7].url, "/StarChart-AI/api/v1/users/me/privacy/export");
 assert.deepEqual(JSON.parse(requests[7].options.body), { currentPassword: "Current123" });
 assert.equal(requests[8].url, "/StarChart-AI/api/v1/users/me/privacy/deletion-requests");
-assert.equal(requests[9].url, "/StarChart-AI/api/v1/users/me/privacy/deletion-requests/datareq%2Fwith%20space");
+assert.equal(requests[9].url, "/StarChart-AI/api/v1/users/me/privacy/deletion-requests/datareq%20with%20space");
 assert.equal(requests[9].options.method, "DELETE");
 assert.equal(requests[10].url, "/StarChart-AI/api/v1/users/me/assets/workflows?status=active&page=2&pageSize=10");
-assert.equal(requests[11].url, "/StarChart-AI/api/v1/users/me/assets/workflows/workflow%2Fwith%20space/archive");
+assert.equal(requests[11].url, "/StarChart-AI/api/v1/users/me/assets/workflows/workflow%20with%20space/archive");
 assert.deepEqual(JSON.parse(requests[11].options.body), { expectedVersion: 4 });
-assert.equal(requests[12].url, "/StarChart-AI/api/v1/users/me/assets/workflows/workflow%2Fwith%20space/restore");
+assert.equal(requests[12].url, "/StarChart-AI/api/v1/users/me/assets/workflows/workflow%20with%20space/restore");
 assert.deepEqual(JSON.parse(requests[12].options.body), { expectedVersion: 5 });
 assert.equal(requests[13].url, "/StarChart-AI/api/v1/agent/workflows/save");
 assert.equal(requests[13].options.headers["Idempotency-Key"], "agent-save-001");
@@ -181,6 +181,8 @@ const agentMemoryInput = {
   ...element(),
   closest: () => agentMemoryLabel,
 };
+const deletionForm = element();
+const cancelDeletion = element();
 const availableSections = ["profile", "sessions", "preferences", "workflows"]
   .map((name) => [`[data-section="${name}"]`, element()]);
 const capabilityElements = new Map([
@@ -192,11 +194,14 @@ const capabilityElements = new Map([
   ["[data-security-form]", { closest: () => recoveryPanel }],
   ["[data-privacy-consent-form] [name='privacyPolicy']", privacyInput],
   ["[data-preferences-form] [name='agentMemoryEnabled']", agentMemoryInput],
+  ["[data-deletion-form]", deletionForm],
   ...availableSections,
 ]);
-settings.applyPublicSettingsCapabilities(null, {
+const capabilityRoot = {
   querySelector: (selector) => capabilityElements.get(selector) ?? null,
-});
+  querySelectorAll: (selector) => selector === "[data-cancel-deletion]" ? [cancelDeletion] : [],
+};
+settings.applyPublicSettingsCapabilities(null, capabilityRoot);
 for (const restricted of [
   accountSection,
   accountLink,
@@ -206,11 +211,27 @@ for (const restricted of [
   recoveryPanel,
   privacyLabel,
   agentMemoryLabel,
+  deletionForm,
+  cancelDeletion,
 ]) {
   assert.equal(restricted.hidden, true);
 }
 assert.equal(privacyInput.disabled, true);
 assert.equal(agentMemoryInput.disabled, true);
+assert.equal(deletionForm.disabled, true);
+assert.equal(cancelDeletion.disabled, true);
 for (const [, available] of availableSections) assert.equal(available.hidden, false);
+
+settings.applyPublicSettingsCapabilities({
+  auth: {
+    identityChanges: true,
+    recovery: true,
+    privacyWrites: true,
+  },
+}, capabilityRoot);
+assert.equal(deletionForm.hidden, false);
+assert.equal(deletionForm.disabled, false);
+assert.equal(cancelDeletion.hidden, false);
+assert.equal(cancelDeletion.disabled, false);
 
 console.log("users frontend facade tests passed");
