@@ -106,7 +106,7 @@
 | --- | ---: |
 | `scripts/verify-quality.ps1` | 通过 |
 | 全量 Python | 176/176 通过 |
-| 分支模式覆盖率 | 85.9%，6262 statements、712 missed、1272 branches、297 partial；门槛 84% |
+| 分支模式覆盖率 | 85.9%，6262 statements、714 missed、1272 branches、298 partial；门槛 84% |
 | 全量 Node | 34/34 通过（9 个测试文件） |
 | Python `compileall` | 通过 |
 | JavaScript `node --check` | 36/36 个 `.js`/`.mjs` 文件通过 |
