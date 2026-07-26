@@ -42,7 +42,7 @@ jobs:
     env:
       AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
       AI_NAV_DISABLE_DOTENV: "1"
-      AI_NAV_DATABASE_PATH: ${{ runner.temp }}\ai-nav-quality.sqlite3
+      AI_NAV_DATABASE_PATH: ${{ github.workspace }}/ai-nav-fullstack/.ci/quality.sqlite3
       PYTHONPATH: backend
       PYTHONUNBUFFERED: "1"
     defaults:
@@ -76,7 +76,7 @@ jobs:
     env:
       AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
       AI_NAV_DISABLE_DOTENV: "1"
-      AI_NAV_DATABASE_PATH: ${{ runner.temp }}\ai-nav-foundation.sqlite3
+      AI_NAV_DATABASE_PATH: ${{ github.workspace }}/ai-nav-fullstack/.ci/foundation.sqlite3
       PYTHONPATH: backend
       PYTHONUNBUFFERED: "1"
     defaults:
@@ -110,7 +110,7 @@ jobs:
     env:
       AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
       AI_NAV_DISABLE_DOTENV: "1"
-      AI_NAV_DATABASE_PATH: ${{ runner.temp }}\ai-nav-agent.sqlite3
+      AI_NAV_DATABASE_PATH: ${{ github.workspace }}/ai-nav-fullstack/.ci/agent.sqlite3
       PYTHONPATH: backend
       PYTHONUNBUFFERED: "1"
     defaults:
