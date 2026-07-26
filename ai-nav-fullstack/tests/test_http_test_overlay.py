@@ -153,6 +153,25 @@ class HttpTestServiceOverlayTests(unittest.TestCase):
             read_overlay("provider-preview.env.example"),
         )
 
+    def test_environment_files_are_example_templates_only(self) -> None:
+        environment_files = [
+            path.relative_to(OVERLAY).as_posix()
+            for path in OVERLAY.rglob("*")
+            if path.is_file()
+            and (path.name == ".env" or path.name == "env.example" or ".env." in path.name)
+        ]
+        self.assertEqual(
+            environment_files,
+            ["env.example", "provider-preview.env.example"],
+        )
+        self.assertTrue(
+            all(
+                Path(name).name == "env.example"
+                or Path(name).name.endswith(".env.example")
+                for name in environment_files
+            )
+        )
+
 
 class HttpTestScriptAndHubTests(unittest.TestCase):
     def test_install_is_backup_first_and_reload_is_gated_by_nginx_test(self) -> None:
