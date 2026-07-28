@@ -1,3 +1,5 @@
+import { withPublicBasePath } from "./public-path.js";
+
 function parseHttpUrl(value) {
   try {
     const url = new URL(String(value || ""), window.location.origin);
@@ -10,7 +12,11 @@ function parseHttpUrl(value) {
 export function safeInternalHref(value, fallback = "#") {
   const url = parseHttpUrl(value);
   if (!url || url.origin !== window.location.origin) return fallback;
-  return `${url.pathname}${url.search}${url.hash}`;
+  try {
+    return `${withPublicBasePath(`${url.pathname}${url.search}`)}${url.hash}`;
+  } catch {
+    return fallback;
+  }
 }
 
 export function safeHttpHref(value, fallback = "#") {
