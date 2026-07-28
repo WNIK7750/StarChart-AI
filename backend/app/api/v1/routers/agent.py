@@ -371,7 +371,10 @@ def create_agent_session(
     current_user: dict = Depends(require_permission("agent:chat")),
 ):
     _require_sessions_enabled()
-    return get_agent_session_service().create(current_user["id"], payload.title)
+    try:
+        return get_agent_session_service().create(current_user["id"], payload.title)
+    except AgentSessionError as exc:
+        _session_error(exc)
 
 
 @router.get("/sessions", response_model=AgentSessionListResponse)
