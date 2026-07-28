@@ -61,7 +61,9 @@ class HttpTestNginxOverlayTests(unittest.TestCase):
         self.assertLess(max(chat_position, health_position, widget_position), fallback_position)
         self.assertIn("proxy_pass http://legacy_ai_nav", location_body(self.config, "/chat", "="))
         self.assertIn("proxy_pass http://legacy_ai_nav", location_body(self.config, "/health", "="))
-        self.assertIn("/opt/ai-nav2/chat-widget.js", location_body(self.config, "/chat-widget.js", "="))
+        widget = location_body(self.config, "/chat-widget.js", "=")
+        self.assertIn("alias /opt/ai-nav2/chat-widget.js", widget)
+        self.assertNotIn("try_files", widget)
         self.assertIn("/var/www/project-hub", location_body(self.config, "/"))
 
     def test_normalizes_prefixes_and_strips_new_project_prefix(self) -> None:
