@@ -181,6 +181,19 @@ class HttpTestServiceOverlayTests(unittest.TestCase):
             )
         )
 
+    def test_environment_templates_use_the_implemented_process_local_backend(
+        self,
+    ) -> None:
+        for template in ("env.example", "provider-preview.env.example"):
+            self.assertIn(
+                "AI_NAV_AGENT_RUNTIME_STATE_BACKEND=process_local",
+                read_overlay(template),
+            )
+            self.assertNotIn(
+                "AI_NAV_AGENT_RUNTIME_STATE_BACKEND=memory",
+                read_overlay(template),
+            )
+
 
 class HttpTestScriptAndHubTests(unittest.TestCase):
     def test_install_is_backup_first_and_reload_is_gated_by_nginx_test(self) -> None:
