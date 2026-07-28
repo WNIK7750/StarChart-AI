@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-28T15:12:41.4060028Z",
+  "generatedAt": "2026-07-28T15:28:42.457646Z",
   "target": "authorized-http-test-host",
   "targetCommit": "0025cbb0403659995374be09b239b839d751d341",
   "release": {
@@ -85,37 +85,109 @@
     "authenticatedSessions": true
   },
   "authenticatedFlow": {
-    "reportSha256": "a8975315d58be72837fc5cb99aeea4eb0e824f06ad035dc2cb7bc1ccc5a1ba64",
     "validationStatus": "passed",
     "checksRecorded": 24,
     "passedChecks": 24,
     "failedChecks": 0,
     "checks": {
-      "login": {"statusCode": 200, "elapsedMs": 169.7},
-      "refresh": {"statusCode": 200, "elapsedMs": 40.2},
-      "currentUser": {"statusCode": 200, "elapsedMs": 10.1},
-      "accountRead": {"statusCode": 200, "elapsedMs": 11.9},
-      "profileRead": {"statusCode": 200, "elapsedMs": 13.0},
-      "profileUpdate": {"statusCode": 200, "elapsedMs": 27.4},
-      "preferencesRead": {"statusCode": 200, "elapsedMs": 10.8},
-      "preferencesUpdate": {"statusCode": 200, "elapsedMs": 27.2},
-      "avatarUpdate": {"statusCode": 200, "elapsedMs": 263.1},
-      "accountSessionsRead": {"statusCode": 200, "elapsedMs": 12.6},
-      "workflowList": {"statusCode": 200, "elapsedMs": 14.5},
-      "workflowCreate": {"statusCode": 201, "elapsedMs": 49.8},
-      "workflowArchive": {"statusCode": 200, "elapsedMs": 25.8},
-      "workflowRestore": {"statusCode": 200, "elapsedMs": 27.1},
-      "agentSessionList": {"statusCode": 200, "elapsedMs": 14.4},
-      "agentSessionResume": {"statusCode": 200, "elapsedMs": 0.0},
-      "agentChat": {"statusCode": 200, "elapsedMs": 49.9},
-      "agentSessionUpdate": {"statusCode": 200, "elapsedMs": 23.2},
-      "agentSessionUpgrade": {"statusCode": 200, "elapsedMs": 23.1},
-      "agentLongConversationRead": {"statusCode": 200, "elapsedMs": 15.2},
-      "agentLongConversationDelete": {"statusCode": 204, "elapsedMs": 20.9},
-      "logout": {"statusCode": 200, "elapsedMs": 27.1},
-      "guestAgentChat": {"statusCode": 200, "elapsedMs": 17.2},
-      "anonymousCurrentUserDenied": {"statusCode": 401, "elapsedMs": 5.3}
-    }
+      "login": {
+        "statusCode": 200,
+        "elapsedMs": 169.7
+      },
+      "refresh": {
+        "statusCode": 200,
+        "elapsedMs": 40.2
+      },
+      "current_user": {
+        "statusCode": 200,
+        "elapsedMs": 10.1
+      },
+      "account_read": {
+        "statusCode": 200,
+        "elapsedMs": 11.9
+      },
+      "profile_read": {
+        "statusCode": 200,
+        "elapsedMs": 13.0
+      },
+      "profile_update": {
+        "statusCode": 200,
+        "elapsedMs": 27.4
+      },
+      "preferences_read": {
+        "statusCode": 200,
+        "elapsedMs": 10.8
+      },
+      "preferences_update": {
+        "statusCode": 200,
+        "elapsedMs": 27.2
+      },
+      "avatar_update": {
+        "statusCode": 200,
+        "elapsedMs": 263.1
+      },
+      "account_sessions_read": {
+        "statusCode": 200,
+        "elapsedMs": 12.6
+      },
+      "workflow_list": {
+        "statusCode": 200,
+        "elapsedMs": 14.5
+      },
+      "workflow_create": {
+        "statusCode": 201,
+        "elapsedMs": 49.8
+      },
+      "workflow_archive": {
+        "statusCode": 200,
+        "elapsedMs": 25.8
+      },
+      "workflow_restore": {
+        "statusCode": 200,
+        "elapsedMs": 27.1
+      },
+      "agent_session_list": {
+        "statusCode": 200,
+        "elapsedMs": 14.4
+      },
+      "agent_session_resume": {
+        "statusCode": 200,
+        "elapsedMs": 0.0
+      },
+      "agent_chat": {
+        "statusCode": 200,
+        "elapsedMs": 49.9
+      },
+      "agent_session_update": {
+        "statusCode": 200,
+        "elapsedMs": 23.2
+      },
+      "agent_session_upgrade": {
+        "statusCode": 200,
+        "elapsedMs": 23.1
+      },
+      "agent_long_conversation_read": {
+        "statusCode": 200,
+        "elapsedMs": 15.2
+      },
+      "agent_long_conversation_delete": {
+        "statusCode": 204,
+        "elapsedMs": 20.9
+      },
+      "logout": {
+        "statusCode": 200,
+        "elapsedMs": 27.1
+      },
+      "guest_agent_chat": {
+        "statusCode": 200,
+        "elapsedMs": 17.2
+      },
+      "anonymous_current_user_denied": {
+        "statusCode": 401,
+        "elapsedMs": 5.3
+      }
+    },
+    "reportSha256": "a8975315d58be72837fc5cb99aeea4eb0e824f06ad035dc2cb7bc1ccc5a1ba64"
   },
   "notRun": {
     "providerPreview": "not_run",
@@ -133,16 +205,5 @@
     "providerPreview": "not_run",
     "productionRelease": "no_go"
   },
-  "containsSecrets": false,
-  "omitted": [
-    "host address",
-    "account identifier",
-    "password",
-    "token",
-    "cookie",
-    "request body",
-    "response body",
-    "provider content",
-    "unredacted logs"
-  ]
+  "containsSecrets": false
 }
