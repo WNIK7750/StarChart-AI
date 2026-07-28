@@ -171,7 +171,7 @@ class HttpTestServiceOverlayTests(unittest.TestCase):
             if path.is_file()
             and (path.name == ".env" or path.name == "env.example" or ".env." in path.name)
         ]
-        self.assertEqual(
+        self.assertCountEqual(
             environment_files,
             ["env.example", "provider-preview.env.example"],
         )
