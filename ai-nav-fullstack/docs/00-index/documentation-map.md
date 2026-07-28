@@ -1,6 +1,6 @@
 # AI 知识导航文档地图
 
-> 版本：2026-07-26
+> 版本：2026-07-28
 > 目标：让设计、实现、运维、审计和机器证据各有唯一入口。
 
 ## 1. 权威阅读顺序
@@ -81,8 +81,9 @@
 - `docs/02-architecture/deployment/http-subpath-test-deployment-design.md`
 - `docs/04-operations/deployment/http-test-deployment-runbook.md`
 - `docs/06-evidence/platform/http-test-deployment-manifest.json`
+- `docs/06-evidence/platform/http-test-server-validation.json`
 
-当前状态为任务 1–11 的本地实现和文档已完成；独立全量复验、服务器部署、真实 Provider、HTTPS、备份恢复和回滚验证尚未完成。
+当前状态为任务 1–13 的本地实现、复验和 deterministic HTTP 服务器部署已完成。真实 Provider 预览、HTTPS、备份恢复、回滚演练、容量、合规和外部生产签收尚未执行；HTTP 测试部署为 `GO`，生产发布继续 `NO-GO`。
 
 ### 审计整改提示词
 
