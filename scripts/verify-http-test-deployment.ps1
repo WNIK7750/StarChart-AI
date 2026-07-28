@@ -2,11 +2,8 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-$python = if (Test-Path ".\.venv\Scripts\python.exe") {
-  ".\.venv\Scripts\python.exe"
-} else {
-  "python"
-}
+. (Join-Path $PSScriptRoot "python-runtime.ps1")
+$python = Resolve-AiNavPython -Root $root
 $runId = [Guid]::NewGuid().ToString("N")
 $resultRoot = Join-Path ([IO.Path]::GetTempPath()) "ai-nav-http-test-$runId"
 $databasePath = Join-Path $resultRoot "gate.sqlite3"

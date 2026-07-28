@@ -3,6 +3,7 @@ from ipaddress import ip_address, ip_network
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Query, Request, Response, status
 from pydantic import Field
 
+from app.api.v1.dependencies.deployment_policy import require_deployment_action
 from app.api.v1.schemas import ErrorResponse
 from app.core.config import (
     REFRESH_COOKIE_MAX_AGE_SECONDS,
@@ -184,9 +185,6 @@ def get_current_user(authorization: str | None = Header(default=None)) -> dict:
         )
     token = authorization.split(" ", 1)[1].strip()
     return _auth_call(lambda: get_authentication_service().current_user_from_token(token))
-
-
-from app.api.v1.dependencies.deployment_policy import require_deployment_action
 
 
 @router.get(

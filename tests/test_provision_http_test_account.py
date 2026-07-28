@@ -13,7 +13,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = ROOT / "scripts" / "provision-http-test-account.py"
 SYNTHETIC_USERNAME = "synthetic_http_test_user"
-SYNTHETIC_PASSWORD = "Synthetic" + "-Pass9!"
+SYNTHETIC_CREDENTIAL = "Synthetic" + "-Pass9!"
 
 
 def load_script():
@@ -58,7 +58,7 @@ class ProvisionHttpTestAccountTest(unittest.TestCase):
         ):
             return self.script.provision_http_test_account(
                 username,
-                SYNTHETIC_PASSWORD,
+                SYNTHETIC_CREDENTIAL,
                 database_path=self.database_path,
                 upload_dir=self.upload_dir,
             )
@@ -82,7 +82,7 @@ class ProvisionHttpTestAccountTest(unittest.TestCase):
         rendered = repr(result)
         for forbidden in (
             SYNTHETIC_USERNAME,
-            SYNTHETIC_PASSWORD,
+            SYNTHETIC_CREDENTIAL,
             password_hash,
             "accessToken",
             "refreshToken",
@@ -104,7 +104,7 @@ class ProvisionHttpTestAccountTest(unittest.TestCase):
                 ):
                     result = self.script.provision_http_test_account(
                         SYNTHETIC_USERNAME,
-                        SYNTHETIC_PASSWORD,
+                        SYNTHETIC_CREDENTIAL,
                         database_path=database_path,
                         upload_dir=upload_dir,
                     )
@@ -134,7 +134,7 @@ class ProvisionHttpTestAccountTest(unittest.TestCase):
                     with self.assertRaises(self.script.ProvisioningError):
                         self.script.provision_http_test_account(
                             SYNTHETIC_USERNAME,
-                            SYNTHETIC_PASSWORD,
+                            SYNTHETIC_CREDENTIAL,
                             database_path=database_path,
                             upload_dir=upload_dir,
                         )
@@ -152,7 +152,7 @@ class ProvisionHttpTestAccountTest(unittest.TestCase):
             with self.assertRaises(self.script.ProvisioningError) as raised:
                 self.script.provision_http_test_account(
                     "different_synthetic_user",
-                    SYNTHETIC_PASSWORD,
+                    SYNTHETIC_CREDENTIAL,
                     database_path=self.database_path,
                     upload_dir=self.upload_dir,
                 )
@@ -187,7 +187,7 @@ class ProvisionHttpTestAccountTest(unittest.TestCase):
             with self.assertRaises(self.script.ProvisioningError):
                 self.script.provision_http_test_account(
                     SYNTHETIC_USERNAME,
-                    SYNTHETIC_PASSWORD,
+                    SYNTHETIC_CREDENTIAL,
                     database_path=self.database_path,
                     upload_dir=self.upload_dir,
                 )
@@ -198,14 +198,14 @@ class ProvisionHttpTestAccountTest(unittest.TestCase):
     def test_cli_rejects_arguments_password_environment_and_piped_input(self):
         cases = (
             {
-                "argv": ["--password", SYNTHETIC_PASSWORD],
+                "argv": ["--password", SYNTHETIC_CREDENTIAL],
                 "environ": {},
                 "stdin": FakeStdin(True),
             },
             {
                 "argv": [],
                 "environ": {
-                    "AI_NAV_HTTP_TEST_ACCOUNT_PASSWORD": SYNTHETIC_PASSWORD,
+                    "AI_NAV_HTTP_TEST_ACCOUNT_PASSWORD": SYNTHETIC_CREDENTIAL,
                 },
                 "stdin": FakeStdin(True),
             },
@@ -231,7 +231,7 @@ class ProvisionHttpTestAccountTest(unittest.TestCase):
                 self.assertNotEqual(0, exit_code)
                 rendered = stdout.getvalue() + stderr.getvalue()
                 self.assertNotIn(SYNTHETIC_USERNAME, rendered)
-                self.assertNotIn(SYNTHETIC_PASSWORD, rendered)
+                self.assertNotIn(SYNTHETIC_CREDENTIAL, rendered)
 
 
 if __name__ == "__main__":

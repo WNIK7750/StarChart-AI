@@ -1,4 +1,3 @@
-import os
 import sqlite3
 import subprocess
 import sys
@@ -49,6 +48,7 @@ def preview_environment(temp_root: Path, **overrides) -> dict[str, str]:
     sqlite3.connect(database_path).close()
     values = {
         "PYTHONPATH": str(ROOT / "backend"),
+        "PYTHONUTF8": "1",
         "AI_NAV_DISABLE_DOTENV": "1",
         "AI_NAV_ENV": "provider_preview",
         "AI_NAV_SECRET_KEY": "p" * 32,
