@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-28T12:27:06.878827Z",
+  "generatedAt": "2026-07-28T13:21:33.690101Z",
   "sourceCommit": "WORKTREE",
   "checks": [
     {
@@ -36,7 +36,7 @@
     {
       "name": "release",
       "passed": true,
-      "count": 6
+      "count": 7
     }
   ],
   "externalValidation": {

@@ -162,6 +162,15 @@ try {
     $destination = Join-Path $stageRoot $relative
     New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
     Copy-Item -LiteralPath $file.FullName -Destination $destination
+    if ([IO.Path]::GetExtension($destination) -eq ".sh") {
+      $content = [IO.File]::ReadAllText($destination)
+      $content = $content.Replace("`r`n", "`n").Replace("`r", "`n")
+      [IO.File]::WriteAllText(
+        $destination,
+        $content,
+        [Text.UTF8Encoding]::new($false)
+      )
+    }
   }
   $stagedFiles = @(Get-ChildItem -LiteralPath $stageRoot -Recurse -File)
   Invoke-ReleaseSecretScan -ScanRoot $stageRoot -SelectedFiles $stagedFiles
