@@ -1093,6 +1093,13 @@ sessionRenameForm?.addEventListener("submit", async (event) => {
   }
 });
 document.addEventListener("click", (event) => {
+  const settingsLink = event.target.closest("[data-settings-link]");
+  if (!settingsLink || isAuthenticatedMode()) return;
+  event.preventDefault();
+  status.textContent = "请先登录后进入设置";
+  document.querySelector('[data-auth-trigger="login"]')?.click();
+});
+document.addEventListener("click", (event) => {
   const button = event.target.closest("[data-prompt]");
   if (button) submitMessage(button.dataset.prompt);
 });

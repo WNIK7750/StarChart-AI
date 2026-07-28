@@ -34,6 +34,7 @@ assert.match(html, /回答基于站内公开证据。请勿输入密码、令牌
 assert.match(html, /id="guestMemoryNotice"/);
 assert.match(html, /游客记录仅保存在当前浏览器 7 天；登录不会自动导入/);
 assert.match(html, /id="clearGuestHistoryButton"/);
+assert.match(html, /data-settings-link/);
 assert.doesNotMatch(html, /class="evidence-panel"/);
 assert.doesNotMatch(html, /确定性只读模式|当前为确定性检索模式/);
 assert.match(script, /getAccessToken/);
@@ -89,6 +90,9 @@ assert.match(script, /clearGuestConversations/);
 assert.match(script, /window\.confirm/);
 assert.match(script, /input\.value = text/);
 assert.match(script, /window\.addEventListener\("ai-nav-auth-changed"/);
+assert.match(script, /const settingsLink = event\.target\.closest\("\[data-settings-link\]"\)/);
+assert.match(script, /if \(!settingsLink \|\| isAuthenticatedMode\(\)\) return;/);
+assert.match(script, /请先登录后进入设置/);
 assert.doesNotMatch(script, /status === 401[\s\S]{0,400}\/agent\/guest\/chat/);
 assert.match(script, /confirmed: true/);
 assert.match(script, /保存前检查草稿/);
