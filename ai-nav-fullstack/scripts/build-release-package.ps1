@@ -9,19 +9,8 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 if (-not $PythonExecutable) {
-  $venvPython = Join-Path $root ".venv/Scripts/python.exe"
-  if (Test-Path -LiteralPath $venvPython) {
-    $PythonExecutable = $venvPython
-  } else {
-    $pythonCommand = Get-Command python3 -ErrorAction SilentlyContinue
-    if (-not $pythonCommand) {
-      $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
-    }
-    if (-not $pythonCommand) {
-      throw "Python is required to scan release content."
-    }
-    $PythonExecutable = $pythonCommand.Source
-  }
+  . (Join-Path $PSScriptRoot "python-runtime.ps1")
+  $PythonExecutable = Resolve-AiNavPython -Root $root
 }
 
 function Get-ReleaseRelativePath {

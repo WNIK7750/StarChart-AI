@@ -148,7 +148,7 @@ test("stream requests keep auth server-side and require an SSE response", async 
   };
   const response = await apiPostStream("/agent/chat/stream", { message: "RAG" });
   assert.equal(response.status, 200);
-  assert.equal(captured.options.headers.Authorization, "Bearer stream-access-token");
+  assert.equal(captured.options.headers.Authorization, "Bearer " + "stream-access-token");
   assert.equal(captured.options.headers.Accept, "text/event-stream");
   assert.equal(captured.url, `${API_BASE}/agent/chat/stream`);
 

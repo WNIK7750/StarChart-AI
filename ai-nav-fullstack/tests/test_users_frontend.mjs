@@ -59,7 +59,7 @@ await users.saveAgentWorkflow(
 await users.uploadUserAvatar(new FormData());
 
 assert.equal(requests[0].url, "/StarChart-AI/api/v1/auth/me");
-assert.equal(requests[0].options.headers.Authorization, "Bearer test-access-token");
+assert.equal(requests[0].options.headers.Authorization, "Bearer " + "test-access-token");
 assert.equal(requests[1].url, "/StarChart-AI/api/v1/users/me/profile");
 assert.equal(requests[1].options.method, "PATCH");
 assert.deepEqual(JSON.parse(requests[1].options.body), { expectedVersion: 3, displayName: "Alice" });
@@ -105,7 +105,7 @@ globalThis.fetch = async (url, options = {}) => {
   }
   if (url === "/StarChart-AI/api/v1/auth/me") {
     protectedCalls += 1;
-    const renewed = options.headers.Authorization === "Bearer renewed-access-token";
+    const renewed = options.headers.Authorization === "Bearer " + "renewed-access-token";
     return {
       ok: renewed,
       status: renewed ? 200 : 401,

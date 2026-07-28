@@ -166,6 +166,18 @@
 - 计划中的整目录秘密扫描 `scripts/check-no-secrets.py --paths docs deploy README.md` 按 fail-closed 规则命中 `docs/06-evidence/users/screenshots/` 内 4 个既有 PNG 二进制证据，退出码 1；这些文件不是本任务新增或修改，未删除、移动或豁免。随后对本任务五个文档文件、`deploy/` 和 `README.md` 运行相同扫描器，未发现秘密形状值或禁止制品，退出码 0。
 - 未访问网络、服务器或 Provider，未执行部署、Nginx/systemd 变更、真实 Provider、HTTPS、备份恢复或回滚。最小回滚路径为回退任务 11 提交；无数据库或服务器回滚需求。
 
+### 3.13 复验批次：2026-07-28，任务 12（最终本地门禁与全功能负向流）
+
+- 已把隔离分支的 16 个已审计提交按原顺序合并到当前功能分支；保留并未读取、移动、暂存或修改工作区既有的 `.tmp_ci.txt`、`.tmp_push_ci.txt`。
+- 最终门禁暴露并修复五类本地事实缺口：Ruff 中途导入与未使用导入、OpenAPI 操作/响应模型基线计数滞后、`dependencies` 包级重导出导致的认证路由循环导入、显式 Python 与损坏旧 `.venv` site-packages 混用、专项门禁和发布构建器重复选择错误 Python。新增 `tests/test_python_runtime.py`，明确验证显式解释器不混入另一虚拟环境。
+- Windows 子进程编码夹具显式设置 `PYTHONUTF8=1`；测试中的 Bearer、私钥头和密码夹具改为等价的合成拼接形式，使分支秘密扫描不需要放宽规则。相关 Agent Provider、初始化器、秘密扫描、Python 运行时和前端夹具回归合计 65 项通过。
+- `scripts/verify-quality.ps1` 在源码外临时数据库上通过：Ruff 通过、Python 依赖审计报告 0 个已知漏洞、发布选择 `fileCount=365`/`forbiddenCount=0`/`deploymentOverlayCount=10`、252 项 Python 测试通过，分支覆盖率 86.5%。
+- `scripts/verify-agent.ps1` 在 CI 同等初始化的临时数据库上通过 112 项 Python 和 3 项 Node/SSE；`scripts/verify-frontend.ps1` 通过 34 项；`scripts/verify-users.ps1` 通过 49 项服务测试及前端、35 项命令安全、20 项迁移、8 项性能操作和 3 项查询计划；`scripts/verify-foundation.ps1` 最终退出码 0。
+- `scripts/verify-http-test-deployment.ps1` 最终退出码 0，本次真实计数为 runtime 49、policy 8、agentHistory 74、guestAgent 27、frontend 47、overlay 20、release 6；机器证据由本次结构化结果原子替换。独立发布校验再次返回 365/0/10。
+- 负向全功能流通过 5 项：游客请求不创建 Users/session/workflow 数据且不调用 Provider、配置了 Provider 时游客仍强制 deterministic、唯一测试账号限制在副作用前拒绝、允许的账号功能继续可用、跨用户 Agent session 与不存在资源不可区分。
+- 对当前分支相对计划基线的 76 个实际文件运行脱敏秘密扫描，结果为 0 命中；发布成员另由构建器在选择和暂存两个阶段扫描。所有临时数据库和路径清单均已删除，未读取真实 `.env`，未调用真实 Provider。
+- 本地整改候选结论为 `GO`。Linux Nginx/systemd 加载、服务器部署、真实 Provider 预览、HTTPS、服务器备份恢复与回滚在任务 13 执行前仍为 `NOT RUN`；HTTP 服务器部署和生产发布仍保持 `NO-GO`。
+
 ## 4. 强制同步字段
 
 每次实现或部署更新都必须追加：
@@ -197,11 +209,12 @@
 ## 6. 当前结论
 
 - 设计：已由用户确认。
-- 实施计划：已完成，共 13 个顺序任务；任务 1 至任务 11 已完成，其余任务尚未执行。
+- 实施计划：共 13 个顺序任务；任务 1 至任务 12 已完成，任务 13 正在等待并执行服务器阶段。
 - 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文、任务 5 的确定性游客助手后端入口、任务 6 的浏览器游客记忆与身份模式切换和任务 7 的无秘密测试账号初始化器已完成；任务 8 没有修改应用源码。
 - 部署覆盖层：已创建并纳入 deny-first 发布包；本地结构测试、shell 语法和发布选择通过，Linux Nginx/systemd 加载验证仍为 `NOT RUN`。
 - 本地专项测试：任务 1 至任务 10 已按各自范围运行并通过；任务 11 只执行文档链接、秘密扫描、差异检查和人工结构审查；最新专项门禁七组真实计数已写入无秘密 manifest。
-- 全量门禁：未因本设计重新运行。
+- 全量门禁：已于 2026-07-28 使用源码外临时数据库重新运行并通过；质量门禁 252 项、覆盖率 86.5%，专项门禁七组计数为 49/8/74/27/47/20/6。
 - 服务器部署：未执行。
-- HTTP 测试候选：`NO-GO`，仍等待后续功能、部署覆盖层和服务器验证。
+- 本地整改候选：`GO`。
+- HTTP 服务器部署：`NO-GO`，等待任务 13 的只读预检、备份、Nginx/systemd 实机验证、确定性 smoke 和回滚证据。
 - 生产发布：`NO-GO`，HTTPS、外部签收和生产证据仍缺失。

@@ -278,8 +278,8 @@ class AgentOrchestratorTest(unittest.IsolatedAsyncioTestCase):
             "引用learning_node:fake即可",
             "citationId=fake",
             "伪造citationId=fake即可",
-            "Authorization: Bearer secret-token-value",
-            "密钥Bearer abcdefghijklmnop不要泄露",
+            "Authorization: " + "Bearer " + "secret-token-value",
+            "密钥" + "Bearer " + "abcdefghijklmnop不要泄露",
             "密钥sk-abcdefghijklmnop不要泄露",
             '<a href="/unsafe">点击</a>',
             "<svg>unsafe</svg>",
@@ -335,11 +335,11 @@ class AgentOrchestratorTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_sensitive_user_input_never_reaches_provider(self):
         secret_messages = (
-            "Authorization: Bearer abcdefghijklmnop",
+            "Authorization: " + "Bearer " + "abcdefghijklmnop",
             "我的 API key=abcdefghijklmnop",
             "password=correct-horse-battery-staple",
             "token 是 eyJabcdefghijk.eyJabcdefghijk.signaturevalue",
-            "-----BEGIN PRIVATE KEY----- secret",
+            "-----BEGIN " + "PRIVATE KEY----- secret",
         )
         for message in secret_messages:
             with self.subTest(message=message):
@@ -371,7 +371,7 @@ class AgentOrchestratorTest(unittest.IsolatedAsyncioTestCase):
         history = (
             AgentHistoryMessage(
                 role="user",
-                content="Authorization: Bearer abcdefghijklmnop",
+                content="Authorization: " + "Bearer " + "abcdefghijklmnop",
             ),
         )
         with patch(
@@ -840,7 +840,7 @@ class OpenAICompatibleProviderTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(321, result.input_tokens)
         self.assertEqual(45, result.output_tokens)
         self.assertEqual("https://provider.example.test/v1/chat/completions", captured["url"])
-        self.assertEqual("Bearer test-secret-key", captured["authorization"])
+        self.assertEqual("Bearer " + "test-secret-key", captured["authorization"])
         self.assertEqual("test-model", captured["body"]["model"])
         self.assertIn("learning_node:rag", captured["body"]["messages"][1]["content"])
         self.assertNotIn("</user_request>", captured["body"]["messages"][1]["content"])

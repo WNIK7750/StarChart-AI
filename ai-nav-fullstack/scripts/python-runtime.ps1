@@ -32,9 +32,15 @@ function Resolve-AiNavPython {
       if ($LASTEXITCODE -ne 0) { continue }
       $resolved = (Resolve-Path -LiteralPath $candidate).Path
       $usesProjectVenv = $resolved -eq (Resolve-Path -LiteralPath $venvPython -ErrorAction SilentlyContinue).Path
+      $explicitPython = if ($env:AI_NAV_PYTHON) {
+        Resolve-Path -LiteralPath $env:AI_NAV_PYTHON -ErrorAction SilentlyContinue
+      } else {
+        $null
+      }
+      $usesExplicitPython = $explicitPython -and $resolved -eq $explicitPython.Path
       $env:PYTHONPATH = "backend"
       $sitePackages = Join-Path $Root ".venv\Lib\site-packages"
-      if (-not $usesProjectVenv -and (Test-Path -LiteralPath $sitePackages)) {
+      if (-not $usesProjectVenv -and -not $usesExplicitPython -and (Test-Path -LiteralPath $sitePackages)) {
         $env:PYTHONPATH = "backend$([IO.Path]::PathSeparator)$sitePackages"
       }
       return $resolved
