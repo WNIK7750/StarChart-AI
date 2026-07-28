@@ -183,6 +183,7 @@ Agent 专项验证：
 - `docs/00-index/http-test-deployment-file-index.md`：HTTP 子路径测试部署的文件、证据和状态入口
 - `docs/02-architecture/deployment/http-subpath-test-deployment-design.md`：新旧站共存、测试账号、游客助手与 Provider 预览边界
 - `docs/04-operations/deployment/http-test-deployment-runbook.md`：参数化的 HTTP 测试部署、验证、停止与回滚步骤
+- `docs/04-operations/deployment/http-test-deployment-troubleshooting.md`：实机部署故障的快速定位、根因、推荐处理和误判边界
 - `docs/00-index/remediation-file-index.md`：审计问题到实现、测试、脚本和同步文档的整改索引
 - `docs/05-quality/audits/full-project-remediation-verification-report.md`：当前独立复验、实际门禁数字与双重发布结论
 - `docs/05-quality/audits/git-commit-readiness-handoff.md`：交给其他 AI 执行暂存、复核和本地提交的安全步骤

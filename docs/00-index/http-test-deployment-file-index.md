@@ -46,7 +46,8 @@
 | `deploy/http-test/` | Nginx、systemd、项目选择页、无秘密环境模板和脚本 | 已完成任务 8，并在任务 9 纳入发布 allowlist；仅本地结构、shell 语法和发布包选择已验证 |
 | `scripts/verify-http-test-deployment.ps1` | 顺序运行 Tasks 1–9 聚焦功能流并产生本次结构化计数 | 已完成任务 10；已接入 foundation 本地门禁和 CI |
 | `scripts/build-http-test-server-validation.py` | 从脱敏服务器快照与交互验证报告生成严格服务器证据 | 已完成任务 13；拒绝额外敏感字段和不一致计数 |
-| `docs/04-operations/deployment/http-test-deployment-runbook.md` | 参数化的备份、安装、初始化、验证、停止和回滚步骤 | 已完成任务 11；仅结构与交叉链接通过，本地/服务器命令未据此执行 |
+| `docs/04-operations/deployment/http-test-deployment-runbook.md` | 参数化的备份、安装、初始化、验证、停止和回滚步骤 | 已完成任务 11并用于任务 13 部署；恢复、回滚和 Provider 章节未执行 |
+| `docs/04-operations/deployment/http-test-deployment-troubleshooting.md` | 本次实机部署故障的现象、根因、推荐处理、验证和误判边界 | 已新增部署复盘；不包含秘密或生产成功声明 |
 | `docs/06-evidence/platform/http-test-deployment-manifest.json` | 无内容、无秘密的本地专项门禁机器证据 | 已由任务 10 生成；所有外部验证仍为 `not_run` |
 | `docs/06-evidence/platform/http-test-server-validation.json` | 任务 13 的脱敏服务器事实、24 项全功能流与分离结论 | 已由生成器写入并通过 schema/秘密扫描 |
 
@@ -192,6 +193,13 @@
 - 已新增 `scripts/build-http-test-server-validation.py` 与 `tests/test_http_test_server_validation.py`；生成器只接受固定脱敏 schema、通过且计数一致的交互验证报告、完整 commit/SHA-256 和获批端口/数据库/备份边界，额外账号或敏感字段会拒绝且不写输出。RED 为生成器不存在时 2 项中 1 项失败；GREEN 为 2/2 通过。
 - 最终复验使用服务器 `/tmp` 中的同提交临时源码副本和隔离 Python 3.12 运行 Python 专项组，分别通过 runtime 49、policy 8、agentHistory 74、guestAgent 27、overlay 22 项；overlay 首次在 Linux 暴露文件枚举顺序断言，改用 `assertCountEqual` 后 22/22 通过。Windows 专属 release 组回到本机运行并通过 7/7，本机 Node 前端组通过 47/47；生成器 2/2、Ruff、Python 编译、发布 allowlist 365/0/10、定向秘密扫描和 `git diff --check` 均通过。本机旧 `.venv` 的解释器目标已丢失，因此没有把本次服务器 Python 专项误记成完整本地 quality 门禁；应用源码仅有已部署的 409 路由修复，相关 HTTP/Agent 专项已覆盖。
 - 当前结论分别为：本地整改候选 `GO`；deterministic HTTP 测试部署 `GO`；真实 Provider 预览 `NOT RUN`；生产发布 `NO-GO`。最小应用回滚路径是把 `/opt/starchart-ai/current` 指回上一不可变发布并重启 8001；覆盖层或旧站恢复没有实际演练，因此不能宣称回滚通过。
+
+### 3.15 文档批次：2026-07-28，部署故障复盘
+
+- 已新增 `docs/04-operations/deployment/http-test-deployment-troubleshooting.md`，将本次真实出现的 SSH、终端回显、CRLF、解压工具、Python/依赖、runtime backend、systemd 就绪、Nginx 子路径与旧站精确路由、SQLite、Agent 空会话、Windows SCP、脱敏报告和验证时长问题整理为快速定位表及分层排查步骤。
+- 每个问题均区分现象、根因、推荐处理、验证和误判边界；没有记录主机地址、账号标识、密码、Token、Cookie、真实 `.env` 或 Provider 内容。
+- 备份完整性、恢复、回滚、deterministic Agent、真实 Provider 和生产发布保持分离结论；未执行的事项继续标记为 `NOT RUN`。
+- 本批次只修改 Markdown 导航与故障文档；验证只运行文档秘密扫描、显式路径检查和 `git diff --check`，不复用或重复运行与文档无关的长测试套件。
 
 ## 4. 强制同步字段
 

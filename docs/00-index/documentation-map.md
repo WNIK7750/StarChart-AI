@@ -80,6 +80,7 @@
 - `docs/01-overview/http-subpath-test-deployment-implementation-plan.md`
 - `docs/02-architecture/deployment/http-subpath-test-deployment-design.md`
 - `docs/04-operations/deployment/http-test-deployment-runbook.md`
+- `docs/04-operations/deployment/http-test-deployment-troubleshooting.md`
 - `docs/06-evidence/platform/http-test-deployment-manifest.json`
 - `docs/06-evidence/platform/http-test-server-validation.json`
 
