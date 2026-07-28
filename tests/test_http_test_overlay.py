@@ -196,6 +196,15 @@ class HttpTestServiceOverlayTests(unittest.TestCase):
                 read_overlay(template),
             )
 
+    def test_environment_templates_enable_authenticated_agent_sessions(
+        self,
+    ) -> None:
+        for template in ("env.example", "provider-preview.env.example"):
+            self.assertIn(
+                "AI_NAV_AGENT_SESSIONS_ENABLED=1",
+                read_overlay(template),
+            )
+
 
 class HttpTestScriptAndHubTests(unittest.TestCase):
     def test_install_is_backup_first_and_reload_is_gated_by_nginx_test(self) -> None:
