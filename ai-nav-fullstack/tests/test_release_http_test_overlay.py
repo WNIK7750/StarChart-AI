@@ -112,6 +112,18 @@ class ReleaseHttpTestOverlayTests(unittest.TestCase):
             )
         )
 
+    def test_archive_normalizes_shell_scripts_to_lf_for_linux(self) -> None:
+        shell_script = self.root / "deploy/http-test/scripts/install-overlay.sh"
+        shell_script.parent.mkdir(parents=True, exist_ok=True)
+        shell_script.write_bytes(b"#!/usr/bin/env bash\r\nset -euo pipefail\r\n")
+        archive = self._build_archive()
+
+        with zipfile.ZipFile(archive) as package:
+            script = package.read("deploy/http-test/scripts/install-overlay.sh")
+
+        self.assertEqual(script, b"#!/usr/bin/env bash\nset -euo pipefail\n")
+        self.assertNotIn(b"\r", script)
+
     def test_forbidden_release_artifacts_fail_closed(self) -> None:
         forbidden_artifacts = {
             "frontend/runtime.env": "SECRET=not-a-real-secret\n",
