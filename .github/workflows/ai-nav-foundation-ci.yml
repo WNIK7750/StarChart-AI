@@ -3,32 +3,32 @@ name: AI 知识导航地基验收
 on:
   pull_request:
     paths:
-      - "ai-nav-fullstack/backend/**"
-      - "ai-nav-fullstack/database/**"
-      - "ai-nav-fullstack/frontend/**"
-      - "ai-nav-fullstack/scripts/**"
-      - "ai-nav-fullstack/tests/**"
-      - "ai-nav-fullstack/pyproject.toml"
-      - "ai-nav-fullstack/.coveragerc"
-      - "ai-nav-fullstack/docs/06-evidence/agent/**"
-      - "ai-nav-fullstack/docs/06-evidence/platform/**"
-      - "ai-nav-fullstack/docs/04-operations/agent/**"
-      - "ai-nav-fullstack/deploy/http-test/**"
+      - "backend/**"
+      - "database/**"
+      - "frontend/**"
+      - "scripts/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".coveragerc"
+      - "docs/06-evidence/agent/**"
+      - "docs/06-evidence/platform/**"
+      - "docs/04-operations/agent/**"
+      - "deploy/http-test/**"
       - ".github/workflows/ai-nav-foundation-ci.yml"
   push:
     branches: [master]
     paths:
-      - "ai-nav-fullstack/backend/**"
-      - "ai-nav-fullstack/database/**"
-      - "ai-nav-fullstack/frontend/**"
-      - "ai-nav-fullstack/scripts/**"
-      - "ai-nav-fullstack/tests/**"
-      - "ai-nav-fullstack/pyproject.toml"
-      - "ai-nav-fullstack/.coveragerc"
-      - "ai-nav-fullstack/docs/06-evidence/agent/**"
-      - "ai-nav-fullstack/docs/06-evidence/platform/**"
-      - "ai-nav-fullstack/docs/04-operations/agent/**"
-      - "ai-nav-fullstack/deploy/http-test/**"
+      - "backend/**"
+      - "database/**"
+      - "frontend/**"
+      - "scripts/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".coveragerc"
+      - "docs/06-evidence/agent/**"
+      - "docs/06-evidence/platform/**"
+      - "docs/04-operations/agent/**"
+      - "deploy/http-test/**"
       - ".github/workflows/ai-nav-foundation-ci.yml"
 
 permissions:
@@ -39,19 +39,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── 质量门禁（Python 测试 + Ruff + 覆盖率 + 审计 + 发布包） ──
   verify-quality:
     runs-on: windows-latest
     timeout-minutes: 20
     env:
       AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
       AI_NAV_DISABLE_DOTENV: "1"
-      AI_NAV_DATABASE_PATH: ${{ github.workspace }}/ai-nav-fullstack/.ci/quality.sqlite3
+      AI_NAV_DATABASE_PATH: ${{ github.workspace }}/.ci/quality.sqlite3
       PYTHONPATH: backend
       PYTHONUNBUFFERED: "1"
-    defaults:
-      run:
-        working-directory: ai-nav-fullstack
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
@@ -59,9 +55,9 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: |
-            ai-nav-fullstack/backend/requirements.txt
-            ai-nav-fullstack/backend/requirements-dev.txt
-            ai-nav-fullstack/backend/requirements-lock.txt
+            backend/requirements.txt
+            backend/requirements-dev.txt
+            backend/requirements-lock.txt
       - name: 安装后端依赖
         shell: pwsh
         run: python -m pip install --disable-pip-version-check -r backend\requirements-dev.txt
@@ -73,19 +69,15 @@ jobs:
         timeout-minutes: 15
         run: .\scripts\verify-quality.ps1
 
-  # ── 前端地基（Node 测试 + 语法 + 空格） ──
   verify-foundation:
     runs-on: windows-latest
     timeout-minutes: 15
     env:
       AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
       AI_NAV_DISABLE_DOTENV: "1"
-      AI_NAV_DATABASE_PATH: ${{ github.workspace }}/ai-nav-fullstack/.ci/foundation.sqlite3
+      AI_NAV_DATABASE_PATH: ${{ github.workspace }}/.ci/foundation.sqlite3
       PYTHONPATH: backend
       PYTHONUNBUFFERED: "1"
-    defaults:
-      run:
-        working-directory: ai-nav-fullstack
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
@@ -93,9 +85,9 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: |
-            ai-nav-fullstack/backend/requirements.txt
-            ai-nav-fullstack/backend/requirements-dev.txt
-            ai-nav-fullstack/backend/requirements-lock.txt
+            backend/requirements.txt
+            backend/requirements-dev.txt
+            backend/requirements-lock.txt
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "22"
@@ -107,19 +99,15 @@ jobs:
         timeout-minutes: 10
         run: .\scripts\verify-foundation.ps1
 
-  # ── Agent 地基（Agent 测试 + SSE + 评估清单 + 归档） ──
   verify-agent:
     runs-on: windows-latest
     timeout-minutes: 15
     env:
       AI_NAV_PASSWORD_HASH_ROUNDS: "1000"
       AI_NAV_DISABLE_DOTENV: "1"
-      AI_NAV_DATABASE_PATH: ${{ github.workspace }}/ai-nav-fullstack/.ci/agent.sqlite3
+      AI_NAV_DATABASE_PATH: ${{ github.workspace }}/.ci/agent.sqlite3
       PYTHONPATH: backend
       PYTHONUNBUFFERED: "1"
-    defaults:
-      run:
-        working-directory: ai-nav-fullstack
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
@@ -127,9 +115,9 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: |
-            ai-nav-fullstack/backend/requirements.txt
-            ai-nav-fullstack/backend/requirements-dev.txt
-            ai-nav-fullstack/backend/requirements-lock.txt
+            backend/requirements.txt
+            backend/requirements-dev.txt
+            backend/requirements-lock.txt
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "22"
@@ -148,10 +136,10 @@ jobs:
         with:
           name: agent-evaluation-artifacts-${{ github.run_id }}
           path: |
-            ai-nav-fullstack/docs/06-evidence/agent/agent_phase1_evaluation_manifest.json
-            ai-nav-fullstack/docs/06-evidence/agent/agent_blind_evaluation_protocol_manifest.json
-            ai-nav-fullstack/docs/06-evidence/agent/agent_model_comparison_empty_report.json
-            ai-nav-fullstack/docs/06-evidence/agent/agent_stage4_completion_audit.json
-            ai-nav-fullstack/docs/06-evidence/agent/agent_stage5_experience_audit.json
+            docs/06-evidence/agent/agent_phase1_evaluation_manifest.json
+            docs/06-evidence/agent/agent_blind_evaluation_protocol_manifest.json
+            docs/06-evidence/agent/agent_model_comparison_empty_report.json
+            docs/06-evidence/agent/agent_stage4_completion_audit.json
+            docs/06-evidence/agent/agent_stage5_experience_audit.json
           if-no-files-found: error
           retention-days: 14

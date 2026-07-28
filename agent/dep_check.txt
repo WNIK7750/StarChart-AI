@@ -1,8 +1,0 @@
-OK    langchain_chroma.Chroma
-OK    langchain_core.documents.Document
-OK    dotenv
-OK    chromadb
-OK    knowledge_base.parse_search_data
-OK    knowledge_base.build_documents
-OK    knowledge_base.build_vectorstore
-OK    knowledge_base.get_retriever
