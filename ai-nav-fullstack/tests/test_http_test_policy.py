@@ -548,6 +548,16 @@ class HttpTestPolicyTest(unittest.TestCase):
                 json={},
             )
             self.assertEqual(201, agent_session.status_code)
+            duplicate_unstarted = client.post(
+                "/api/v1/agent/sessions",
+                headers=headers,
+                json={},
+            )
+            self.assertEqual(409, duplicate_unstarted.status_code)
+            self.assertEqual(
+                "AGENT_SESSION_UNSTARTED_EXISTS",
+                duplicate_unstarted.json()["detail"]["code"],
+            )
 
             image = Image.new("RGB", (8, 8), color=(20, 40, 60))
             image_bytes = BytesIO()
