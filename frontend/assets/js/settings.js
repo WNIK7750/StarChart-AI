@@ -1,9 +1,8 @@
 import {
   apiGet,
   clearAuthTokens,
-  getAccessToken,
-  restoreAuthSession,
 } from "./api.js";
+import { initAuthUI } from "./auth-ui.js";
 import { withPublicBasePath } from "./public-path.js";
 import { rememberPrivacyConsent, rememberRecentAvatar } from "./auth-local-state.js";
 import { formatLearningTime, learningTimeTitle } from "./time-format.js";
@@ -296,23 +295,15 @@ function fillQuestionRows(items = []) {
   wireFormLabels(box);
 }
 
-async function requireLogin() {
-  if (!getAccessToken()) {
-    try {
-      await restoreAuthSession();
-    } catch {
-      window.location.href = "index.html";
-      return null;
-    }
-  }
-  try {
-    const data = await getCurrentUser();
-    return data.user;
-  } catch {
-    clearAuthTokens();
-    window.location.href = "index.html";
-    return null;
-  }
+function requireLogin(user) {
+  return user || null;
+}
+
+function renderLoginRequired() {
+  $("[data-settings-content]").hidden = true;
+  const gate = $("[data-settings-login-required]");
+  gate.hidden = false;
+  gate.querySelector('[data-auth-trigger="login"]')?.focus();
 }
 
 async function loadAccountDetails(user = currentUser) {
@@ -1097,9 +1088,14 @@ async function retryArea(area) {
 }
 
 async function init() {
+  const user = requireLogin(await initAuthUI());
+  if (!user) {
+    renderLoginRequired();
+    return;
+  }
+  $("[data-settings-login-required]").hidden = true;
+  $("[data-settings-content]").hidden = false;
   applyPublicSettingsCapabilities(null);
-  const user = await requireLogin();
-  if (!user) return;
   currentUser = user;
   wireFormLabels();
   await loadPublicSettingsCapabilities();

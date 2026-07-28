@@ -108,7 +108,25 @@ test("home remains a public navigation surface without user learning state", () 
 test("settings primary navigation follows the public page order", () => {
   const html = read("settings.html");
   const links = html.match(/<nav class="top-links"[\s\S]*?<\/nav>/)?.[0] || "";
-  assert.match(links, /index\.html[\s\S]*learn\.html[\s\S]*tools\.html[\s\S]*assistant\.html[\s\S]*data-logout/);
+  assert.match(links, /index\.html[\s\S]*learn\.html[\s\S]*tools\.html[\s\S]*assistant\.html[\s\S]*data-auth-root/);
+});
+
+test("settings keeps unauthenticated visitors on an in-page sign-in gate", () => {
+  const html = read("settings.html");
+  const runtime = read("assets/js/settings.js");
+  const guard = runtime.match(/function requireLogin\(user\) \{([\s\S]*?)\n\}/)?.[1] || "";
+
+  assert.match(html, /data-settings-login-required/);
+  assert.match(html, /data-settings-content/);
+  assert.match(html, /data-auth-trigger="login"/);
+  assert.match(runtime, /function renderLoginRequired\(\)/);
+  assert.match(runtime, /const user = requireLogin\(await initAuthUI\(\)\)/);
+  assert.doesNotMatch(guard, /window\.location/);
+});
+
+test("page shell starts independent navigation and authentication work together", () => {
+  const shell = read("assets/js/page-shell.js");
+  assert.match(shell, /await Promise\.all\(\[\s*hydrateNavigation\(activeCode\),\s*initAuthUI\(\),\s*\]\)/);
 });
 
 test("paged tool sections keep a stable desktop grid footprint", () => {

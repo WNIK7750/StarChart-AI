@@ -268,7 +268,7 @@ async function refreshAuthUI() {
       await restoreAuthSession();
     } catch {
       renderLoggedOut();
-      return;
+      return null;
     }
   }
   try {
@@ -277,9 +277,11 @@ async function refreshAuthUI() {
       getUserProfile().catch(() => ({ profile: {} })),
     ]);
     renderLoggedIn(user, profileResult.profile?.avatarUrl || "", profileResult.profile || {});
+    return user;
   } catch {
     clearAuthTokens();
     renderLoggedOut();
+    return null;
   }
 }
 
@@ -298,7 +300,7 @@ async function handleLoginOrRegister(form, mode) {
   await import("./anonymous-learning-state.js")
     .then(({ mergeAnonymousLearningState }) => mergeAnonymousLearningState())
     .catch((error) => console.warn("Anonymous learning state import unavailable:", error));
-  await refreshAuthUI();
+  return refreshAuthUI();
 }
 
 async function handleResetStart(form) {
@@ -371,5 +373,5 @@ export async function initAuthUI() {
       if (input.checked && form) form.querySelector("[data-auth-error]").textContent = "";
     });
   });
-  await refreshAuthUI();
+  return refreshAuthUI();
 }

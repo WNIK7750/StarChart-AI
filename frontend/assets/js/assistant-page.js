@@ -85,8 +85,13 @@ function addMessage(role, text, error = false) {
   return body;
 }
 
-function requestId() {
-  return crypto.randomUUID();
+function requestId(prefix = "request") {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return `${prefix}-${globalThis.crypto.randomUUID()}`;
+  }
+  // HTTP test browsers may not expose randomUUID. This identifier is only
+  // an idempotency key, never an authentication or authorization secret.
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
 function canOfferRetry(error, answerBody) {
@@ -638,7 +643,7 @@ function buildSaveControl(draft) {
   button.type = "button";
   button.disabled = true;
   if (guestDraft) button.title = "登录后重新生成并确认草稿，才能保存到个人工作流";
-  let stableKey = `agent-${crypto.randomUUID()}`;
+  let stableKey = requestId("agent");
   let submittedPayload = null;
 
   const setEditorDisabled = (disabled) => {

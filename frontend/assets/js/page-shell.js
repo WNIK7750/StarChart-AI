@@ -76,7 +76,9 @@ export async function initPageShell(activeCode) {
   document.addEventListener("click", (event) => {
     if (event.target.closest('a[aria-disabled="true"]')) event.preventDefault();
   });
-  await hydrateNavigation(activeCode);
   initSiteSearch();
-  await initAuthUI();
+  await Promise.all([
+    hydrateNavigation(activeCode),
+    initAuthUI(),
+  ]);
 }

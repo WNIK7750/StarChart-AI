@@ -11,8 +11,9 @@
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#fafafb;color:#24292f;line-height:1.5;font-size:14px}
 a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}button{border:0;background:none;cursor:pointer}a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid rgba(9,105,218,.32);outline-offset:2px}
 .settings-top{position:sticky;top:0;z-index:20;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid #d8dee4;background:rgba(246,248,250,.88);backdrop-filter:blur(12px)}
-.brand{display:flex;align-items:center;gap:9px;font-weight:700}.brand img{width:26px;height:26px;border-radius:6px}.top-links{display:flex;align-items:center;gap:8px}.top-links a,.top-links button{height:32px;display:inline-flex;align-items:center;padding:0 10px;border-radius:7px;background:#fff;border:1px solid #d0d7de;font-weight:650;font-size:13px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700}.brand img{width:26px;height:26px;border-radius:6px}.top-links,.top-actions{display:flex;align-items:center;gap:8px}.top-links a,.top-links button,.top-actions button{height:32px;display:inline-flex;align-items:center;padding:0 10px;border-radius:7px;background:#fff;border:1px solid #d0d7de;font-weight:650;font-size:13px}
 .layout{width:min(1120px,calc(100vw - 36px));margin:24px auto 56px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:28px}
+.settings-login-required{width:min(560px,calc(100vw - 36px));margin:72px auto;padding:28px;border:1px solid #d8dee4;border-radius:10px;background:#fff;box-shadow:0 10px 30px rgba(31,35,40,.08)}.settings-login-required h1{font-size:24px}.settings-login-required p{margin:8px 0 20px;color:#57606a}
 .sidebar{position:sticky;top:76px;align-self:start}.user-card{display:flex;gap:10px;align-items:center;margin-bottom:18px}.avatar-sm{width:44px;height:44px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#7c5cff,#5ee0ff);border:1px solid #d8dee4}.user-card strong{display:block;font-size:15px}.user-card span{display:block;color:#57606a;font-size:12px}
 .side-nav{display:grid;gap:2px;border-right:1px solid #d8dee4;padding-right:12px}.side-nav a{height:34px;display:flex;align-items:center;padding:0 10px;border-radius:7px;color:#57606a;font-weight:650;font-size:13px}.side-nav a.active,.side-nav a:hover{background:#eaeef2;color:#24292f}
 .section{display:none}.section.active{display:block}.section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;padding-bottom:12px;border-bottom:1px solid #d8dee4;margin-bottom:18px}.section-head h1{font-size:22px}.section-head p{margin-top:3px;color:#57606a;font-size:13px}
@@ -26,7 +27,7 @@ a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}b
   .learning-item.workflow-target:focus-visible{outline:2px solid #5f6668;outline-offset:2px}
 .crop-overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(31,35,40,.28);backdrop-filter:blur(10px)}.crop-overlay.open{display:flex}.crop-dialog{width:min(430px,100%);background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 18px 46px rgba(31,35,40,.18)}.crop-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #d8dee4}.crop-body{padding:16px;display:grid;gap:12px}.crop-canvas{width:100%;aspect-ratio:1;background:#f6f8fa;border:1px solid #d8dee4;border-radius:8px;touch-action:none}.crop-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .confirm-dialog{width:min(430px,calc(100vw - 32px));padding:0;border:1px solid #d0d7de;border-radius:8px;background:#fff;color:#24292f;box-shadow:0 18px 46px rgba(31,35,40,.2)}.confirm-dialog::backdrop{background:rgba(31,35,40,.36);backdrop-filter:blur(4px)}.confirm-body{padding:18px;display:grid;gap:10px}.confirm-body h2{font-size:18px}.confirm-body p{color:#57606a}.confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}.confirm-actions .btn{justify-self:auto}
-@media (max-width:860px){.layout{grid-template-columns:1fr}.sidebar{position:static}.side-nav{grid-template-columns:repeat(2,1fr);border-right:0;padding-right:0}.grid-2{grid-template-columns:1fr}.question-row{grid-template-columns:1fr}.settings-top{padding:0 16px}.learning-summary{grid-template-columns:1fr}.btn,.side-nav a,.top-links a,.top-links button,.upload{min-height:42px;height:auto}.side-nav a{padding-block:7px}}
+@media (max-width:860px){.layout{grid-template-columns:1fr}.sidebar{position:static}.side-nav{grid-template-columns:repeat(2,1fr);border-right:0;padding-right:0}.grid-2{grid-template-columns:1fr}.question-row{grid-template-columns:1fr}.settings-top{padding:0 16px}.learning-summary{grid-template-columns:1fr}.btn,.side-nav a,.top-links a,.top-links button,.top-actions button,.upload{min-height:42px;height:auto}.side-nav a{padding-block:7px}}
 @media (max-width:480px){.layout{width:calc(100vw - 24px);margin-top:16px;gap:20px}.settings-top{padding:0 12px}.brand{font-size:0}.top-links{gap:5px}.top-links a,.top-links button{padding-inline:8px}.panel-body{padding:13px}.workflow-item{grid-template-columns:1fr}.workflow-actions{justify-content:stretch}.workflow-actions .btn{flex:1}.workflow-detail-region{grid-column:1}.confirm-actions{display:grid;grid-template-columns:1fr 1fr}.confirm-actions .btn{width:100%}}
 </style>
 </head>
@@ -38,11 +39,17 @@ a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}b
     <a href="learn.html">学习</a>
     <a href="tools.html">工具</a>
     <a href="assistant.html">助手</a>
-    <button data-logout type="button">退出</button>
+    <div class="top-actions" data-auth-root></div>
   </nav>
 </header>
 
-<main class="layout">
+<section class="settings-login-required" data-settings-login-required aria-labelledby="settingsLoginRequiredTitle">
+  <h1 id="settingsLoginRequiredTitle">请登录</h1>
+  <p>设置包含个人资料、学习记录和工作流。登录后即可继续管理这些内容。</p>
+  <button class="btn" type="button" data-auth-trigger="login">登录</button>
+</section>
+
+<main class="layout" data-settings-content hidden>
   <aside class="sidebar">
     <div class="user-card">
       <img class="avatar-sm" data-avatar-small alt="头像">
