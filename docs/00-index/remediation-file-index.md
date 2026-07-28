@@ -1,6 +1,6 @@
 # 全项目审计整改文件索引
 
-> 版本：2026-07-25  
+> 版本：2026-07-28
 > 用途：为新的整改对话提供问题、实现、测试、脚本和文档之间的稳定导航。  
 > 整改提示词：`docs/07-prompts/audits/full-project-remediation-prompt.md`  
 > 独立复验提示词：`docs/07-prompts/audits/full-project-remediation-verification-prompt.md`  
@@ -14,14 +14,15 @@
 
 1. `docs/00-index/remediation-file-index.md`
 2. `docs/05-quality/audits/full-project-remediation-verification-report.md`
-3. `docs/05-quality/audits/git-commit-readiness-handoff.md`（执行 Git 提交时使用）
-4. `docs/05-quality/audits/full-project-reaudit-report.md`
-5. `docs/05-quality/audits/full-project-audit-report.md`
-6. `docs/01-overview/fullstack-development-results-handoff.md`
-7. `docs/00-index/documentation-map.md`
-8. `docs/02-architecture/modular-monolith-guidelines.md`
-9. `docs/07-prompts/audits/full-project-remediation-prompt.md`
-10. `docs/07-prompts/audits/full-project-remediation-verification-prompt.md`（复验对话使用）
+3. `docs/00-index/http-test-deployment-file-index.md`（HTTP 测试部署与服务器证据）
+4. `docs/05-quality/audits/git-commit-readiness-handoff.md`（执行 Git 提交时使用）
+5. `docs/05-quality/audits/full-project-reaudit-report.md`
+6. `docs/05-quality/audits/full-project-audit-report.md`
+7. `docs/01-overview/fullstack-development-results-handoff.md`
+8. `docs/00-index/documentation-map.md`
+9. `docs/02-architecture/modular-monolith-guidelines.md`
+10. `docs/07-prompts/audits/full-project-remediation-prompt.md`
+11. `docs/07-prompts/audits/full-project-remediation-verification-prompt.md`（复验对话使用）
 
 读取完成后，再检查 `git status --short`、`git diff --stat` 和实际文件树。索引只负责导航；如果索引与当前代码冲突，以当前代码、迁移和自动化测试为准，并同步修正索引。
 
@@ -40,7 +41,7 @@
 | 6 | AUD-CODE-003 | 已修复 | Ruff 核心规则 0 命中 |
 | 6 | AUD-DB-004 | 已修复 | `backend/app/db/database.py` |
 | 6 | AUD-REP-003 | 已修复 | `.gitignore`、发布与备份脚本 |
-| 7 | AUD-OPS-002 | 外部阻塞 / 未验证（NO-GO） | Provider、部署、容量、恢复与回滚文档 |
+| 7 | AUD-OPS-002 | 部分验证：deterministic HTTP 测试部署 GO；生产仍为外部阻塞 / NO-GO | HTTP 部署索引与服务器证据；Provider、HTTPS、容量、恢复、回滚和生产签收文档 |
 
 新对话每完成一个批次，应把“当前状态”更新为“修复、部分修复或外部阻塞”，并在整改报告中写入测试证据。
 
