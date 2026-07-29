@@ -45,6 +45,9 @@ assert.match(script, /apiPost\("\/agent\/guest\/chat"/);
 assert.match(script, /apiPost\("\/agent\/chat"/);
 assert.match(script, /apiPostStream\("\/agent\/chat\/stream"/);
 assert.match(script, /apiGet\("\/agent\/capabilities"/);
+assert.match(script, /apiGet\("\/runtime\/public"/);
+assert.match(script, /available\.agent\?\.guestChat === true/);
+assert.match(script, /AGENT_GUEST_CHAT_DISABLED/);
 assert.match(script, /apiPost\("\/agent\/sessions"/);
 assert.match(script, /apiGet\(\s*"\/agent\/long-conversations"/);
 assert.match(

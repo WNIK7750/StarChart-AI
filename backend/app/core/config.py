@@ -478,6 +478,12 @@ APP_ENV = os.getenv("AI_NAV_ENV", "development").strip().lower()
 PUBLIC_BASE_PATH = normalize_public_base_path(os.getenv("AI_NAV_PUBLIC_BASE_PATH", ""))
 HTTP_TEST_ACCOUNT_USERNAME = os.getenv("AI_NAV_HTTP_TEST_ACCOUNT_USERNAME", "").strip()
 HTTP_TEST_GUEST_AGENT_ENABLED = _env_bool("AI_NAV_HTTP_TEST_GUEST_AGENT_ENABLED", "0")
+LOCAL_GUEST_AGENT_ENABLED = _env_bool("AI_NAV_AGENT_GUEST_CHAT_ENABLED", "0")
+AGENT_GUEST_CHAT_ENABLED = (
+    APP_ENV == "http_test" and HTTP_TEST_GUEST_AGENT_ENABLED
+) or (
+    APP_ENV in {"development", "test"} and LOCAL_GUEST_AGENT_ENABLED
+)
 APP_HOST = os.getenv("AI_NAV_APP_HOST", "127.0.0.1").strip()
 APP_PORT = int(
     os.getenv(

@@ -18,6 +18,7 @@ assert.match(script, /"-m"\s*,\s*"pip"\s*,\s*"install"\s*,\s*"-r"/);
 assert.match(script, /function Test-ExistingAiNav/);
 assert.match(script, /127\.0\.0\.1:8088\/api\/v1\/health/);
 assert.match(script, /127\.0\.0\.1:8088\/api\/v1\/runtime\/public/);
+assert.match(script, /AI_NAV_AGENT_GUEST_CHAT_ENABLED/);
 assert.match(script, /Read-Host "按 Enter 关闭窗口"/);
 assert.match(script, /if \(-not \$NoPause\)/);
 assert.doesNotMatch(

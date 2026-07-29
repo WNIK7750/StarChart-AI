@@ -20,6 +20,11 @@ from app.agent.tools.learning_tools import search_learning_cards
 from app.agent.tools.navigation_tools import search_navigation_cards
 
 
+NO_RELEVANT_CONTENT_ANSWER = (
+    "暂时没有找到足够相关的站内内容。"
+    "可以换成学习主题、工具名称或具体任务再试。"
+)
+
 READ_CAPABILITIES_BY_INTENT = {
     "qa": {"learning.search", "tools.search"},
     "navigation": {"navigation.read"},
@@ -40,6 +45,7 @@ CONTEXT_REFERENCE_PHRASES = {
 }
 
 COMMON_QUERY_SCAFFOLDING = (
+    "带我去学习",
     "请给我介绍一下",
     "给我一条",
     "请介绍一下",
@@ -285,7 +291,7 @@ def draft_agent_response(request: AgentChatRequest, user_context: dict | None = 
         names = "、".join(card["title"] for card in tool_cards[:5])
         answer = f"我根据站内工具目录找到了：{names}。推荐结果来自当前 Tools 事实库。"
     else:
-        answer = "暂时没有找到足够相关的站内内容。可以换成学习主题、工具名称或具体任务再试。"
+        answer = NO_RELEVANT_CONTENT_ANSWER
     response = AgentStructuredResponse(
         answer=answer,
         intent=intent,
@@ -358,4 +364,13 @@ def draft_agent_response(request: AgentChatRequest, user_context: dict | None = 
             )
         ),
     )
-    return validate_response(response)
+    validated = validate_response(response)
+    has_grounded_step = any(
+        step.targetHref and step.citationIds
+        for step in validated.workflowSteps
+    )
+    if not validated.cards and not validated.citations and not has_grounded_step:
+        validated.answer = NO_RELEVANT_CONTENT_ANSWER
+        validated.workflowSteps = []
+        validated.workflowDraft = None
+    return validated

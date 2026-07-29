@@ -50,6 +50,7 @@ let streamAvailable;
 let sessionAvailable = false;
 let currentSessionId = null;
 let capabilitiesPromise = null;
+let publicCapabilitiesPromise = null;
 let sessionCreationBlocked = false;
 let renamingSession = null;
 const sessionEpoch = new AssistantSessionEpoch(getAccessToken());
@@ -820,6 +821,26 @@ async function capabilities(signal) {
   }
 }
 
+async function publicCapabilities(signal) {
+  if (publicCapabilitiesPromise) return publicCapabilitiesPromise;
+  try {
+    const result = await apiGet("/runtime/public", {}, { retryCount: 0, signal });
+    if (signal?.aborted) throw signal.reason || new DOMException("Aborted", "AbortError");
+    publicCapabilitiesPromise = Promise.resolve(result);
+    return result;
+  } catch (error) {
+    if (signal?.aborted || error?.code === "API_REQUEST_ABORTED") throw error;
+    const fallback = { agent: { guestChat: false } };
+    publicCapabilitiesPromise = Promise.resolve(fallback);
+    return fallback;
+  }
+}
+
+async function canUseGuestChat(signal) {
+  const available = await publicCapabilities(signal);
+  return available.agent?.guestChat === true;
+}
+
 async function canUseStream(signal) {
   if (typeof streamAvailable === "boolean") return streamAvailable;
   const available = await capabilities(signal);
@@ -963,6 +984,12 @@ async function submitMessage(message, options = {}) {
   syncNewSessionButton();
   let answerBody = null;
   try {
+    if (!authenticatedRequest && !(await canUseGuestChat(controller.signal))) {
+      throw new ApiError("游客问答当前未启用，请登录后继续", {
+        status: 503,
+        code: "AGENT_GUEST_CHAT_DISABLED",
+      });
+    }
     const payload = {
       message: text,
       pageContext: { page: "assistant", url: window.location.pathname },

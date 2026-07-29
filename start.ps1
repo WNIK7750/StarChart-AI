@@ -10,6 +10,10 @@ $venvRoot = Join-Path $root ".venv"
 $venvPython = Join-Path $venvRoot "Scripts\python.exe"
 $stage = "初始化"
 
+if ([string]::IsNullOrWhiteSpace($env:AI_NAV_AGENT_GUEST_CHAT_ENABLED)) {
+  $env:AI_NAV_AGENT_GUEST_CHAT_ENABLED = "1"
+}
+
 function Test-PythonCommand {
   param(
     [string]$FilePath,
@@ -108,7 +112,8 @@ function Test-ExistingAiNav {
       -TimeoutSec 3
     return (
       $health.status -eq "ok" -and
-      -not [string]::IsNullOrWhiteSpace([string]$runtime.deploymentProfile)
+      -not [string]::IsNullOrWhiteSpace([string]$runtime.deploymentProfile) -and
+      $runtime.agent.guestChat -eq $true
     )
   } catch {
     return $false

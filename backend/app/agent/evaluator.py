@@ -5,6 +5,12 @@ from urllib.parse import urlsplit
 from app.agent.schemas import AgentStructuredResponse
 
 ALLOWED_HREF_PATHS = {
+    "/",
+    "/learn",
+    "/learn-node",
+    "/tools",
+    "/assistant",
+    "/settings",
     "index.html",
     "learn.html",
     "learn-node.html",

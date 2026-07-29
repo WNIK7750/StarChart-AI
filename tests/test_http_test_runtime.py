@@ -86,7 +86,7 @@ class HttpTestRuntimeTest(unittest.TestCase):
         with (
             patch.object(common, "APP_ENV", "http_test", create=True),
             patch.object(common, "PUBLIC_BASE_PATH", "/StarChart-AI", create=True),
-            patch.object(common, "HTTP_TEST_GUEST_AGENT_ENABLED", True, create=True),
+            patch.object(common, "AGENT_GUEST_CHAT_ENABLED", True, create=True),
             patch.object(common, "AGENT_SESSIONS_ENABLED", False, create=True),
         ):
             response = TestClient(app).get("/api/v1/runtime/public")
@@ -118,7 +118,7 @@ class HttpTestRuntimeTest(unittest.TestCase):
                 self.subTest(profile=profile),
                 patch.object(common, "APP_ENV", profile, create=True),
                 patch.object(common, "PUBLIC_BASE_PATH", "", create=True),
-                patch.object(common, "HTTP_TEST_GUEST_AGENT_ENABLED", True, create=True),
+                patch.object(common, "AGENT_GUEST_CHAT_ENABLED", True, create=True),
                 patch.object(common, "AGENT_SESSIONS_ENABLED", True, create=True),
             ):
                 response = TestClient(app).get("/api/v1/runtime/public")
@@ -135,7 +135,7 @@ class HttpTestRuntimeTest(unittest.TestCase):
                 payload["auth"],
             )
             self.assertEqual(
-                {"guestChat": False, "authenticatedSessions": True},
+                {"guestChat": True, "authenticatedSessions": True},
                 payload["agent"],
             )
             serialized = response.text.lower()

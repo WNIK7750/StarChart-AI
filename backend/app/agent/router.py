@@ -31,6 +31,8 @@ def classify_intent(message: str) -> str:
         "帮我找",
     )
 
+    if "带我去学习" in text:
+        return "learning_plan"
     if any(hint in text for hint in navigation_hints):
         return "navigation"
     if any(hint in text for hint in definition_hints):

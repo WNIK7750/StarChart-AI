@@ -400,3 +400,25 @@ git commit -m "docs: record startup recovery acceptance"
 ```
 
 Do not push or merge unless separately authorized.
+
+---
+
+### Follow-up: Make every fixed guest prompt testable locally
+
+**Files:**
+- Modify: local guest capability, Agent routing/service/guard, assistant frontend,
+  root launcher, and their corresponding tests.
+
+- [x] Reproduce the local guest `404` and confirm `guestChat=false`.
+- [x] Add failing tests for the effective guest capability and all four prompts.
+- [x] Enable deterministic guest chat only through an explicit local/test switch.
+- [x] Gate guest sends against `/runtime/public`.
+- [x] Normalize “带我去学习 Transformer” to a learning-plan query.
+- [x] Use one fixed answer whenever final grounded evidence is empty.
+- [x] Verify all four prompts over HTTP and desktop Playwright.
+- [x] Verify the welcome state and RAG response at `390x844`.
+- [x] Run Node, frontend, Agent, Foundation, Ruff, route, and Git-scope gates.
+
+The local 8088 acceptance instance is deterministic, has `guestChat=true`, and
+retains clean `/assistant` routing. HTTP test server deployment and PR merge
+remain separate, explicitly uncompleted tasks.
