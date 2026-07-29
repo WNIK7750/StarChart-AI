@@ -4,9 +4,9 @@
     {
       "operation": "auth.login",
       "sampleCount": 10,
-      "p50Ms": 68.306,
-      "p95Ms": 68.631,
-      "maxMs": 69.103,
+      "p50Ms": 68.537,
+      "p95Ms": 69.48,
+      "maxMs": 75.241,
       "p50Statements": 8.0,
       "maxStatements": 8,
       "budget": {
@@ -19,8 +19,8 @@
       "operation": "auth.current_user_from_token",
       "sampleCount": 50,
       "p50Ms": 0.046,
-      "p95Ms": 0.063,
-      "maxMs": 0.104,
+      "p95Ms": 0.065,
+      "maxMs": 0.115,
       "p50Statements": 1.0,
       "maxStatements": 1,
       "budget": {
@@ -32,9 +32,9 @@
     {
       "operation": "auth.refresh_rotate",
       "sampleCount": 50,
-      "p50Ms": 0.257,
-      "p95Ms": 0.289,
-      "maxMs": 0.399,
+      "p50Ms": 0.256,
+      "p95Ms": 0.278,
+      "maxMs": 0.374,
       "p50Statements": 5.0,
       "maxStatements": 5,
       "budget": {
@@ -46,9 +46,9 @@
     {
       "operation": "auth.rate_limit.consume",
       "sampleCount": 50,
-      "p50Ms": 0.05,
-      "p95Ms": 0.059,
-      "maxMs": 0.097,
+      "p50Ms": 0.052,
+      "p95Ms": 0.065,
+      "maxMs": 0.1,
       "p50Statements": 3.0,
       "maxStatements": 3,
       "budget": {
@@ -60,8 +60,8 @@
     {
       "operation": "users.profile.get",
       "sampleCount": 50,
-      "p50Ms": 0.03,
-      "p95Ms": 0.035,
+      "p50Ms": 0.031,
+      "p95Ms": 0.033,
       "maxMs": 0.051,
       "p50Statements": 1.0,
       "maxStatements": 1,
@@ -74,9 +74,9 @@
     {
       "operation": "users.preferences.get",
       "sampleCount": 50,
-      "p50Ms": 0.031,
-      "p95Ms": 0.035,
-      "maxMs": 0.049,
+      "p50Ms": 0.032,
+      "p95Ms": 0.036,
+      "maxMs": 0.048,
       "p50Statements": 1.0,
       "maxStatements": 1,
       "budget": {
@@ -88,9 +88,9 @@
     {
       "operation": "users.sessions.list",
       "sampleCount": 50,
-      "p50Ms": 0.144,
-      "p95Ms": 0.208,
-      "maxMs": 0.307,
+      "p50Ms": 0.149,
+      "p95Ms": 0.185,
+      "maxMs": 0.22,
       "p50Statements": 2.0,
       "maxStatements": 2,
       "budget": {
@@ -102,9 +102,9 @@
     {
       "operation": "users.assets.workflows.list",
       "sampleCount": 50,
-      "p50Ms": 0.06,
-      "p95Ms": 0.069,
-      "maxMs": 0.105,
+      "p50Ms": 0.061,
+      "p95Ms": 0.088,
+      "maxMs": 0.686,
       "p50Statements": 2.0,
       "maxStatements": 2,
       "budget": {

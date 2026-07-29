@@ -11,7 +11,7 @@
   },
   "evidence": {
     "openapiPathCount": 51,
-    "migrationCount": 20,
+    "migrationCount": 21,
     "responsiveCaptures": 4,
     "security": {
       "pass": 28,

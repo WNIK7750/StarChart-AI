@@ -83,10 +83,12 @@
 - `docs/04-operations/deployment/http-test-deployment-runbook.md`
 - `docs/04-operations/deployment/http-test-deployment-troubleshooting.md`
 - `docs/05-quality/audits/http-test-assistant-site-performance-20260729.md`
+- `docs/superpowers/specs/2026-07-29-clean-http-routes-design.md`
+- `docs/superpowers/plans/2026-07-29-clean-http-routes.md`
 - `docs/06-evidence/platform/http-test-deployment-manifest.json`
 - `docs/06-evidence/platform/http-test-server-validation.json`
 
-任务 1–13 的上一 deterministic HTTP release 已完成并有历史 `GO` 证据。2026-07-29 助手与全站性能候选已在原工作目录通过 Node、Python 全门禁、本地 8088 smoke 和 Playwright 关键流程，完整仓库本地候选为 `GO`；当前性能提交仍未部署到 HTTP 测试服务器，不得把上一 release 的 `GO` 套用到当前 worktree。真实 Provider 预览、HTTPS、备份恢复、回滚演练、容量、合规和外部生产签收尚未执行，生产发布继续 `NO-GO`。
+任务 1–13 的上一 deterministic HTTP release 已完成并有历史 `GO` 证据。2026-07-29 当前候选又完成干净页面地址、旧 `.html` 308 兼容、本地 8088 smoke 和桌面/移动 Playwright 验收，完整仓库本地候选为 `GO`；当前提交仍未部署到 HTTP 测试服务器，不得把上一 release 的 `GO` 套用到当前 worktree。真实 Provider 预览、HTTPS、备份恢复、回滚演练、容量、合规和外部生产签收尚未执行，生产发布继续 `NO-GO`。
 
 ### 审计整改提示词
 

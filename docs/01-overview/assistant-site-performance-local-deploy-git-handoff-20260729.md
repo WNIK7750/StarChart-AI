@@ -1,12 +1,32 @@
 # 助手与全站性能：本地部署及 Git 执行交接
 
 > 用途：把 2026-07-29 助手、认证、Learning 与全站性能整改交给新对话继续执行。
-> 状态：前端、Python 全门禁、本地 smoke 与浏览器验收已完成；Git 提交、CI 与
-> 当前性能候选的 HTTP 服务器部署尚未完成。
+> 状态：干净 HTTP 页面地址、前端/Python 全门禁、本地 smoke 与桌面/移动
+> 浏览器验收已完成；当前提交尚待 push、精确 HEAD 的 CI 和 HTTP 服务器部署。
 > 日期：2026-07-29。
 > 权威性：当前代码和本次重新运行的测试优先于本文；本文不得覆盖服务器事实。
 
 本文不记录测试账号、密码、Token、Cookie、真实 `.env`、Provider 请求或回答正文。
+
+## 0. 2026-07-29 干净地址续接状态（优先于后文旧快照）
+
+- 当前分支为 `agent/fix-http-subpath-navigation`，当前源代码候选提交为
+  `f620bde fix: preserve nested assets and URL fragments`；后续文档证据提交会使
+  HEAD 前移，但不得改变源代码候选事实。
+- canonical 页面地址为 `/`、`/assistant`、`/learn`、`/learn/{slug}`、
+  `/tools`、`/settings`。旧六类 `.html` 地址保留 308 兼容，不作为网页展示地址。
+- 当前本地 8088 单一监听继续运行。10 个干净页面/API/资源均为 200；六个旧
+  `.html` 地址均为 308 且 Location 正确。
+- 本轮最终 Node 全集 77/77、正式前端门禁 62/62、质量门禁 Python 264 项、
+  覆盖率 86.5%、Foundation、HTTP 专项门禁和发布包 369/0/10 均通过。
+- Playwright 覆盖 1440×900 与 390×844：六个干净页面均非空、无横向溢出、
+  无 `pageerror` 或非预期 4xx；设置游客门禁、查询参数与 `#directory` 的
+  前进/后退，以及隔离 `http_test` 的 deterministic “RAG 怎么学？”流程通过。
+- 当前候选尚未部署服务器。下一顺序是：提交证据文档 → push 功能分支 →
+  等待精确 HEAD 的 GitHub Actions 全绿 → 构建并校验不可变 release →
+  按 runbook 部署 8001。PR #3 保持 draft；用户明确通知前不得合并 master。
+- Git 范围只允许本仓库根目录内文件；不得暂存上级目录、兄弟项目、临时数据库、
+  日志、`.env`、归档、凭据或无关内容。
 
 ## 1. 新对话的首要入口
 
@@ -50,7 +70,7 @@ agent/fix-http-subpath-navigation
 当前 HEAD：
 
 ```text
-96ea113 fix: keep assistant settings access in context
+f620bde fix: preserve nested assets and URL fragments
 ```
 
 默认分支：
@@ -77,7 +97,8 @@ C:\Users\LEGION\.codex\worktrees\f11f\ai-nav-fullstack
 
 ### 2.2 当前工作树
 
-当前包含大量已修改和未跟踪文件，暂存区是否为空必须重新检查。不得执行：
+当前源代码改动已按小批次提交，门禁刷新证据和本交接文档仍需按实际
+`git status` 复核。暂存区是否为空必须重新检查。不得执行：
 
 - `git reset --hard`
 - `git checkout -- <path>`
@@ -163,16 +184,16 @@ git diff --cached --name-status
 
 | 命令 | 真实结果 |
 | --- | --- |
-| `node --test tests/*.mjs` | 73 passed，0 failed，270.9565 ms |
-| `scripts/verify-frontend.ps1` | 58 passed，0 failed，177.5433 ms |
-| `scripts/verify-quality.ps1` | 259 项 Python 测试通过；分支覆盖率 86.4%；Ruff 和依赖审计通过；发布选择 367/0/10 |
+| `node --test tests/*.mjs` | 77 passed，0 failed |
+| `scripts/verify-frontend.ps1` | 62 passed，0 failed |
+| `scripts/verify-quality.ps1` | 264 项 Python 测试通过；分支覆盖率 86.5%；Ruff 和依赖审计通过；发布选择 369/0/10 |
 | `scripts/verify-foundation.ps1` | 通过 |
-| `scripts/verify-http-test-deployment.ps1` | 49/8/74/27/72/22/7 全部通过 |
+| `scripts/verify-http-test-deployment.ps1` | 49/8/74/27/75/22/7 全部通过 |
 | 目标 JavaScript 语法 | 通过 |
 | `git diff --check` | 通过 |
 | 指纹 SVG | 352 B，SHA-256 前缀 `62793ed5` |
-| 8088 只读 smoke | 清单中的 10 个页面、资源和 API 全部返回 200 |
-| 本地 Playwright | 桌面五页与 390×844 助手页通过；游客问答/草稿/设置门禁和合成账号短会话问答通过 |
+| 8088 只读 smoke | 10 个干净页面、资源和 API 全部返回 200；六个旧 `.html` 地址为 308 且目标正确 |
+| 本地 Playwright | 1440×900 与 390×844 的六个干净页面通过；设置游客门禁、查询/片段历史和 isolated deterministic RAG 问答通过 |
 
 这些数字属于产生它们时的原工作目录。同步文档后的最终提交前仍须重新运行
 `git diff --check` 和相应文档/秘密扫描，不能把数字套用到后续代码修改。
@@ -224,11 +245,11 @@ Get-NetTCPConnection -LocalPort 8088 -State Listen -ErrorAction SilentlyContinue
 
 ```text
 /
-/assistant.html
-/learn.html
-/learn-node.html?slug=rag
-/tools.html
-/settings.html
+/assistant
+/learn
+/learn/rag
+/tools
+/settings
 /assets/img/brand-mark.62793ed5.svg
 /api/v1/navigation
 /api/v1/runtime/public

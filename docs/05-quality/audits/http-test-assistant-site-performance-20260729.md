@@ -6,11 +6,11 @@
 学习页并发、滚动与悬停调度、关键资源发现、品牌图传输和 HTTP 压缩/缓存边界
 的最小化整改。
 
-- 前端实现候选：`GO`，全体 Node 前端测试 73/73 通过，正式前端门禁 58/58
+- 前端实现候选：`GO`，全体 Node 前端测试 77/77 通过，正式前端门禁 62/62
   通过，全部 JavaScript 语法检查和 `git diff --check` 通过。
 - 完整仓库本地候选：`GO`。本次 `verify-quality.ps1`、`verify-foundation.ps1`
   和 `verify-http-test-deployment.ps1` 均通过；质量门禁运行 259 项 Python
-  测试，分支覆盖率 86.4%，Ruff 和依赖审计通过。
+  测试 264 项，分支覆盖率 86.5%，Ruff 和依赖审计通过。
 - 本地运行实例：`GO`。普通 8088 实例的 10 个清单路径均为 200；隔离的
   deterministic `http_test` 浏览器流程和临时 `test` 登录流程通过。
 - 本次 HTTP 性能候选部署：`NOT DEPLOYED`。本轮没有执行 SSH、服务器
@@ -84,6 +84,11 @@
 - 六个页面、认证占位和设置页头像回退均使用该指纹 SVG，不再由这些路径下载
   1.23 MB 的旧品牌 PNG。
 - 六个页面在 `<head>` 中 `modulepreload` 自己的关键入口。
+- FastAPI 在静态挂载前统一提供 `/`、`/assistant`、`/learn`、
+  `/learn/{slug}`、`/tools` 和 `/settings`；旧 `.html` 页面返回 308 到
+  对应干净地址。静态链接、数据库导航、搜索结果和学习资源均使用干净地址。
+- 嵌套学习页从 `../assets/...` 加载自有资源；认证和设置头像回退使用部署前缀
+  安全的根资源地址。工具页保留查询参数与 `#directory`，前进/后退不再丢失片段。
 - Nginx 对 CSS、JavaScript、JSON、SVG 启用 gzip。
 - 只有带内容指纹的 352 B SVG 获得一年 `immutable`；HTML、API 及未指纹
   JS/CSS 继续 `no-cache`，避免旧 HTML 与新模块混用。
@@ -108,13 +113,13 @@
 
 | 命令/检查 | 结果 |
 |---|---|
-| `node --test tests/*.mjs` | 73 passed，0 failed，270.9565 ms |
-| `scripts/verify-frontend.ps1` | 58 passed，0 failed，177.5433 ms；所有目标 JS 语法通过 |
-| `scripts/verify-quality.ps1` | 259 项 Python 测试通过；分支覆盖率 86.4%；Ruff 通过；依赖审计 0 个已知漏洞；发布选择 367/0/10 |
+| `node --test tests/*.mjs` | 77 passed，0 failed |
+| `scripts/verify-frontend.ps1` | 62 passed，0 failed；所有目标 JS 语法通过 |
+| `scripts/verify-quality.ps1` | 264 项 Python 测试通过；分支覆盖率 86.5%；Ruff 通过；依赖审计 0 个已知漏洞；发布选择 369/0/10 |
 | `scripts/verify-foundation.ps1` | 通过；Frontend、Tools、Learning、Users、Agent 与 HTTP 部署集成门禁全部退出 0 |
-| `scripts/verify-http-test-deployment.ps1` | 通过；runtime/policy/agentHistory/guestAgent/frontend/overlay/release 为 49/8/74/27/72/22/7 |
-| 8088 只读 smoke | `/`、五个业务页面、指纹 SVG、navigation、runtime 和 capabilities 共 10 个路径均为 200；本轮约 3.2–233.3 ms |
-| Playwright 浏览器复验 | 桌面五页与 390×844 助手页非空、无框架错误覆盖层、无横向溢出；游客 RAG、普通问答、工作流草稿、设置登录提示，以及合成账号注册、短会话创建和登录会话问答通过 |
+| `scripts/verify-http-test-deployment.ps1` | 通过；runtime/policy/agentHistory/guestAgent/frontend/overlay/release 为 49/8/74/27/75/22/7 |
+| 8088 只读 smoke | `/`、`/assistant`、`/learn`、`/learn/rag`、`/tools`、`/settings`、指纹 SVG、navigation、runtime 和 capabilities 共 10 个路径均为 200；6 个旧 `.html` 地址均为 308 且目标正确 |
+| Playwright 浏览器复验 | 1440×900 与 390×844 的六个干净页面非空、无横向溢出、无 `pageerror` 和非预期 4xx；设置游客门禁、查询/片段前进后退、隔离 `http_test` 的 deterministic “RAG 怎么学？”流程通过 |
 | 助手前端契约 | 通过；旧示例不存在，帧缓冲和分区后台刷新契约存在 |
 | 交互性能行为测试 | 2/2 通过；同帧只调度一次并使用最新坐标 |
 | 指纹资源测试 | 352 B；SHA-256 前八位为 `62793ed5` |

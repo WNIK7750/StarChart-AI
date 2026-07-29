@@ -230,6 +230,28 @@
   直接 push，不得用历史通过代替当前验证。
 - 当前性能候选 HTTP 仍为 `NOT DEPLOYED`，生产发布仍为 `NO-GO`。
 
+### 3.19 干净 HTTP 页面地址：2026-07-29，本地验收
+
+- 设计与执行清单分别为
+  `docs/superpowers/specs/2026-07-29-clean-http-routes-design.md` 和
+  `docs/superpowers/plans/2026-07-29-clean-http-routes.md`。
+- FastAPI 新增统一页面适配层，正式地址为 `/`、`/assistant`、`/learn`、
+  `/learn/{slug}`、`/tools`、`/settings`；旧 `index.html`、`assistant.html`、
+  `learn.html`、`learn-node.html?slug=...`、`tools.html`、`settings.html`
+  均返回 308 到对应干净地址，并保留允许的查询参数。
+- 静态 HTML、搜索、Learning、设置、助手和数据库导航/资源种子均改为干净地址；
+  新增迁移 `database/migrations/021_clean_page_routes.sql`。学习节点嵌套路由
+  使用 `../assets/...`，运行时头像回退使用部署前缀安全的根资源地址。
+- 本地正式门禁通过：Node 77/77、前端 62/62、质量门禁 Python 264 项、
+  覆盖率 86.5%、Foundation、HTTP 专项门禁和发布包 369/0/10 均通过。
+- 8088 的 10 个页面/API/资源均为 200；六个旧 `.html` 地址均为 308 且
+  Location 正确。1440×900 与 390×844 的六个干净页面均非空、无横向溢出、
+  无 `pageerror` 或非预期 4xx；设置游客门禁、查询/片段历史和隔离
+  deterministic “RAG 怎么学？”流程通过。
+- 当前源代码候选提交为 `f620bde`，本地 8088 保持单一监听供验收。当前候选
+  尚未推送本轮提交、尚未等待精确 HEAD 的 CI，也尚未部署服务器；PR #3 保持
+  draft，不执行合并。上一服务器 release 的历史 `GO` 不适用于当前候选。
+
 ## 4. 强制同步字段
 
 每次实现或部署更新都必须追加：
