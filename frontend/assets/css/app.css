@@ -57,10 +57,6 @@ button { font: inherit; border: 0; background: none; color: inherit; cursor: poi
 .section-head h1, .section-head h2 { font-size: 40px; line-height: 1.12; letter-spacing: -.035em; }
 .section-head p { color: var(--muted); }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow); }
-.line-tabs { display: flex; gap: 10px; margin: 16px 0 12px; padding: 0 0 12px; border-bottom: 1px solid rgba(15,15,25,.06); overflow-x: auto; }
-.line-tab { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--muted); font-size: 13px; font-weight: 700; white-space: nowrap; }
-.line-tab::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--domain-color); box-shadow: 0 0 0 3px var(--domain-glow); }
-.line-tab.active { color: var(--text); border-color: var(--domain-color); box-shadow: 0 10px 24px var(--domain-glow); }
 .km-canvas { position: relative; min-height: 488px; padding: 58px 48px 46px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .km-grid-bg { position: absolute; inset: 0; background-image: linear-gradient(rgba(15,15,25,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(15,15,25,.04) 1px,transparent 1px); background-size: 32px 32px; }
 .km-svg { position: relative; z-index: 2; width: min(100%, 1280px); max-height: 360px; overflow: visible; }

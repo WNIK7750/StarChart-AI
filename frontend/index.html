@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="assets/img/brand-mark.62793ed5.svg">
 <link rel="modulepreload" href="assets/js/home-page.js">
 <link rel="stylesheet" href="assets/css/accessibility.css">
+<link rel="stylesheet" href="assets/css/roadmap-tabs.css">
 <style>
 /* ============================================================
    AI 知识导航 · 主页 v2 亮色概念稿
@@ -684,40 +685,6 @@ img, svg { max-width: 100%; display: block; }
 /* ============================================================
    8. Roadmap 主线 tabs + 知识地图 + 应用分支
    ============================================================ */
-.roadmap-tabs {
-  display: flex; flex-wrap: wrap; gap: var(--space-2);
-  margin-bottom: var(--space-6);
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.roadmap-tab {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 16px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-default);
-  background: var(--bg-elevated);
-  color: var(--text-tertiary);
-  font-size: var(--text-body-sm);
-  font-weight: var(--weight-medium);
-  transition: all var(--duration-fast);
-}
-.roadmap-tab:hover {
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-  transform: translateY(-1px);
-}
-.roadmap-tab.active {
-  color: var(--text-primary);
-  background: var(--bg-elevated);
-  border-color: var(--domain-color);
-  box-shadow: 0 10px 24px var(--domain-glow);
-}
-.tab-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
 .roadmap-wrap {
   position: relative;
   border: 1px solid var(--border-default);
@@ -882,8 +849,6 @@ img, svg { max-width: 100%; display: block; }
 
 @media (max-width: 768px) {
   .branches-grid { grid-template-columns: 1fr; }
-  .roadmap-tabs { gap: 6px; }
-  .roadmap-tab { padding: 6px 12px; font-size: 12px; }
 }
 
 /* ============================================================

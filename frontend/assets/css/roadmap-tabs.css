@@ -1,0 +1,49 @@
+.roadmap-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  margin-bottom: var(--space-6, 24px);
+  padding-bottom: var(--space-4, 16px);
+  overflow: visible;
+  border-bottom: 1px solid var(--border-subtle, rgba(15, 15, 25, 0.06));
+}
+
+.roadmap-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--border-default, rgba(15, 15, 25, 0.1));
+  border-radius: var(--radius-full, 9999px);
+  background: var(--bg-elevated, #fff);
+  color: var(--text-tertiary, #6e6e7a);
+  font-size: var(--text-body-sm, 13px);
+  font-weight: var(--weight-medium, 500);
+  white-space: nowrap;
+  transition: all var(--duration-fast, 150ms);
+}
+
+.roadmap-tab:hover {
+  color: var(--text-primary, #0a0a0f);
+  border-color: var(--border-strong, rgba(15, 15, 25, 0.16));
+  transform: translateY(-1px);
+}
+
+.roadmap-tab.active {
+  color: var(--text-primary, #0a0a0f);
+  background: var(--bg-elevated, #fff);
+  border-color: var(--domain-color);
+  box-shadow: 0 10px 24px var(--domain-glow);
+}
+
+.tab-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+@media (max-width: 768px) {
+  .roadmap-tabs { gap: 6px; }
+  .roadmap-tab { padding: 6px 12px; font-size: 12px; }
+}

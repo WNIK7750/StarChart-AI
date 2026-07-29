@@ -3,6 +3,7 @@ import { AssistantSessionEpoch } from "./assistant-session-epoch.js";
 import { getLearningNode, getLearningRoadmap, listLearningResources } from "./learning-api.js";
 import { decorateRoadmapProgress, hydrateLearningDashboard, hydrateNodeLearningState } from "./learning-state.js";
 import { $, $$, bindReveal, bindSpotlight, escapeHtml } from "./page-shell.js";
+import { bindRoadmapTabs } from "./roadmap-tabs.js";
 import { safeHttpHref, safeInternalHref } from "./url-safety.js";
 import { feedbackKindForError, feedbackMarkup, renderFeedback } from "./ui-feedback.js";
 import {
@@ -66,7 +67,6 @@ function nodeSvg(node) {
 }
 
 function wireRoadmapDomain(canvas, data) {
-  const tabs = $$(".line-tab, .roadmap-tab", document);
   const apply = (domain, color, glow) => {
     const slugs = data.domainNodes[domain] || [];
     canvas.classList.toggle("has-domain", slugs.length > 0);
@@ -82,15 +82,10 @@ function wireRoadmapDomain(canvas, data) {
       }
     });
   };
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      tabs.forEach((item) => item.classList.remove("active"));
-      tab.classList.add("active");
-      apply(tab.dataset.domain, tab.style.getPropertyValue("--domain-color"), tab.style.getPropertyValue("--domain-glow"));
-    });
+  const component = canvas.closest("section") || document;
+  bindRoadmapTabs(component, ({ domain, color, glow }) => {
+    apply(domain, color, glow);
   });
-  const active = tabs.find((tab) => tab.classList.contains("active") && tab.dataset.domain) || tabs[0];
-  if (active) apply(active.dataset.domain, active.style.getPropertyValue("--domain-color"), active.style.getPropertyValue("--domain-glow"));
 }
 
 async function hydrateRoadmap() {
