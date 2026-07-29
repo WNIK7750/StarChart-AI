@@ -39,6 +39,9 @@ $requirementsHashPath = Join-Path $launcherRoot "requirements.sha256"
 if ([string]::IsNullOrWhiteSpace($env:AI_NAV_AGENT_GUEST_CHAT_ENABLED)) {
   $env:AI_NAV_AGENT_GUEST_CHAT_ENABLED = "1"
 }
+if ([string]::IsNullOrWhiteSpace($env:AI_NAV_AGENT_SESSIONS_ENABLED)) {
+  $env:AI_NAV_AGENT_SESSIONS_ENABLED = "1"
+}
 if ([string]::IsNullOrWhiteSpace($env:AI_NAV_AGENT_PROVIDER_LIVE_ENABLED)) {
   $env:AI_NAV_AGENT_PROVIDER_LIVE_ENABLED = "0"
 }
@@ -142,7 +145,11 @@ function Test-ExistingAiNav {
     return (
       $health.status -eq "ok" -and
       -not [string]::IsNullOrWhiteSpace([string]$runtime.deploymentProfile) -and
-      $runtime.agent.guestChat -eq $true
+      $runtime.agent.guestChat -eq $true -and
+      (
+        $env:AI_NAV_AGENT_SESSIONS_ENABLED -ne "1" -or
+        $runtime.agent.authenticatedSessions -eq $true
+      )
     )
   } catch {
     return $false

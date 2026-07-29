@@ -22,6 +22,11 @@ assert.match(script, /function Test-ExistingAiNav/);
 assert.match(script, /127\.0\.0\.1:8088\/api\/v1\/health/);
 assert.match(script, /127\.0\.0\.1:8088\/api\/v1\/runtime\/public/);
 assert.match(script, /AI_NAV_AGENT_GUEST_CHAT_ENABLED/);
+assert.match(
+  script,
+  /AI_NAV_AGENT_SESSIONS_ENABLED\)\)\s*\{\s*\$env:AI_NAV_AGENT_SESSIONS_ENABLED = "1"/,
+);
+assert.match(script, /runtime\.agent\.authenticatedSessions/);
 assert.match(script, /LocalApplicationData/);
 assert.match(script, /Get-FileHash/);
 assert.match(script, /requirements\.sha256/);
