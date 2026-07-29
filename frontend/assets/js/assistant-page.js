@@ -294,8 +294,12 @@ function renderGuestConversation(conversationId = currentSessionId) {
     status.textContent = "游客模式 · 浏览器内保存";
     return;
   }
-  messages.replaceChildren();
-  conversation.messages.forEach((message) => addMessage(message.role, message.content));
+  if (conversation.messages.length === 0) {
+    resetConversation();
+  } else {
+    messages.replaceChildren();
+    conversation.messages.forEach((message) => addMessage(message.role, message.content));
+  }
   setCurrentSession(conversation.id);
   status.textContent = "游客模式 · 浏览器内保存";
 }

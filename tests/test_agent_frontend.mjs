@@ -89,6 +89,11 @@ assert.match(script, /游客可在本页创建和编辑草稿，但不能保存�
 assert.match(script, /recentGuestHistory/);
 assert.match(script, /appendGuestMessage/);
 assert.match(script, /clearGuestConversations/);
+assert.match(
+  script,
+  /if \(conversation\.messages\.length === 0\) \{\s*resetConversation\(\);\s*\} else \{\s*messages\.replaceChildren\(\);[\s\S]*conversation\.messages\.forEach/,
+  "空游客会话必须恢复“今天想学什么？”欢迎区",
+);
 assert.match(script, /window\.confirm/);
 assert.match(script, /input\.value = text/);
 assert.match(script, /window\.addEventListener\("ai-nav-auth-changed"/);
