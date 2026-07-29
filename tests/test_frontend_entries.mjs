@@ -14,21 +14,23 @@ const pageEntries = {
   "tools.html": "assets/js/tools-entry.js",
   "settings.html": "assets/js/settings.js",
 };
+const assetHref = (page, asset) => page === "learn-node.html" ? `../${asset}` : asset;
 
 test("each non-Agent page has one explicit runtime entry", () => {
   for (const [page, expectedEntry] of Object.entries(pageEntries)) {
     const html = read(page);
     const externalScripts = [...html.matchAll(/<script[^>]+src=["']([^"']+)["'][^>]*>/g)].map((match) => match[1]);
-    assert.deepEqual(externalScripts, [expectedEntry], page);
+    assert.deepEqual(externalScripts, [assetHref(page, expectedEntry)], page);
     assert.doesNotMatch(html, /<script(?:\s[^>]*)?>\s*(?!<\/script>)[\s\S]*?<\/script>/i, `${page} contains inline runtime code`);
   }
 });
 
 test("each non-Agent page loads the shared accessibility baseline", () => {
   for (const page of Object.keys(pageEntries)) {
+    const expectedHref = assetHref(page, "assets/css/accessibility.css");
     assert.match(
       read(page),
-      /<link[^>]+href=["']assets\/css\/accessibility\.css["'][^>]*>/,
+      new RegExp(`<link[^>]+href=["']${expectedHref.replaceAll(".", "\\.")}["'][^>]*>`),
       `${page} does not load the shared accessibility baseline`,
     );
   }
@@ -36,10 +38,11 @@ test("each non-Agent page loads the shared accessibility baseline", () => {
 
 test("each page preloads its critical module entry before body parsing finishes", () => {
   for (const [page, expectedEntry] of Object.entries(pageEntries)) {
+    const expectedHref = assetHref(page, expectedEntry);
     assert.match(
       read(page),
-      new RegExp(`<link[^>]+rel=["']modulepreload["'][^>]+href=["']${expectedEntry.replaceAll(".", "\\.")}["'][^>]*>`),
-      `${page} does not preload ${expectedEntry}`,
+      new RegExp(`<link[^>]+rel=["']modulepreload["'][^>]+href=["']${expectedHref.replaceAll(".", "\\.")}["'][^>]*>`),
+      `${page} does not preload ${expectedHref}`,
     );
   }
   const assistant = read("assistant.html");
@@ -84,12 +87,10 @@ test("new-window links isolate the opener", () => {
   }
 });
 
-test("static page links do not point to missing HTML files", () => {
+test("static product navigation uses canonical clean routes", () => {
   for (const page of Object.keys(pageEntries).concat("assistant.html")) {
     const html = read(page);
-    for (const match of html.matchAll(/href=["']([^"']+\.html)(?:[?#][^"']*)?["']/g)) {
-      assert.equal(fs.existsSync(path.join(frontend, match[1])), true, `${page} -> ${match[1]}`);
-    }
+    assert.doesNotMatch(html, /href=["'][^"']*\.html(?:[?#][^"']*)?["']/i, page);
   }
 });
 
@@ -98,7 +99,7 @@ test("home tool fallbacks lead to the tool directory", () => {
   const marquee = html.match(/<div class="tools-marquee-track">([\s\S]*?)<\/div>\s*<\/div>\s*<\/section>/)?.[1] || "";
   assert.ok(marquee, "home tool marquee is missing");
   assert.doesNotMatch(marquee, /<a href="#" class="marquee-card">/);
-  assert.match(marquee, /<a href="tools\.html\?q=/);
+  assert.match(marquee, /<a href="tools\?q=/);
 });
 
 test("home stats resolve immediately when reduced motion is requested", () => {
@@ -126,7 +127,14 @@ test("home remains a public navigation surface without user learning state", () 
 test("settings primary navigation follows the public page order", () => {
   const html = read("settings.html");
   const links = html.match(/<nav class="top-links"[\s\S]*?<\/nav>/)?.[0] || "";
-  assert.match(links, /index\.html[\s\S]*learn\.html[\s\S]*tools\.html[\s\S]*assistant\.html[\s\S]*data-auth-root/);
+  assert.match(links, /href="\."[\s\S]*href="learn"[\s\S]*href="tools"[\s\S]*href="assistant"[\s\S]*data-auth-root/);
+});
+
+test("nested learning pages resolve every owned asset from the site root", () => {
+  const html = read("learn-node.html");
+  const ownedAssets = [...html.matchAll(/(?:href|src)=["']([^"']*assets\/[^"']+)["']/g)].map((match) => match[1]);
+  assert.ok(ownedAssets.length >= 4, "learn-node.html has too few audited owned assets");
+  ownedAssets.forEach((asset) => assert.match(asset, /^\.\.\/assets\//, asset));
 });
 
 test("settings keeps unauthenticated visitors on an in-page sign-in gate", () => {
