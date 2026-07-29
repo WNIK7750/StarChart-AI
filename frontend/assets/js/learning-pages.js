@@ -1,7 +1,7 @@
 import { apiGet, getAccessToken } from "./api.js";
 import { AssistantSessionEpoch } from "./assistant-session-epoch.js";
 import { getLearningNode, getLearningRoadmap, listLearningResources } from "./learning-api.js";
-import { decorateRoadmapProgress, hydrateLearningDashboard, hydrateNodeLearningState } from "./learning-state.js";
+import { decorateRoadmapProgress, hydrateLearningDashboard, hydrateNodeLearningState } from "./learning-state.js?v=roadmap-filter-1";
 import { $, $$, bindReveal, bindSpotlight, escapeHtml } from "./page-shell.js";
 import { bindRoadmapTabs } from "./roadmap-tabs.js";
 import { safeHttpHref, safeInternalHref } from "./url-safety.js";

@@ -103,10 +103,11 @@ export async function decorateRoadmapProgress(scope = document, isCurrent = () =
   const progressResult = await listLearningProgress();
   if (!isCurrent()) return;
   const progress = new Map(progressResult.items.map((item) => [item.nodeSlug, item]));
+  const showProgressDecoration = !scope.classList?.contains("has-domain");
   scope.querySelectorAll(".km-node[data-node-slug]").forEach((node) => {
     const item = progress.get(node.dataset.nodeSlug);
-    node.classList.toggle("learning-in-progress", item?.status === "in_progress");
-    node.classList.toggle("learning-completed", item?.status === "completed");
+    node.classList.toggle("learning-in-progress", showProgressDecoration && item?.status === "in_progress");
+    node.classList.toggle("learning-completed", showProgressDecoration && item?.status === "completed");
     if (item) node.setAttribute("aria-label", `${node.getAttribute("aria-label") || "学习节点"}，进度 ${item.progressPercent}%`);
   });
 }

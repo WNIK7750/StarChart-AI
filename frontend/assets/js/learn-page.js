@@ -1,4 +1,4 @@
-import { initLearnPage } from "./learning-pages.js";
+import { initLearnPage } from "./learning-pages.js?v=roadmap-filter-1";
 import { bindNavbarScroll, bindReveal, bindSpotlight, initPageShell } from "./page-shell.js";
 
 const shellReady = initPageShell("learn");

@@ -79,6 +79,9 @@ test("roadmap tabs keep exactly one selected category", async () => {
 
 test("roadmap category highlighting takes precedence over learning progress", () => {
   const learningState = fs.readFileSync("frontend/assets/js/learning-state.js", "utf8");
+  const learningPages = fs.readFileSync("frontend/assets/js/learning-pages.js", "utf8");
+  const learnPage = fs.readFileSync("frontend/assets/js/learn-page.js", "utf8");
+  const learnHtml = fs.readFileSync("frontend/learn.html", "utf8");
 
   assert.match(
     learningState,
@@ -92,4 +95,19 @@ test("roadmap category highlighting takes precedence over learning progress", ()
     learningState,
     /\.km-canvas:not\(\.has-domain\) \.km-node\.learning-completed \.km-node-dot/,
   );
+  assert.match(
+    learningState,
+    /const showProgressDecoration = !scope\.classList\?\.contains\("has-domain"\)/,
+  );
+  assert.match(
+    learningState,
+    /showProgressDecoration && item\?\.status === "in_progress"/,
+  );
+  assert.match(
+    learningState,
+    /showProgressDecoration && item\?\.status === "completed"/,
+  );
+  assert.match(learningPages, /from "\.\/learning-state\.js\?v=roadmap-filter-1"/);
+  assert.match(learnPage, /from "\.\/learning-pages\.js\?v=roadmap-filter-1"/);
+  assert.match(learnHtml, /assets\/js\/learn-page\.js\?v=roadmap-filter-1/);
 });
