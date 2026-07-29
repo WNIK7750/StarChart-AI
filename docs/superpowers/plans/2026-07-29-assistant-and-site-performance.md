@@ -16,7 +16,7 @@
 - Python portions and the complete repository gates in Task 6 now pass in the
   original worktree: 259 Python tests, 86.4% branch coverage, Ruff and
   dependency audit, Foundation, and HTTP deployment groups
-  49/8/74/27/71/22/7.
+  49/8/74/27/72/22/7.
 - Local 8088 smoke and Playwright functional verification pass. Task 6 Git,
   current-release server deployment, post-deploy public probes and same-host
   cold/warm cache comparison remain `NOT RUN`. See

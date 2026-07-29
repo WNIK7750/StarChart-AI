@@ -112,7 +112,7 @@
 | `scripts/verify-frontend.ps1` | 58 passed，0 failed，177.5433 ms；所有目标 JS 语法通过 |
 | `scripts/verify-quality.ps1` | 259 项 Python 测试通过；分支覆盖率 86.4%；Ruff 通过；依赖审计 0 个已知漏洞；发布选择 367/0/10 |
 | `scripts/verify-foundation.ps1` | 通过；Frontend、Tools、Learning、Users、Agent 与 HTTP 部署集成门禁全部退出 0 |
-| `scripts/verify-http-test-deployment.ps1` | 通过；runtime/policy/agentHistory/guestAgent/frontend/overlay/release 为 49/8/74/27/71/22/7 |
+| `scripts/verify-http-test-deployment.ps1` | 通过；runtime/policy/agentHistory/guestAgent/frontend/overlay/release 为 49/8/74/27/72/22/7 |
 | 8088 只读 smoke | `/`、五个业务页面、指纹 SVG、navigation、runtime 和 capabilities 共 10 个路径均为 200；本轮约 3.2–233.3 ms |
 | Playwright 浏览器复验 | 桌面五页与 390×844 助手页非空、无框架错误覆盖层、无横向溢出；游客 RAG、普通问答、工作流草稿、设置登录提示，以及合成账号注册、短会话创建和登录会话问答通过 |
 | 助手前端契约 | 通过；旧示例不存在，帧缓冲和分区后台刷新契约存在 |

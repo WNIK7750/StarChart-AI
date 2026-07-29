@@ -216,7 +216,7 @@
 - 已将无确定性答案的默认比较问题改为“RAG 怎么学？”，并完成助手 SSE 帧缓冲、短/长期列表分区后台刷新、请求版本隔离和 `DocumentFragment` 批量挂载。
 - 已完成公共页面非阻塞认证启动、搜索去抖/取消/最新结果、学习页并行水合、全站滚动/悬停帧合并、屏外绘制跳过、关键 module preload、352 B 指纹品牌图和 Nginx gzip/精确 immutable 缓存。
 - 本次真实 Node 全集为 73/73，正式前端门禁为 58/58，所有目标 JavaScript 语法与 `git diff --check` 通过。完整质量门禁运行 259 项 Python 测试，分支覆盖率 86.4%，Ruff 与依赖审计通过；发布选择为 367/0/10。
-- Foundation 门禁通过；HTTP 专项门禁最新七组计数为 runtime 49、policy 8、agentHistory 74、guestAgent 27、frontend 71、overlay 22、release 7。机器证据保持 `sourceCommit=WORKTREE` 且 `containsSecrets=false`。
+- Foundation 门禁通过；HTTP 专项门禁最新七组计数为 runtime 49、policy 8、agentHistory 74、guestAgent 27、frontend 72、overlay 22、release 7。机器证据保持 `sourceCommit=WORKTREE` 且 `containsSecrets=false`。
 - 普通 8088 实例的 10 个清单路径全部为 200。本地 Playwright 复验覆盖桌面五页、390×844 助手页、游客 deterministic 问答/草稿/设置门禁，以及临时合成账号注册、短会话创建和登录会话问答；临时实例和数据库已删除。
 - 当前 performance worktree 的前端实现候选和完整仓库本地候选均为 `GO`，本次 HTTP release 为 `NOT DEPLOYED`，生产发布为 `NO-GO`。上一已部署 release 的历史 `GO` 仍只对其自身有效。
 
@@ -265,7 +265,7 @@
 - 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文、任务 5 的确定性游客助手后端入口、任务 6 的浏览器游客记忆与身份模式切换和任务 7 的无秘密测试账号初始化器已完成；任务 8 没有修改应用源码。
 - 部署覆盖层：已创建并纳入 deny-first 发布包；本地结构测试、shell 语法和发布选择通过，Linux Nginx/systemd 加载验证仍为 `NOT RUN`。
 - 本地专项测试：任务 1 至任务 10 已按各自范围运行并通过；任务 11 只执行文档链接、秘密扫描、差异检查和人工结构审查；最新专项门禁七组真实计数已写入无秘密 manifest。
-- 全量门禁：已于 2026-07-29 在原工作目录重新运行并通过；质量门禁 259 项、覆盖率 86.4%，专项门禁七组计数为 49/8/74/27/71/22/7，发布选择为 367/0/10。
+- 全量门禁：已于 2026-07-29 在原工作目录重新运行并通过；质量门禁 259 项、覆盖率 86.4%，专项门禁七组计数为 49/8/74/27/72/22/7，发布选择为 367/0/10。
 - 服务器部署：deterministic 8001 实例已执行并通过本次 smoke、公开路由、隔离边界和 24 项账号/游客全功能验证。
 - 上一已部署 release 的本地整改候选：`GO`；2026-07-29 performance worktree 的完整仓库本地候选：`GO`。
 - HTTP 服务器部署：上一已验证 release 为 `GO`，仅限当前无 HTTPS、无真实隐私数据、无 live Provider 的测试用途；2026-07-29 performance worktree 为 `NOT DEPLOYED`，备份恢复和回滚演练仍为 `NOT RUN`。

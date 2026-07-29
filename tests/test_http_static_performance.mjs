@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
+import childProcess from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 const fingerprint = "62793ed5";
@@ -11,6 +14,26 @@ test("brand mark filename matches its content hash and stays compact", () => {
   const digest = crypto.createHash("sha256").update(asset).digest("hex");
   assert.equal(digest.slice(0, 8), fingerprint);
   assert.ok(asset.byteLength < 4096, `brand mark is ${asset.byteLength} bytes`);
+});
+
+test("brand mark fingerprint stays valid in Windows checkouts", () => {
+  const checkout = fs.mkdtempSync(path.join(os.tmpdir(), "ai-nav-brand-mark-"));
+  try {
+    childProcess.execFileSync("git", [
+      "-c",
+      "core.autocrlf=true",
+      "checkout-index",
+      "--force",
+      `--prefix=${checkout}${path.sep}`,
+      "--",
+      assetPath,
+    ]);
+    const asset = fs.readFileSync(path.join(checkout, assetPath));
+    const digest = crypto.createHash("sha256").update(asset).digest("hex");
+    assert.equal(digest.slice(0, 8), fingerprint);
+  } finally {
+    fs.rmSync(checkout, { recursive: true, force: true });
+  }
 });
 
 test("HTTP overlay compresses text and only makes the fingerprinted asset immutable", () => {

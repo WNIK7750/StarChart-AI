@@ -167,7 +167,7 @@ git diff --cached --name-status
 | `scripts/verify-frontend.ps1` | 58 passed，0 failed，177.5433 ms |
 | `scripts/verify-quality.ps1` | 259 项 Python 测试通过；分支覆盖率 86.4%；Ruff 和依赖审计通过；发布选择 367/0/10 |
 | `scripts/verify-foundation.ps1` | 通过 |
-| `scripts/verify-http-test-deployment.ps1` | 49/8/74/27/71/22/7 全部通过 |
+| `scripts/verify-http-test-deployment.ps1` | 49/8/74/27/72/22/7 全部通过 |
 | 目标 JavaScript 语法 | 通过 |
 | `git diff --check` | 通过 |
 | 指纹 SVG | 352 B，SHA-256 前缀 `62793ed5` |
