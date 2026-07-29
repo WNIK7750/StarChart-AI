@@ -22,6 +22,7 @@ from app.core.config import (
     UPLOAD_DIR,
 )
 from app.db.database import initialize_database
+from app.platform import frontend_routes
 from app.users.observability.access import observe_users_request
 
 
@@ -177,6 +178,7 @@ app.include_router(privacy.router, prefix=API_PREFIX)
 app.include_router(tools.router, prefix=API_PREFIX)
 app.include_router(user_learning.router, prefix=API_PREFIX)
 app.include_router(users.router, prefix=API_PREFIX)
+app.include_router(frontend_routes.router)
 
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
