@@ -25,7 +25,7 @@ import {
 
 const AUTH_STYLE_ID = "ai-nav-auth-style";
 const AUTH_PANEL_ID = "authPanel";
-const DEFAULT_AUTH_AVATAR = "assets/img/brand-mark.62793ed5.svg";
+const DEFAULT_AUTH_AVATAR = withPublicBasePath("/assets/img/brand-mark.62793ed5.svg");
 let authEntryVisibility = {
   registration: false,
   recovery: false,

@@ -273,7 +273,7 @@ function renderAvatar(url, remember = false) {
   const src = projectAvatarUrl(url);
   if (remember) rememberRecentAvatar(url);
   $all("[data-avatar-preview], [data-avatar-small]").forEach((image) => {
-    image.src = src || "assets/img/brand-mark.62793ed5.svg";
+    image.src = src || withPublicBasePath("/assets/img/brand-mark.62793ed5.svg");
   });
 }
 

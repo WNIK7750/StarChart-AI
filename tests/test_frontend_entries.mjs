@@ -61,6 +61,8 @@ test("page entries compose shared shell and owned domain runtime", () => {
   assert.match(read("assets/js/learn-page.js"), /initLearnPage\(\{\s*authReady:/);
   assert.match(read("assets/js/learn-node-page.js"), /initNodePage\(\{\s*authReady:/);
   assert.match(read("assets/js/tools-entry.js"), /initToolsPage\(\)/);
+  assert.match(read("assets/js/tools-entry.js"), /if \(!location\.hash\) window\.scrollTo\(0, 0\)/);
+  assert.doesNotMatch(read("assets/js/tools-entry.js"), /history\.replaceState/);
   assert.match(read("assets/js/tools-page.js"), /apiGet\('\/tools\/catalog'\)/);
   assert.match(read("assets/js/tools-page.js"), /meta\.linkStatus === 'unavailable'/);
   assert.doesNotMatch(read("assets/js/tools-page.js"), /baidu\.com\/s\?wd=/);
@@ -174,6 +176,10 @@ test("all pages use one small fingerprinted brand asset", () => {
   assert.match(read("assets/js/auth-ui.js"), new RegExp(assets[0].replaceAll(".", "\\.")));
   const settingsRuntime = read("assets/js/settings.js");
   assert.match(settingsRuntime, new RegExp(assets[0].replaceAll(".", "\\.")));
+  assert.match(
+    settingsRuntime,
+    /withPublicBasePath\("\/assets\/img\/brand-mark\.[a-f0-9]{8}\.svg"\)/,
+  );
   assert.doesNotMatch(settingsRuntime, /assets\/img\/logo\.png/);
 });
 

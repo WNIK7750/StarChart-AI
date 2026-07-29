@@ -34,7 +34,10 @@ async function applyCurrentOperation(epoch, pending, apply, onStart = null) {
 
 test("login dialog uses the site logo until a recent account avatar exists", () => {
   const source = read("frontend/assets/js/auth-ui.js");
-  assert.match(source, /DEFAULT_AUTH_AVATAR = "assets\/img\/brand-mark\.[a-f0-9]{8}\.svg"/);
+  assert.match(
+    source,
+    /DEFAULT_AUTH_AVATAR = withPublicBasePath\("\/assets\/img\/brand-mark\.[a-f0-9]{8}\.svg"\)/,
+  );
   assert.doesNotMatch(source, /assets\/img\/logo\.png/);
   assert.match(source, /data-auth-avatar/);
   assert.match(source, /getRecentAvatarUrl\(\)/);
