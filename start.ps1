@@ -11,7 +11,7 @@ $root = (Resolve-Path -LiteralPath $PSScriptRoot).Path
 $venvRoot = Join-Path $root ".venv"
 $venvPython = Join-Path $venvRoot "Scripts\python.exe"
 $requirementsPath = Join-Path $root "backend\requirements.txt"
-$script:stage = "初始化"
+$script:stage = "initialization"
 
 $sha256 = [Security.Cryptography.SHA256]::Create()
 try {
@@ -27,7 +27,7 @@ $localAppData = [Environment]::GetFolderPath(
   [Environment+SpecialFolder]::LocalApplicationData
 )
 if ([string]::IsNullOrWhiteSpace($localAppData)) {
-  throw "无法解析本机应用数据目录。"
+  throw "Unable to resolve the local application data directory."
 }
 $launcherRoot = Join-Path (Join-Path $localAppData "AI-Nav\launcher") $rootKey
 $statePath = Join-Path $launcherRoot "state.json"
@@ -110,7 +110,7 @@ function Resolve-BasePython {
     }
   }
 
-  throw "未找到可用的 Python。请安装 Python 3.11+，或设置 AI_NAV_PYTHON。"
+  throw "Python 3.11+ was not found. Install Python or set AI_NAV_PYTHON."
 }
 
 function Invoke-CheckedProcess {
@@ -124,10 +124,10 @@ function Invoke-CheckedProcess {
     & $FilePath @Arguments
     $exitCode = $LASTEXITCODE
   } catch {
-    throw "$Stage 失败：$($_.Exception.Message)"
+    throw "$Stage failed: $($_.Exception.Message)"
   }
   if ($exitCode -ne 0) {
-    throw "$Stage 失败，退出码：$exitCode"
+    throw "$Stage failed with exit code $exitCode."
   }
 }
 
@@ -262,9 +262,9 @@ function Get-DescendantProcessIds {
 function Stop-ManagedService {
   if (-not (Test-ManagedProcess)) {
     if (Test-LocalPortOccupied) {
-      throw "8088 正由非本启动器管理的进程占用；为保护其他进程，拒绝关闭。"
+      throw "Port 8088 is owned by an unmanaged process; refusing to stop it."
     }
-    Write-Host "本地服务当前未运行。" -ForegroundColor Yellow
+    Write-Host "The local service is not running." -ForegroundColor Yellow
     return
   }
 
@@ -283,7 +283,7 @@ function Stop-ManagedService {
     Start-Sleep -Milliseconds 200
   }
   Remove-StaleState
-  Write-Host "AI 知识导航已关闭。" -ForegroundColor Green
+  Write-Host "AI Nav has stopped." -ForegroundColor Green
 }
 
 function Ensure-VirtualEnvironment {
@@ -297,19 +297,19 @@ function Ensure-VirtualEnvironment {
     [IO.Path]::GetDirectoryName($resolvedVenv) -ne $root -or
     [IO.Path]::GetFileName($resolvedVenv) -ne ".venv"
   ) {
-    throw "拒绝处理非项目虚拟环境路径。"
+    throw "Refusing to modify a virtual environment outside this project."
   }
 
   if (Test-Path -LiteralPath $venvRoot) {
-    Write-Host "检测到损坏的项目虚拟环境，正在安全重建..." -ForegroundColor Yellow
+    Write-Host "The project virtual environment is invalid; rebuilding it..." -ForegroundColor Yellow
     Remove-Item -LiteralPath $venvRoot -Recurse -Force
   }
 
-  $script:stage = "重建虚拟环境"
+  $script:stage = "rebuilding virtual environment"
   $createArguments = @($basePython.PrefixArguments) + @("-m", "venv", $venvRoot)
   Invoke-CheckedProcess $script:stage $basePython.FilePath $createArguments
   if (-not (Test-PythonCommand $venvPython)) {
-    throw "新虚拟环境无法启动。"
+    throw "The new virtual environment could not start."
   }
   return $true
 }
@@ -323,11 +323,11 @@ function Ensure-Dependencies {
     $storedHash = (Get-Content -LiteralPath $requirementsHashPath -Raw).Trim()
   }
   if (-not $ForceInstall -and $storedHash -eq $currentHash) {
-    Write-Host "依赖未变化，跳过安装。" -ForegroundColor DarkGray
+    Write-Host "Dependencies are unchanged; skipping installation." -ForegroundColor DarkGray
     return
   }
 
-  $script:stage = "安装依赖"
+  $script:stage = "installing dependencies"
   Invoke-CheckedProcess $script:stage $venvPython @(
     "-m",
     "pip",
@@ -352,7 +352,7 @@ function Write-LauncherState {
     }
   }
   if (-not $processInfo) {
-    throw "无法读取新服务进程信息。"
+    throw "Unable to read the new service process information."
   }
 
   $state = [ordered]@{
@@ -364,22 +364,24 @@ function Write-LauncherState {
     pythonPath = $venvPython
     port = 8088
   }
-  $state | ConvertTo-Json | Set-Content -LiteralPath $statePath -Encoding UTF8
+  $stateJson = $state | ConvertTo-Json
+  $utf8WithBom = New-Object Text.UTF8Encoding($true)
+  [IO.File]::WriteAllText($statePath, $stateJson, $utf8WithBom)
 }
 
 function Start-ManagedService {
   if (Test-ManagedProcess) {
     if (Test-ExistingAiNav) {
-      Write-Host "AI 知识导航已经在运行：http://127.0.0.1:8088/" -ForegroundColor Green
+      Write-Host "AI Nav is already running: http://127.0.0.1:8088/" -ForegroundColor Green
       return
     }
-    Write-Host "检测到失去健康状态的受管服务，正在重新部署..." -ForegroundColor Yellow
+    Write-Host "The managed service is unhealthy; redeploying..." -ForegroundColor Yellow
     Stop-ManagedService
   } elseif (Test-LocalPortOccupied) {
-    throw "端口 8088 已被非本启动器管理的服务占用；未停止或覆盖该进程。"
+    throw "Port 8088 is owned by an unmanaged process; it was not stopped or replaced."
   }
 
-  $script:stage = "检查虚拟环境"
+  $script:stage = "checking virtual environment"
   $venvRebuilt = Ensure-VirtualEnvironment
   Ensure-Dependencies -ForceInstall $venvRebuilt
 
@@ -389,8 +391,8 @@ function Start-ManagedService {
     }
   }
 
-  $script:stage = "启动应用"
-  Write-Host "正在部署 AI 知识导航：http://127.0.0.1:8088/" -ForegroundColor Cyan
+  $script:stage = "starting application"
+  Write-Host "Deploying AI Nav: http://127.0.0.1:8088/" -ForegroundColor Cyan
   $process = Start-Process `
     -FilePath $venvPython `
     -ArgumentList @("backend\run.py") `
@@ -403,30 +405,30 @@ function Start-ManagedService {
 
   if (-not (Wait-AiNavReady -TimeoutSeconds 30)) {
     Stop-ManagedService
-    throw "应用未在 30 秒内就绪。日志：$stderrPath"
+    throw "The application was not ready within 30 seconds. Log: $stderrPath"
   }
-  Write-Host "部署完成：http://127.0.0.1:8088/" -ForegroundColor Green
-  Write-Host "日志目录：$launcherRoot" -ForegroundColor DarkGray
+  Write-Host "Deployment complete: http://127.0.0.1:8088/" -ForegroundColor Green
+  Write-Host "Log directory: $launcherRoot" -ForegroundColor DarkGray
 }
 
 function Show-ControlMenu {
   while ($true) {
     Write-Host ""
     if ((Test-ManagedProcess) -and (Test-ExistingAiNav)) {
-      Write-Host "状态：运行中  http://127.0.0.1:8088/" -ForegroundColor Green
+      Write-Host "Status: running  http://127.0.0.1:8088/" -ForegroundColor Green
     } elseif (Test-LocalPortOccupied) {
-      Write-Host "状态：8088 被非本启动器管理的进程占用" -ForegroundColor Red
+      Write-Host "Status: port 8088 is owned by an unmanaged process" -ForegroundColor Red
     } else {
-      Write-Host "状态：已关闭" -ForegroundColor Yellow
+      Write-Host "Status: stopped" -ForegroundColor Yellow
     }
 
-    $choice = Read-Host "[R] 重新部署  [S] 关闭服务  [Q] 退出控制窗口  [Enter] 刷新状态"
+    $choice = Read-Host "[R] Redeploy  [S] Stop service  [Q] Exit controller  [Enter] Refresh"
     switch ($choice.Trim().ToUpperInvariant()) {
       "R" {
         if (Test-ManagedProcess) {
           Stop-ManagedService
         } elseif (Test-LocalPortOccupied) {
-          Write-Host "拒绝重启：8088 不属于本启动器。" -ForegroundColor Red
+          Write-Host "Redeploy refused: port 8088 is not owned by this launcher." -ForegroundColor Red
           continue
         }
         Start-ManagedService
@@ -439,7 +441,7 @@ function Show-ControlMenu {
         }
       }
       "Q" {
-        Write-Host "控制窗口已退出；服务保持当前状态。" -ForegroundColor DarkGray
+        Write-Host "Controller exited; the service keeps its current state." -ForegroundColor DarkGray
         return
       }
       default {
@@ -451,17 +453,17 @@ function Show-ControlMenu {
 
 try {
   if ($Stop) {
-    $script:stage = "关闭应用"
+    $script:stage = "stopping application"
     Stop-ManagedService
     return
   }
 
   if ($Restart) {
-    $script:stage = "重新部署"
+    $script:stage = "redeploying"
     if (Test-ManagedProcess) {
       Stop-ManagedService
     } elseif (Test-LocalPortOccupied) {
-      throw "端口 8088 不属于本启动器，拒绝重新部署。"
+      throw "Port 8088 is not owned by this launcher; redeploy refused."
     }
   }
 
@@ -472,11 +474,11 @@ try {
   Show-ControlMenu
   return
 } catch {
-  Write-Host "一键部署失败（阶段：$script:stage）" -ForegroundColor Red
+  Write-Host "One-click deployment failed during: $script:stage" -ForegroundColor Red
   Write-Host $_.Exception.Message -ForegroundColor Red
-  Write-Host "日志目录：$launcherRoot" -ForegroundColor DarkGray
+  Write-Host "Log directory: $launcherRoot" -ForegroundColor DarkGray
   if (-not $NoPause) {
-    Read-Host "按 Enter 关闭窗口"
+    Read-Host "Press Enter to close"
   }
   exit 1
 }

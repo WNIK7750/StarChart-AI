@@ -3,6 +3,7 @@ import fs from "node:fs";
 
 const script = fs.readFileSync("start.ps1", "utf8");
 
+assert.doesNotMatch(script, /[^\x00-\x7F]/);
 assert.match(script, /param\([\s\S]*\[switch\]\$NoPause/);
 assert.match(script, /\[switch\]\$Restart/);
 assert.match(script, /\[switch\]\$Stop/);
@@ -25,6 +26,7 @@ assert.match(script, /LocalApplicationData/);
 assert.match(script, /Get-FileHash/);
 assert.match(script, /requirements\.sha256/);
 assert.match(script, /state\.json/);
+assert.match(script, /UTF8Encoding\(\$true\)/);
 assert.match(script, /stdout\.log/);
 assert.match(script, /stderr\.log/);
 assert.match(script, /function Test-ManagedProcess/);
@@ -36,10 +38,10 @@ assert.match(script, /function Wait-AiNavReady/);
 assert.match(script, /Start-Process[\s\S]+-PassThru/);
 assert.match(script, /Start-Process[\s\S]+-WindowStyle\s+Hidden/);
 assert.match(script, /Read-Host "\[R\].*\[S\].*\[Q\]/);
-assert.match(script, /重新部署/);
-assert.match(script, /关闭服务/);
+assert.match(script, /Redeploy/);
+assert.match(script, /Stop service/);
 assert.doesNotMatch(script, /Join-Path\s+\$root\s+["']\.runtime/);
-assert.match(script, /Read-Host "按 Enter 关闭窗口"/);
+assert.match(script, /Read-Host "Press Enter to close"/);
 assert.match(script, /if \(-not \$NoPause\)/);
 assert.doesNotMatch(
   script,
