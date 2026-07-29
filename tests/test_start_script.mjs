@@ -3,7 +3,9 @@ import fs from "node:fs";
 
 const script = fs.readFileSync("start.ps1", "utf8");
 
-assert.match(script, /param\(\s*\[switch\]\$NoPause\s*\)/);
+assert.match(script, /param\([\s\S]*\[switch\]\$NoPause/);
+assert.match(script, /\[switch\]\$Restart/);
+assert.match(script, /\[switch\]\$Stop/);
 assert.match(script, /\$ErrorActionPreference\s*=\s*"Stop"/);
 assert.match(script, /function Test-PythonCommand/);
 assert.match(script, /function Resolve-BasePython/);
@@ -19,6 +21,24 @@ assert.match(script, /function Test-ExistingAiNav/);
 assert.match(script, /127\.0\.0\.1:8088\/api\/v1\/health/);
 assert.match(script, /127\.0\.0\.1:8088\/api\/v1\/runtime\/public/);
 assert.match(script, /AI_NAV_AGENT_GUEST_CHAT_ENABLED/);
+assert.match(script, /LocalApplicationData/);
+assert.match(script, /Get-FileHash/);
+assert.match(script, /requirements\.sha256/);
+assert.match(script, /state\.json/);
+assert.match(script, /stdout\.log/);
+assert.match(script, /stderr\.log/);
+assert.match(script, /function Test-ManagedProcess/);
+assert.match(script, /CreationDate/);
+assert.match(script, /CommandLine/);
+assert.match(script, /function Stop-ManagedService/);
+assert.match(script, /function Start-ManagedService/);
+assert.match(script, /function Wait-AiNavReady/);
+assert.match(script, /Start-Process[\s\S]+-PassThru/);
+assert.match(script, /Start-Process[\s\S]+-WindowStyle\s+Hidden/);
+assert.match(script, /Read-Host "\[R\].*\[S\].*\[Q\]/);
+assert.match(script, /重新部署/);
+assert.match(script, /关闭服务/);
+assert.doesNotMatch(script, /Join-Path\s+\$root\s+["']\.runtime/);
 assert.match(script, /Read-Host "按 Enter 关闭窗口"/);
 assert.match(script, /if \(-not \$NoPause\)/);
 assert.doesNotMatch(
