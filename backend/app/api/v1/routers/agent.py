@@ -376,6 +376,17 @@ def create_agent_session(
         _session_error(exc)
 
 
+@router.post(
+    "/sessions/draft",
+    response_model=AgentSessionCreateResponse,
+)
+def ensure_agent_session_draft(
+    current_user: dict = Depends(require_permission("agent:chat")),
+):
+    _require_sessions_enabled()
+    return get_agent_session_service().ensure_draft(current_user["id"])
+
+
 @router.get("/sessions", response_model=AgentSessionListResponse)
 def list_agent_sessions(
     limit: int = Query(default=20, ge=1, le=50),

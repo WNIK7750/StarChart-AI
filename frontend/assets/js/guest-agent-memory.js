@@ -147,6 +147,29 @@ export function createGuestConversation(title, now = Date.now()) {
   return conversation;
 }
 
+export function ensureGuestConversation(title = "新对话", now = Date.now()) {
+  const conversations = loadGuestConversations(now);
+  const draft = conversations.find((conversation) => conversation.messages.length === 0);
+  if (!draft) return createGuestConversation(title, now);
+  const withoutDuplicateDrafts = conversations.filter(
+    (conversation) => conversation.messages.length > 0 || conversation.id === draft.id,
+  );
+  if (withoutDuplicateDrafts.length !== conversations.length) {
+    saveConversations(withoutDuplicateDrafts);
+  }
+  return draft;
+}
+
+export function deleteGuestConversation(conversationId, now = Date.now()) {
+  const conversations = loadGuestConversations(now);
+  const remaining = conversations.filter(
+    (conversation) => conversation.id !== conversationId,
+  );
+  if (remaining.length === conversations.length) return false;
+  saveConversations(remaining);
+  return true;
+}
+
 export function appendGuestMessage(conversationId, role, content, now = Date.now()) {
   if (!SAFE_ROLES.has(role)) throw new TypeError("Guest message role is not allowed");
   const normalizedContent = String(content || "").trim().slice(0, MAX_STORED_MESSAGE_CHARACTERS);

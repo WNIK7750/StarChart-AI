@@ -48,7 +48,7 @@ assert.match(script, /apiGet\("\/agent\/capabilities"/);
 assert.match(script, /apiGet\("\/runtime\/public"/);
 assert.match(script, /available\.agent\?\.guestChat === true/);
 assert.match(script, /AGENT_GUEST_CHAT_DISABLED/);
-assert.match(script, /apiPost\("\/agent\/sessions"/);
+assert.match(script, /apiPost\("\/agent\/sessions\/draft"/);
 assert.match(script, /apiGet\(\s*"\/agent\/long-conversations"/);
 assert.match(
   script,
@@ -56,7 +56,7 @@ assert.match(
 );
 assert.match(script, /apiPatch\(conversationEndpoint\(sessionId\)/);
 assert.match(script, /apiPost\(\s*`\/agent\/sessions\/\$\{sessionId\}\/upgrade`/);
-assert.match(script, /AGENT_SESSION_UNSTARTED_EXISTS/);
+assert.doesNotMatch(script, /AGENT_SESSION_UNSTARTED_EXISTS/);
 assert.match(script, /AGENT_LONG_CONVERSATION_LIMIT_REACHED/);
 assert.match(script, /sessionCreationBlocked = items\.some/);
 assert.match(script, /dataset\.upgradeSessionId/);
@@ -92,6 +92,14 @@ assert.match(script, /游客可在本页创建和编辑草稿，但不能保存�
 assert.match(script, /recentGuestHistory/);
 assert.match(script, /appendGuestMessage/);
 assert.match(script, /clearGuestConversations/);
+assert.match(script, /ensureGuestConversation/);
+assert.match(script, /deleteGuestConversation/);
+assert.match(script, /async function ensureAuthenticatedDraft/);
+assert.match(
+  script,
+  /if \(deletedCurrent\)[\s\S]*await ensureAuthenticatedDraft/,
+  "删除当前登录会话后必须切换到真实存在的短期草稿",
+);
 assert.match(
   script,
   /if \(conversation\.messages\.length === 0\) \{\s*resetConversation\(\);\s*\} else \{\s*messages\.replaceChildren\(\);[\s\S]*conversation\.messages\.forEach/,

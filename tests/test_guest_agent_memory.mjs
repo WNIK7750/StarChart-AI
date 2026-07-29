@@ -150,3 +150,30 @@ test("clear removes only the guest assistant application key", () => {
   assert.equal(values.has(GUEST_KEY), false);
   assert.equal(values.get("another-application-key"), "keep");
 });
+
+test("guest draft lifecycle reuses one empty conversation", () => {
+  const first = memory.ensureGuestConversation("新对话", 20_000);
+  const reused = memory.ensureGuestConversation("新对话", 20_001);
+  assert.equal(reused.id, first.id);
+
+  memory.appendGuestMessage(first.id, "user", "开始使用", 20_002);
+  const replacement = memory.ensureGuestConversation("新对话", 20_003);
+  assert.notEqual(replacement.id, first.id);
+  assert.equal(replacement.messages.length, 0);
+  assert.equal(
+    memory.loadGuestConversations(20_004).filter((item) => item.messages.length === 0).length,
+    1,
+  );
+});
+
+test("deleting one guest conversation preserves the others", () => {
+  const first = memory.createGuestConversation("第一个", 30_000);
+  const second = memory.createGuestConversation("第二个", 30_001);
+
+  assert.equal(memory.deleteGuestConversation(second.id, 30_002), true);
+  assert.deepEqual(
+    memory.loadGuestConversations(30_003).map((item) => item.id),
+    [first.id],
+  );
+  assert.equal(memory.deleteGuestConversation("missing", 30_004), false);
+});

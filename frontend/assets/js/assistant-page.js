@@ -14,7 +14,8 @@ import { safeInternalHref } from "./url-safety.js";
 import {
   appendGuestMessage,
   clearGuestConversations,
-  createGuestConversation,
+  deleteGuestConversation,
+  ensureGuestConversation,
   loadGuestConversations,
   recentGuestHistory,
 } from "./guest-agent-memory.js";
@@ -57,6 +58,7 @@ const sessionEpoch = new AssistantSessionEpoch(getAccessToken());
 let authenticatedMode = Boolean(getAccessToken());
 let assistantModeInitialized = false;
 let sessionListRequestVersion = { short: 0, long: 0 };
+let shortSessions = [];
 
 function isAuthenticatedMode() {
   return authenticatedMode;
@@ -157,9 +159,9 @@ function setCurrentSession(sessionId) {
 
 function syncNewSessionButton() {
   if (!newSessionButton) return;
-  newSessionButton.disabled = sessionCreationBlocked || Boolean(activeController);
+  newSessionButton.disabled = Boolean(activeController);
   newSessionButton.title = sessionCreationBlocked
-    ? "请先在当前对话中完成一次问答"
+    ? "已有一个新对话，点击即可返回"
     : "";
 }
 
@@ -250,6 +252,7 @@ function renderConversationList(container, items = [], type = "short") {
 }
 
 function renderSessionList(items = []) {
+  shortSessions = items;
   sessionCreationBlocked = items.some((session) => Number(session.messageCount) === 0);
   renderConversationList(sessionList, items, "short");
   sessionEmpty.hidden = items.length > 0;
@@ -274,7 +277,20 @@ function renderGuestSessionList(items = []) {
       element("strong", "", conversation.title),
       element("span", "", `${conversation.messages.length} 条 · 浏览器内`),
     );
-    row.appendChild(open);
+    const actions = document.createElement("details");
+    actions.className = "session-actions";
+    const summary = document.createElement("summary");
+    summary.setAttribute("aria-label", `管理游客会话：${conversation.title}`);
+    summary.textContent = "•••";
+    const menu = element("div", "session-actions-menu");
+    menu.setAttribute("role", "menu");
+    const remove = element("button", "session-delete", "删除");
+    remove.type = "button";
+    remove.dataset.deleteGuestSessionId = conversation.id;
+    remove.setAttribute("aria-label", `删除游客会话：${conversation.title}`);
+    menu.appendChild(remove);
+    actions.append(summary, menu);
+    row.append(open, actions);
     fragment.appendChild(row);
   });
   sessionList.replaceChildren(fragment);
@@ -303,6 +319,32 @@ function renderGuestConversation(conversationId = currentSessionId) {
   }
   setCurrentSession(conversation.id);
   status.textContent = "游客模式 · 浏览器内保存";
+}
+
+function openDraftSession(sessionId, statusText = "新对话") {
+  resetConversation();
+  setCurrentSession(sessionId);
+  status.textContent = statusText;
+}
+
+async function ensureAuthenticatedDraft({
+  signal,
+  refresh = true,
+  statusText = "新对话",
+} = {}) {
+  let draft = shortSessions.find((session) => Number(session.messageCount) === 0);
+  let created = false;
+  if (!draft) {
+    const result = await apiPost("/agent/sessions/draft", {}, { signal });
+    draft = result.session;
+    created = true;
+  }
+  openDraftSession(draft.sessionId, statusText);
+  if (refresh && created) {
+    await loadSessionList({ short: true, long: false });
+    setCurrentSession(draft.sessionId);
+  }
+  return draft;
 }
 
 async function loadSessionList({ short = true, long = true } = {}) {
@@ -376,38 +418,27 @@ async function loadSessionList({ short = true, long = true } = {}) {
 async function createSession() {
   if (!isAuthenticatedMode()) {
     if (activeController) return;
-    const conversation = createGuestConversation("新对话");
+    const conversation = ensureGuestConversation("新对话");
     renderGuestConversation(conversation.id);
     closeMobileSessions();
     input.focus();
     return;
   }
   if (!sessionAvailable || activeController) return;
-  if (sessionCreationBlocked) {
-    status.textContent = "请先完成当前对话";
-    return;
-  }
   const operation = sessionEpoch.beginOperation();
   newSessionButton.disabled = true;
   try {
-    const result = await apiPost("/agent/sessions", {}, { signal: operation.signal });
+    const draft = await ensureAuthenticatedDraft({
+      signal: operation.signal,
+      statusText: "短期会话已开启",
+    });
     if (!operation.isCurrent()) return;
-    resetConversation();
-    setCurrentSession(result.session.sessionId);
-    status.textContent = "短期会话已开启";
-    await loadSessionList();
-    if (!operation.isCurrent()) return;
+    setCurrentSession(draft.sessionId);
     closeMobileSessions();
     input.focus();
   } catch (error) {
     if (!operation.isCurrent()) return;
-    if (error?.code === "AGENT_SESSION_UNSTARTED_EXISTS") {
-      status.textContent = "请先完成当前对话";
-      await loadSessionList();
-      if (!operation.isCurrent()) return;
-    } else {
-      addMessage("assistant", error.message || "无法创建短期会话。", true);
-    }
+    addMessage("assistant", error.message || "无法创建短期会话。", true);
   } finally {
     const current = operation.isCurrent();
     operation.finish();
@@ -448,6 +479,14 @@ async function restoreSession(sessionId) {
       setCurrentSession(null);
       await loadSessionList();
       if (!operation.isCurrent()) return;
+      await ensureAuthenticatedDraft({
+        signal: operation.signal,
+        statusText: "原会话已不存在，已打开新对话",
+      });
+      if (!operation.isCurrent()) return;
+      closeMobileSessions();
+      input.focus();
+      return;
     }
     addMessage("assistant", error.message || "无法载入短期会话。", true);
     status.textContent = "载入失败";
@@ -474,15 +513,25 @@ async function deleteSession(button) {
   const operation = sessionEpoch.beginOperation();
   button.disabled = true;
   try {
+    const deletedCurrent = currentSessionId === sessionId;
     await apiDelete(conversationEndpoint(sessionId), { signal: operation.signal });
     if (!operation.isCurrent()) return;
-    if (currentSessionId === sessionId) {
+    if (deletedCurrent) {
       setCurrentSession(null);
       resetConversation();
       status.textContent = "会话已删除";
     }
     await loadSessionList();
     if (!operation.isCurrent()) return;
+    if (deletedCurrent) {
+      await ensureAuthenticatedDraft({
+        signal: operation.signal,
+        statusText: "会话已删除，已打开新对话",
+      });
+      if (!operation.isCurrent()) return;
+      closeMobileSessions();
+      input.focus();
+    }
   } catch (error) {
     if (!operation.isCurrent()) return;
     button.disabled = false;
@@ -491,6 +540,33 @@ async function deleteSession(button) {
   } finally {
     operation.finish();
   }
+}
+
+function deleteGuestSession(button) {
+  if (isAuthenticatedMode()) return;
+  const conversationId = button.dataset.deleteGuestSessionId;
+  if (!conversationId || activeController) return;
+  if (button.dataset.confirmDelete !== "true") {
+    button.dataset.confirmDelete = "true";
+    button.textContent = "确认";
+    globalThis.setTimeout(() => {
+      if (button.isConnected) {
+        delete button.dataset.confirmDelete;
+        button.textContent = "删除";
+      }
+    }, 4000);
+    return;
+  }
+  const deletedCurrent = currentSessionId === conversationId;
+  if (!deleteGuestConversation(conversationId)) return;
+  if (deletedCurrent) {
+    const replacement = ensureGuestConversation();
+    renderGuestConversation(replacement.id);
+    status.textContent = "游客会话已删除，已打开新对话";
+  } else {
+    renderGuestSessionList(loadGuestConversations());
+  }
+  input.focus();
 }
 
 function openRenameSession(button) {
@@ -861,6 +937,11 @@ async function initializeSessions() {
     if (sessionAvailable) {
       await loadSessionList();
       if (!operation.isCurrent()) return;
+      await ensureAuthenticatedDraft({
+        signal: operation.signal,
+        statusText: "新对话",
+      });
+      if (!operation.isCurrent()) return;
     }
   } catch (error) {
     if (operation.isCurrent()) throw error;
@@ -893,6 +974,7 @@ async function initializeAssistantMode() {
   if (!authenticatedMode) {
     sessionAvailable = false;
     sessionCreationBlocked = false;
+    shortSessions = [];
     sessionPanel.hidden = false;
     newSessionButton.hidden = false;
     mobileSessionsButton.hidden = false;
@@ -966,7 +1048,7 @@ async function submitMessage(message, options = {}) {
   const stableRequestId = options.requestId || requestId();
   let requestSessionId = options.sessionId ?? currentSessionId;
   if (!authenticatedRequest && !requestSessionId) {
-    const conversation = createGuestConversation(text.slice(0, 40));
+    const conversation = ensureGuestConversation(text.slice(0, 40));
     requestSessionId = conversation.id;
     setCurrentSession(requestSessionId);
     renderGuestSessionList(loadGuestConversations());
@@ -1030,6 +1112,15 @@ async function submitMessage(message, options = {}) {
     }
     renderResponse(response, answerBody);
     if (authenticatedRequest && currentSessionId) {
+      if (!currentSessionId.startsWith("agl_")) {
+        shortSessions = shortSessions.map((session) => (
+          session.sessionId === currentSessionId
+            ? { ...session, messageCount: Math.max(2, Number(session.messageCount) || 0) }
+            : session
+        ));
+        sessionCreationBlocked = false;
+        syncNewSessionButton();
+      }
       void loadSessionList({
         short: !currentSessionId.startsWith("agl_"),
         long: currentSessionId.startsWith("agl_"),
@@ -1106,6 +1197,11 @@ document.addEventListener("keydown", (event) => {
   }
 });
 sessionPanel?.addEventListener("click", (event) => {
+  const guestDeleteButton = event.target.closest("[data-delete-guest-session-id]");
+  if (guestDeleteButton) {
+    deleteGuestSession(guestDeleteButton);
+    return;
+  }
   const deleteButton = event.target.closest("[data-delete-session-id]");
   if (deleteButton) {
     deleteSession(deleteButton);

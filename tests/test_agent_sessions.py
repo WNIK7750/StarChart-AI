@@ -155,6 +155,29 @@ class AgentSessionServiceTest(unittest.TestCase):
             ).fetchone()
             self.assertEqual(remaining["count"], 2)
 
+    def test_ensure_draft_reuses_one_empty_session_and_creates_after_use(self):
+        first = self.service.ensure_draft(self.alice_id)["session"]
+        reused = self.service.ensure_draft(self.alice_id)["session"]
+        self.assertEqual(first["sessionId"], reused["sessionId"])
+
+        self.service.append_exchange(
+            self.alice_id,
+            first["sessionId"],
+            "request-draft-1",
+            "开始使用草稿",
+            "草稿已成为正式会话",
+        )
+        replacement = self.service.ensure_draft(self.alice_id)["session"]
+        self.assertNotEqual(first["sessionId"], replacement["sessionId"])
+        self.assertEqual(0, replacement["messageCount"])
+
+        draft_ids = {
+            item["sessionId"]
+            for item in self.service.list(self.alice_id, 20, 0)["items"]
+            if item["messageCount"] == 0
+        }
+        self.assertEqual({replacement["sessionId"]}, draft_ids)
+
     def test_cross_user_access_is_indistinguishable_from_missing(self):
         session = self.service.create(self.alice_id, None)["session"]
 
