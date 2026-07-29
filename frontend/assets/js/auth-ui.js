@@ -6,6 +6,7 @@ import {
   saveAuthTokens,
 } from "./api.js";
 import { withPublicBasePath } from "./public-path.js";
+import { safeInternalHref } from "./url-safety.js";
 import {
   confirmPasswordReset,
   getCurrentUser,
@@ -251,13 +252,13 @@ function renderLoggedIn(user, avatarUrl = "", profile = {}) {
           <div><strong>${escapeHtml(displayName)}</strong><span>@${escapeHtml(user.username || "user")}</span></div>
         </div>
         <div class="user-popover-list">
-          <a href="settings.html#profile">个人资料</a>
-          <a href="settings.html#account">账号设置</a>
-          <a href="settings.html#security">密码与密保</a>
-          <a href="settings.html#sessions">登录设备</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#profile"))}">个人资料</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#account"))}">账号设置</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#security"))}">密码与密保</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#sessions"))}">登录设备</a>
           <div class="user-popover-sep"></div>
-          <a href="settings.html#learning">学习空间</a>
-          <a href="settings.html#workflows">工作流</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#learning"))}">学习空间</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#workflows"))}">工作流</a>
           <div class="user-popover-sep"></div>
           <button class="danger" type="button" data-logout>退出登录</button>
         </div>

@@ -53,7 +53,7 @@ function toolIcon(tool, className) {
 }
 
 function nodeSvg(node) {
-  const href = `learn-node.html?slug=${encodeURIComponent(node.slug)}`;
+  const href = safeInternalHref(`/learn/${encodeURIComponent(node.slug)}`);
   return `
     <g class="km-node" data-node-slug="${escapeHtml(node.slug)}" transform="translate(${node.x},${node.y})" role="link" tabindex="0">
       <rect class="km-node-rect" width="${node.width}" height="${node.height}" rx="8"/>
@@ -105,7 +105,7 @@ async function hydrateRoadmap() {
       ${data.nodes.map(nodeSvg).join("")}`;
     $$(".km-node", svg).forEach((node) => {
       const slug = node.dataset.nodeSlug;
-      const open = () => { window.location.href = `learn-node.html?slug=${encodeURIComponent(slug)}`; };
+      const open = () => { window.location.href = safeInternalHref(`/learn/${encodeURIComponent(slug)}`); };
       node.addEventListener("click", open);
       node.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") open();
@@ -121,7 +121,7 @@ async function hydrateRoadmap() {
 
 function resourceCard(item) {
   return `
-    <a href="${escapeHtml(safeInternalHref(item.href, "learn.html"))}" class="resource-card" data-spotlight>
+    <a href="${escapeHtml(safeInternalHref(item.href, "/learn"))}" class="resource-card" data-spotlight>
       <div class="resource-cover ${escapeHtml(item.coverTheme)}">
         <div class="resource-cover-label">${escapeHtml(item.coverLabel)}</div>
         <div class="resource-cover-text">${escapeHtml(item.coverText)}</div>
@@ -283,7 +283,7 @@ async function hydrateHomeTools() {
       };
     });
     const cards = normalized.concat(normalized).map((tool) => `
-      <a href="${escapeHtml(safeHttpHref(tool.officialUrl, "tools.html"))}" target="_blank" rel="noopener noreferrer" class="marquee-card">
+      <a href="${escapeHtml(safeHttpHref(tool.officialUrl, "/tools"))}" target="_blank" rel="noopener noreferrer" class="marquee-card">
         ${toolIcon(tool, "marquee-fav")}
         <div><div class="marquee-name">${escapeHtml(tool.name)}</div><div class="marquee-maker">${escapeHtml(tool.description)}</div></div>
         <div class="marquee-cat">${escapeHtml(tool.tag)}</div>
@@ -388,7 +388,10 @@ function renderNodeResourceList(mainMaterial, resources, preferences = {}) {
 
 export async function initNodePage({ authReady = Promise.resolve(null) } = {}) {
   const params = new URLSearchParams(location.search);
-  const slug = params.get("slug") || "ai-literacy";
+  const pathParts = location.pathname.split("/").filter(Boolean);
+  const learnIndex = pathParts.lastIndexOf("learn");
+  const pathSlug = learnIndex >= 0 ? pathParts[learnIndex + 1] || "" : "";
+  const slug = pathSlug || params.get("slug") || "ai-literacy";
   try {
     const nodePayload = await getLearningNode(slug);
     const { node, mainMaterial, overview, outline, resources, tags, stats, navigation } = nodePayload;
@@ -424,8 +427,8 @@ export async function initNodePage({ authReady = Promise.resolve(null) } = {}) {
     const navEl = $("[data-node-nav]");
     if (navEl) {
       const links = [];
-      if (navigation.previous) links.push(`<a class="side-link" href="learn-node.html?slug=${escapeHtml(navigation.previous.slug)}">← ${escapeHtml(navigation.previous.title)}</a>`);
-      if (navigation.next) links.push(`<a class="side-link" href="learn-node.html?slug=${escapeHtml(navigation.next.slug)}">→ ${escapeHtml(navigation.next.title)}</a>`);
+      if (navigation.previous) links.push(`<a class="side-link" href="${escapeHtml(safeInternalHref(`/learn/${encodeURIComponent(navigation.previous.slug)}`))}">← ${escapeHtml(navigation.previous.title)}</a>`);
+      if (navigation.next) links.push(`<a class="side-link" href="${escapeHtml(safeInternalHref(`/learn/${encodeURIComponent(navigation.next.slug)}`))}">→ ${escapeHtml(navigation.next.title)}</a>`);
       navEl.innerHTML = links.length ? links.join("") : '<p class="side-text">当前节点暂无相邻路线。</p>';
     }
     bindReveal(document);

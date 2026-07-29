@@ -10,6 +10,7 @@ import {
 import { consumeAgentEventStream } from "./agent-sse.js";
 import { AssistantSessionEpoch } from "./assistant-session-epoch.js";
 import { createFrameBuffer } from "./page-shell.js";
+import { safeInternalHref } from "./url-safety.js";
 import {
   appendGuestMessage,
   clearGuestConversations,
@@ -673,7 +674,7 @@ function buildSaveControl(draft) {
   const state = element("p", "workflow-save-state", "尚未写入");
   state.setAttribute("aria-live", "polite");
   const destination = element("a", "workflow-save-link", "查看个人工作流");
-  destination.href = "settings.html#workflows";
+  destination.href = safeInternalHref("/settings#workflows");
   destination.hidden = true;
   const button = element("button", "", "保存工作流");
   button.type = "button";
@@ -737,8 +738,8 @@ function buildSaveControl(draft) {
         : "已保存到个人工作流。";
       const workflowUid = result.workflow?.workflowUid;
       destination.href = workflowUid
-        ? `settings.html?workflow=${encodeURIComponent(workflowUid)}#workflows`
-        : "settings.html#workflows";
+        ? safeInternalHref(`/settings?workflow=${encodeURIComponent(workflowUid)}#workflows`)
+        : safeInternalHref("/settings#workflows");
       destination.textContent = "查看已保存的工作流";
       destination.hidden = false;
       button.disabled = true;
@@ -749,7 +750,7 @@ function buildSaveControl(draft) {
         ? "保存标识与另一份草稿冲突。请刷新页面后检查个人工作流。"
         : "保存结果尚未确认；重试会复用同一保存标识，不会主动创建新请求。";
       state.classList.add("error-line");
-      destination.href = "settings.html#workflows";
+      destination.href = safeInternalHref("/settings#workflows");
       destination.textContent = "核对个人工作流";
       destination.hidden = false;
     }

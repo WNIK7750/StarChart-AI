@@ -103,7 +103,7 @@ assert.match(script, /let submittedPayload = null/);
 assert.match(script, /saveAgentWorkflow\(submittedPayload, stableKey\)/);
 assert.match(script, /重试同一次保存/);
 assert.match(script, /WORKFLOW_IDEMPOTENCY_CONFLICT/);
-assert.match(script, /settings\.html\?workflow=\$\{encodeURIComponent\(workflowUid\)\}#workflows/);
+assert.match(script, /safeInternalHref\(`\/settings\?workflow=\$\{encodeURIComponent\(workflowUid\)\}#workflows`\)/);
 assert.match(script, /查看已保存的工作流/);
 assert.match(script, /核对个人工作流/);
 assert.match(script, /data-auth-trigger="login"/);
@@ -118,6 +118,6 @@ assert.match(script, /shortResult\.status === "fulfilled"/);
 assert.match(script, /longResult\.status === "fulfilled"/);
 assert.match(script, /document\.createDocumentFragment\(\)/);
 assert.doesNotMatch(script, /tool-data\.js|learning-data\.js/);
-assert.match(search, /url: "assistant\.html"/);
+assert.match(search, /url: "\/assistant"/);
 
 console.log("agent frontend contract tests passed");

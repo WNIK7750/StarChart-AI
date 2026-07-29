@@ -81,3 +81,10 @@ test("learning identity changes invalidate stale account hydration before DOM up
   assert.match(preferences, /let contextToken = ""/);
   assert.match(preferences, /contextCache\.clear\(\)/);
 });
+
+test("learning navigation emits canonical clean page routes", () => {
+  const source = fs.readFileSync("frontend/assets/js/learning-pages.js", "utf8");
+  assert.doesNotMatch(source, /learn-node\.html\?slug=/);
+  assert.match(source, /\/learn\/\$\{encodeURIComponent\(node\.slug\)\}/);
+  assert.match(source, /\/learn\/\$\{encodeURIComponent\(slug\)\}/);
+});

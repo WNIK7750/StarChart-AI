@@ -518,10 +518,10 @@ async function loadLearningAreas() {
   ]);
   renderLearningDashboard(dashboard);
   renderLearningItems("[data-progress-box]", progress, "暂无节点进度。", (item) => `
-    <div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "learn.html"))}">${escapeHtml(item.title)}</a><span>${escapeHtml(item.status === "completed" ? "已完成" : item.status === "in_progress" ? "学习中" : "未开始")}</span></div><em>${item.progressPercent || 0}%</em></div>`);
+    <div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "/learn"))}">${escapeHtml(item.title)}</a><span>${escapeHtml(item.status === "completed" ? "已完成" : item.status === "in_progress" ? "学习中" : "未开始")}</span></div><em>${item.progressPercent || 0}%</em></div>`);
   renderRecentItems(recent);
   renderLearningItems("[data-favorites-box]", favorites, "暂无收藏。", (item) => `
-    <div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "learn.html"))}">${escapeHtml(item.title)}</a><span>${escapeHtml(item.description || "学习收藏")}</span></div><button class="btn subtle" type="button" data-remove-favorite="${escapeHtml(item.favoriteUid)}">移除</button></div>`);
+    <div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "/learn"))}">${escapeHtml(item.title)}</a><span>${escapeHtml(item.description || "学习收藏")}</span></div><button class="btn subtle" type="button" data-remove-favorite="${escapeHtml(item.favoriteUid)}">移除</button></div>`);
 }
 
 function workflowToolMarkup(step) {
@@ -599,7 +599,7 @@ async function loadWorkflows() {
 function learningHistoryItem(item) {
   const time = item.lastReadAt || item.lastStudiedAt || item.updatedAt;
   const detail = time ? formatLearningTime(time) : item.description || "最近阅读";
-  return `<div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "learn.html"))}">${escapeHtml(item.title)}</a><span title="${escapeHtml(learningTimeTitle(time))}">${escapeHtml(detail)}</span></div><em>继续</em></div>`;
+  return `<div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "/learn"))}">${escapeHtml(item.title)}</a><span title="${escapeHtml(learningTimeTitle(time))}">${escapeHtml(detail)}</span></div><em>继续</em></div>`;
 }
 
 function renderLearningItems(selector, result, emptyText, template) {
@@ -778,7 +778,7 @@ async function savePassword(event) {
     clearAuthTokens();
     setFormState("password", "loading", "密码已修改，请重新登录。");
     window.setTimeout(() => {
-      window.location.href = "index.html";
+      window.location.href = safeInternalHref("/");
     }, 900);
   } catch (err) {
     setFormState("password", "error", err.message || "修改失败");
@@ -1070,7 +1070,7 @@ async function logout() {
     // Local logout should not be blocked by an expired server session.
   }
   clearAuthTokens();
-  window.location.href = "index.html";
+  window.location.href = safeInternalHref("/");
 }
 
 async function retryArea(area) {

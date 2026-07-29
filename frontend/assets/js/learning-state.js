@@ -77,7 +77,7 @@ function resumeBand(item) {
       </div>
       <div class="learning-resume-meta">
         ${percent ? `<span class="learning-resume-progress">${percent}%</span>` : ""}
-        <a class="learning-resume-link" href="${escapeHtml(safeInternalHref(item.href, "learn.html"))}">继续 →</a>
+        <a class="learning-resume-link" href="${escapeHtml(safeInternalHref(item.href, "/learn"))}">继续 →</a>
       </div>
     </div>`;
 }
@@ -92,7 +92,7 @@ export async function hydrateLearningDashboard(isCurrent = () => true) {
   }
   const recent = document.querySelector(".recent-entry");
   if (recent && data.recent?.[0]) {
-    recent.href = safeInternalHref(data.recent[0].href, "settings.html#learning");
+    recent.href = safeInternalHref(data.recent[0].href, "/settings#learning");
     recent.firstChild.textContent = `最近阅读 · ${data.recent[0].title} `;
   }
 }
