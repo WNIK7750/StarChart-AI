@@ -267,8 +267,20 @@ class HttpTestScriptAndHubTests(unittest.TestCase):
     def test_smoke_only_calls_local_deterministic_public_paths(self) -> None:
         script = read_overlay("scripts/smoke-test.sh")
         self.assertIn("http://127.0.0.1:8001/api/v1/health", script)
-        self.assertIn("http://127.0.0.1/StarChart-AI/", script)
-        self.assertIn("http://127.0.0.1/StarChart-AI/api/v1/runtime/public", script)
+        for path in (
+            "/",
+            "/assistant",
+            "/learn",
+            "/learn/rag",
+            "/tools",
+            "/settings",
+            "/api/v1/runtime/public",
+            "/assets/img/brand-mark.62793ed5.svg",
+        ):
+            self.assertIn(f"http://127.0.0.1/StarChart-AI{path}", script)
+        self.assertIn("http://127.0.0.1/StarChart-AI/assistant.html", script)
+        self.assertRegex(script, r'"\$legacy_status" != "308"')
+        self.assertRegex(script, r"location: /StarChart-AI/assistant")
         self.assertNotIn("8002", script)
         self.assertNotRegex(script, r"(register|login|provision|provider|api[_-]?key)")
 
