@@ -34,11 +34,29 @@ test("each non-Agent page loads the shared accessibility baseline", () => {
   }
 });
 
+test("each page preloads its critical module entry before body parsing finishes", () => {
+  for (const [page, expectedEntry] of Object.entries(pageEntries)) {
+    assert.match(
+      read(page),
+      new RegExp(`<link[^>]+rel=["']modulepreload["'][^>]+href=["']${expectedEntry.replaceAll(".", "\\.")}["'][^>]*>`),
+      `${page} does not preload ${expectedEntry}`,
+    );
+  }
+  const assistant = read("assistant.html");
+  for (const entry of ["assets/js/v2-api.js", "assets/js/assistant-page.js"]) {
+    assert.match(
+      assistant,
+      new RegExp(`<link[^>]+rel=["']modulepreload["'][^>]+href=["']${entry.replaceAll(".", "\\.")}["'][^>]*>`),
+      `assistant.html does not preload ${entry}`,
+    );
+  }
+});
+
 test("page entries compose shared shell and owned domain runtime", () => {
   assert.match(read("assets/js/home-page.js"), /initPageShell\("home"\)/);
   assert.match(read("assets/js/home-page.js"), /initHomePage\(\)/);
-  assert.match(read("assets/js/learn-page.js"), /initLearnPage\(\)/);
-  assert.match(read("assets/js/learn-node-page.js"), /initNodePage\(\)/);
+  assert.match(read("assets/js/learn-page.js"), /initLearnPage\(\{\s*authReady:/);
+  assert.match(read("assets/js/learn-node-page.js"), /initNodePage\(\{\s*authReady:/);
   assert.match(read("assets/js/tools-entry.js"), /initToolsPage\(\)/);
   assert.match(read("assets/js/tools-page.js"), /apiGet\('\/tools\/catalog'\)/);
   assert.match(read("assets/js/tools-page.js"), /meta\.linkStatus === 'unavailable'/);
@@ -100,8 +118,8 @@ test("home remains a public navigation surface without user learning state", () 
   const home = read("assets/js/learning-pages.js");
   const state = read("assets/js/learning-state.js");
   assert.doesNotMatch(home, /hydrateLearningDashboard\(["']home["']\)/);
-  assert.match(home, /hydrateRoadmap\(\{ includeUserState = false \} = \{\}\)/);
-  assert.match(home, /if \(includeUserState\) await decorateRoadmapProgress\(canvas\)/);
+  assert.match(home, /async function hydrateRoadmap\(\)/);
+  assert.doesNotMatch(home, /async function hydrateRoadmap\([^)]*includeUserState/);
   assert.doesNotMatch(state, /home-learning-band/);
 });
 
@@ -124,9 +142,31 @@ test("settings keeps unauthenticated visitors on an in-page sign-in gate", () =>
   assert.doesNotMatch(guard, /window\.location/);
 });
 
-test("page shell starts independent navigation and authentication work together", () => {
+test("public page entries do not block domain work on navigation or authentication", () => {
   const shell = read("assets/js/page-shell.js");
-  assert.match(shell, /await Promise\.all\(\[\s*hydrateNavigation\(activeCode\),\s*initAuthUI\(\),\s*\]\)/);
+  assert.match(shell, /return Promise\.all\(\[\s*hydrateNavigation\(activeCode\),\s*initAuthUI\(\),\s*\]\)/);
+  for (const entry of Object.values(pageEntries).filter((entry) => !entry.endsWith("settings.js"))) {
+    assert.doesNotMatch(read(entry), /await initPageShell\(/, entry);
+    assert.match(read(entry), /(?:void initPageShell\(|const shellReady = initPageShell\()/, entry);
+  }
+});
+
+test("all pages use one small fingerprinted brand asset", () => {
+  const pages = [...Object.keys(pageEntries), "assistant.html"];
+  const assets = pages.map((page) => {
+    const html = read(page);
+    assert.doesNotMatch(html, /assets\/img\/logo\.png/, page);
+    return html.match(/assets\/img\/(brand-mark\.[a-f0-9]{8}\.svg)/)?.[1] || "";
+  });
+  assert.ok(assets.every(Boolean), "one or more pages do not reference a fingerprinted brand asset");
+  assert.equal(new Set(assets).size, 1, "pages use different brand asset versions");
+  const asset = path.join(frontend, "assets", "img", assets[0]);
+  assert.equal(fs.existsSync(asset), true, asset);
+  assert.ok(fs.statSync(asset).size < 4096, "brand asset must stay below 4 KiB");
+  assert.match(read("assets/js/auth-ui.js"), new RegExp(assets[0].replaceAll(".", "\\.")));
+  const settingsRuntime = read("assets/js/settings.js");
+  assert.match(settingsRuntime, new RegExp(assets[0].replaceAll(".", "\\.")));
+  assert.doesNotMatch(settingsRuntime, /assets\/img\/logo\.png/);
 });
 
 test("paged tool sections keep a stable desktop grid footprint", () => {

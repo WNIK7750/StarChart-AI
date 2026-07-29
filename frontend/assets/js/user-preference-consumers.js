@@ -2,9 +2,15 @@ import { getAccessToken } from "./api.js";
 import { getUserPreferenceContext } from "./users-api.js";
 
 const contextCache = new Map();
+let contextToken = "";
 
 export async function getConsumerPreferences(consumer) {
-  if (!getAccessToken()) return {};
+  const token = getAccessToken();
+  if (contextToken !== token) {
+    contextCache.clear();
+    contextToken = token;
+  }
+  if (!token) return {};
   if (!contextCache.has(consumer)) {
     contextCache.set(
       consumer,

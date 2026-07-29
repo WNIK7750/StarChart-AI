@@ -275,16 +275,26 @@ export function initToolsPage() {
       '<div class="tool-meta"><span class="tag">' + escapeText(tool.sub) + '</span><span class="tool-arrow">›</span></div></a>';
   }
 
+  function scheduleCardPointerFrame(card, event) {
+    card._pendingPointerX = event.clientX;
+    card._pendingPointerY = event.clientY;
+    if (card._pointerFrame) return;
+    card._pointerFrame = requestAnimationFrame(function () {
+      card._pointerFrame = 0;
+      var rect = card.getBoundingClientRect();
+      card.style.setProperty('--mx', ((card._pendingPointerX - rect.left) / rect.width * 100) + '%');
+      card.style.setProperty('--my', ((card._pendingPointerY - rect.top) / rect.height * 100) + '%');
+    });
+  }
+
   function decorateCards(scope) {
     bindBrandIconFallbacks(scope || document);
     (scope || document).querySelectorAll('.tool-card').forEach(function (card) {
       if (card.dataset.boundHover === '1') return;
       card.dataset.boundHover = '1';
       card.addEventListener('mousemove', function (event) {
-        var rect = card.getBoundingClientRect();
-        card.style.setProperty('--mx', ((event.clientX - rect.left) / rect.width * 100) + '%');
-        card.style.setProperty('--my', ((event.clientY - rect.top) / rect.height * 100) + '%');
-      });
+        scheduleCardPointerFrame(card, event);
+      }, { passive: true });
     });
   }
 
@@ -427,15 +437,25 @@ export function initToolsPage() {
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  var toolsScrollFrame = 0;
+
+  function scheduleToolsScrollFrame(progressBar, floatingTools) {
+    if (toolsScrollFrame) return;
+    toolsScrollFrame = requestAnimationFrame(function () {
+      toolsScrollFrame = 0;
+      var root = document.documentElement;
+      var denominator = root.scrollHeight - root.clientHeight;
+      progressBar.style.width = (denominator ? root.scrollTop / denominator * 100 : 0) + '%';
+      if (floatingTools) floatingTools.classList.toggle('is-visible', root.scrollTop > 400);
+    });
+  }
+
   function bindGlobalInteractions() {
     var progressBar = $('progressBar');
     var floatingTools = document.querySelector('.float-tools');
     if (progressBar) {
       window.addEventListener('scroll', function () {
-        var root = document.documentElement;
-        var denominator = root.scrollHeight - root.clientHeight;
-        progressBar.style.width = (denominator ? root.scrollTop / denominator * 100 : 0) + '%';
-        if (floatingTools) floatingTools.classList.toggle('is-visible', root.scrollTop > 400);
+        scheduleToolsScrollFrame(progressBar, floatingTools);
       }, { passive: true });
     }
 

@@ -1,8 +1,8 @@
 # HTTP 子路径测试部署设计
 
-> 用途：定义 `47.100.94.1` 上新旧项目共存、HTTP 测试环境、游客助手和真实 Provider 预览的边界。
-> 状态：设计已确认；任务 1–10 已实现，服务器尚未部署。
-> 日期：2026-07-27。
+> 用途：定义获批测试服务器上新旧项目共存、HTTP 测试环境、游客助手和真实 Provider 预览的边界；真实主机地址不进入仓库。
+> 状态：设计已确认；任务 1–13 已实现，deterministic HTTP 实例已完成脱敏服务器验证。
+> 日期：2026-07-29。
 > 权威性：本文件约束后续实现计划；它不证明服务器已经部署、HTTPS 已配置或真实 Provider 已通过验收。
 
 ## 1. 目标与非目标
@@ -119,7 +119,7 @@ deploy/http-test/
 - 进程内 Agent 状态后端；
 - 数据库和上传目录位于源码树外；
 - `RESET_DATABASE_ON_START=0`；
-- CORS 仅列出 `http://47.100.94.1`；
+- CORS 仅列出实际获批的 HTTP origin，并通过服务器 root-only 环境文件注入；
 - Cookie Path 包含 `/StarChart-AI`；
 - Provider 默认为离线确定性模式，实时开关关闭；
 - 测试账号限制策略启用；
@@ -275,7 +275,8 @@ HTTP 无法保护传输中的账号凭据与 Cookie。因此该环境只使用�
 | Nginx、systemd、数据目录和环境模板覆盖层 | `deploy/http-test/` | `tests/test_http_test_overlay.py` |
 | deny-first 发布包 | `scripts/build-release-package.ps1` | `tests/test_release_http_test_overlay.py` |
 | 专项门禁、秘密扫描和无秘密 manifest | `scripts/verify-http-test-deployment.ps1`、`scripts/check-no-secrets.py` | `docs/06-evidence/platform/http-test-deployment-manifest.json` |
-| 服务器安装、验证、停止和回滚 | `docs/04-operations/deployment/http-test-deployment-runbook.md` | Task 13 授权后的真实服务器记录；当前 `NOT RUN` |
+| 服务器安装与验证 | `docs/04-operations/deployment/http-test-deployment-runbook.md` | `docs/06-evidence/platform/http-test-server-validation.json`；deterministic HTTP 实例 `GO` |
+| 停止、恢复与回滚演练 | `docs/04-operations/deployment/http-test-deployment-runbook.md` | 当前 `NOT RUN`，不得由安装成功推断 |
 
-以上本地实现不证明 Nginx/systemd 已在 Linux 加载，不证明真实 Provider、HTTPS、备份恢复或回滚通过。当前运行事实以
+当前脱敏证据只证明 deterministic HTTP 实例已验证，不证明真实 Provider、HTTPS、备份恢复或回滚通过。当前运行事实以
 `docs/00-index/http-test-deployment-file-index.md` 和机器证据为准。

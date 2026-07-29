@@ -24,11 +24,15 @@ import {
 
 const AUTH_STYLE_ID = "ai-nav-auth-style";
 const AUTH_PANEL_ID = "authPanel";
-const DEFAULT_AUTH_AVATAR = "assets/img/logo.png";
+const DEFAULT_AUTH_AVATAR = "assets/img/brand-mark.62793ed5.svg";
 let authEntryVisibility = {
   registration: false,
   recovery: false,
 };
+let authInitializationPromise = null;
+let authEventsBound = false;
+let authRefreshVersion = 0;
+let latestAuthRefreshPromise = null;
 
 export function publicAuthEntryVisibility(runtime) {
   return {
@@ -262,27 +266,35 @@ function renderLoggedIn(user, avatarUrl = "", profile = {}) {
   });
 }
 
-async function refreshAuthUI() {
-  if (!getAccessToken()) {
+function refreshAuthUI() {
+  const refreshVersion = ++authRefreshVersion;
+  const refreshPromise = (async () => {
+    if (!getAccessToken()) {
+      try {
+        await restoreAuthSession();
+      } catch {
+        if (refreshVersion !== authRefreshVersion) return latestAuthRefreshPromise;
+        renderLoggedOut();
+        return null;
+      }
+    }
     try {
-      await restoreAuthSession();
+      const [{ user }, profileResult] = await Promise.all([
+        getCurrentUser(),
+        getUserProfile().catch(() => ({ profile: {} })),
+      ]);
+      if (refreshVersion !== authRefreshVersion) return latestAuthRefreshPromise;
+      renderLoggedIn(user, profileResult.profile?.avatarUrl || "", profileResult.profile || {});
+      return user;
     } catch {
+      if (refreshVersion !== authRefreshVersion) return latestAuthRefreshPromise;
+      clearAuthTokens();
       renderLoggedOut();
       return null;
     }
-  }
-  try {
-    const [{ user }, profileResult] = await Promise.all([
-      getCurrentUser(),
-      getUserProfile().catch(() => ({ profile: {} })),
-    ]);
-    renderLoggedIn(user, profileResult.profile?.avatarUrl || "", profileResult.profile || {});
-    return user;
-  } catch {
-    clearAuthTokens();
-    renderLoggedOut();
-    return null;
-  }
+  })();
+  latestAuthRefreshPromise = refreshPromise;
+  return refreshPromise;
 }
 
 async function handleLoginOrRegister(form, mode) {
@@ -295,12 +307,13 @@ async function handleLoginOrRegister(form, mode) {
     : await loginUser({ ...body, deviceName: "浏览器" });
   rememberPrivacyConsent(true);
   saveAuthTokens(data);
+  const authenticatedRefresh = refreshAuthUI();
   form.querySelectorAll('input[type="password"]').forEach((input) => { input.value = ""; });
   authPanel().classList.remove("open");
   await import("./anonymous-learning-state.js")
     .then(({ mergeAnonymousLearningState }) => mergeAnonymousLearningState())
     .catch((error) => console.warn("Anonymous learning state import unavailable:", error));
-  return refreshAuthUI();
+  return authenticatedRefresh;
 }
 
 async function handleResetStart(form) {
@@ -344,10 +357,9 @@ async function logout() {
   renderLoggedOut();
 }
 
-export async function initAuthUI() {
-  injectStyles();
-  applyPublicAuthCapabilities(null, authPanel());
-  await loadPublicAuthCapabilities();
+function bindAuthEvents() {
+  if (authEventsBound) return;
+  authEventsBound = true;
   document.addEventListener("click", async (event) => {
     const target = event.target;
     const trigger = target.closest("[data-auth-trigger]");
@@ -373,5 +385,18 @@ export async function initAuthUI() {
       if (input.checked && form) form.querySelector("[data-auth-error]").textContent = "";
     });
   });
-  return refreshAuthUI();
+}
+
+export function initAuthUI() {
+  if (authInitializationPromise) return authInitializationPromise;
+  injectStyles();
+  const panel = authPanel();
+  applyPublicAuthCapabilities(null, panel);
+  renderLoggedOut();
+  bindAuthEvents();
+  authInitializationPromise = Promise.all([
+    loadPublicAuthCapabilities(),
+    refreshAuthUI(),
+  ]).then(([, user]) => user);
+  return authInitializationPromise;
 }

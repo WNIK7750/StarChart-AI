@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import subprocess
 import sys
@@ -25,7 +26,7 @@ def safe_runtime(**overrides):
     values = {
         "environment": "http_test",
         "secret_key": "s" * 32,
-        "cors_origins": ("http://47.100.94.1",),
+        "cors_origins": ("http://203.0.113.10",),
         "refresh_cookie_secure": False,
         "reset_database_on_start": False,
         "database_path": Path(tempfile.gettempdir()) / "ai-nav-http-test.sqlite3",
@@ -46,8 +47,13 @@ def safe_runtime(**overrides):
 def preview_environment(temp_root: Path, **overrides) -> dict[str, str]:
     database_path = temp_root / "preview.sqlite3"
     sqlite3.connect(database_path).close()
+    inherited_pythonpath = os.environ.get("PYTHONPATH", "")
     values = {
-        "PYTHONPATH": str(ROOT / "backend"),
+        "PYTHONPATH": os.pathsep.join(
+            path
+            for path in (str(ROOT / "backend"), inherited_pythonpath)
+            if path
+        ),
         "PYTHONUTF8": "1",
         "AI_NAV_DISABLE_DOTENV": "1",
         "AI_NAV_ENV": "provider_preview",

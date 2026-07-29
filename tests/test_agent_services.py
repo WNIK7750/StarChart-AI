@@ -95,11 +95,25 @@ class AgentServicesTest(unittest.TestCase):
 
     def test_learning_plan_is_deterministic_and_not_persisted(self):
         with (
-            patch("app.agent.service.search_learning_cards", return_value=self.learning_cards),
-            patch("app.agent.service.search_tool_cards", return_value=[]),
+            patch(
+                "app.agent.service.search_learning_cards",
+                return_value=self.learning_cards,
+            ) as learning,
+            patch(
+                "app.agent.service.search_tool_cards",
+                side_effect=AssertionError("unexpected tools call"),
+            ),
+            patch(
+                "app.agent.service.suggest_workflow",
+                side_effect=AssertionError("unexpected workflow call"),
+            ),
         ):
-            response = draft_agent_response(AgentChatRequest(message="RAG 怎么学"), self.user_context)
+            response = draft_agent_response(
+                AgentChatRequest(message="RAG 怎么学？"),
+                self.user_context,
+            )
         self.assertEqual("learning_plan", response.intent)
+        learning.assert_called_once_with("RAG", limit=5)
         self.assertEqual("learn-node.html?slug=rag", response.workflowSteps[0].targetHref)
         self.assertIsNone(response.workflowDraft)
 

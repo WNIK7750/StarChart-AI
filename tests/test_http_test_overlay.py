@@ -289,7 +289,10 @@ class HttpTestScriptAndHubTests(unittest.TestCase):
             for path in OVERLAY.rglob("*")
             if path.is_file()
         )
-        self.assertNotIn("47.100.94.1", combined)
+        self.assertNotRegex(
+            combined,
+            r"(?m)^AI_NAV_CORS_ALLOW_ORIGINS=https?://",
+        )
         self.assertNotRegex(combined, r"[A-Za-z]:\\")
         self.assertNotRegex(combined, r"(?i)(bearer\s+[A-Za-z0-9]|cookie:\s*\S)")
 

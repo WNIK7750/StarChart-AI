@@ -1,14 +1,14 @@
 import { initHomePage } from "./learning-pages.js";
-import { bindNavbarScroll, bindReveal, bindSpotlight, initPageShell } from "./page-shell.js";
+import { bindNavbarScroll, bindReveal, bindSpotlight, frameThrottle, initPageShell } from "./page-shell.js";
 
 function bindScrollProgress() {
   const bar = document.querySelector("#progressBar");
   if (!bar) return;
-  window.addEventListener("scroll", () => {
+  window.addEventListener("scroll", frameThrottle(() => {
     const root = document.documentElement;
     const available = root.scrollHeight - root.clientHeight;
     bar.style.width = `${available > 0 ? (root.scrollTop / available) * 100 : 0}%`;
-  }, { passive: true });
+  }), { passive: true });
 }
 
 function bindHeroMotion() {
@@ -65,7 +65,7 @@ function bindStats() {
   stats.forEach((element) => observer.observe(element));
 }
 
-await initPageShell("home");
+void initPageShell("home").catch((error) => console.warn("Page shell initialization unavailable:", error));
 document.querySelector("[data-scroll-top]")?.addEventListener("click", (event) => {
   event.preventDefault();
   window.scrollTo({ top: 0, behavior: "smooth" });

@@ -1,14 +1,18 @@
 # HTTP 子路径测试部署运行手册
 
 > 用途：在不破坏旧站的前提下，部署、验证、停止和回滚 `/StarChart-AI/` HTTP 测试候选。
-> 状态：本地可执行手册；服务器、Provider、HTTPS、备份恢复和回滚均未据此执行。
-> 日期：2026-07-27。
+> 状态：deterministic HTTP 服务器步骤已执行；Provider、HTTPS、备份恢复和回滚演练仍为 `NOT RUN`。
+> 日期：2026-07-28。
 > 权威性：命令以 `deploy/http-test/` 当前覆盖层为准；本手册不构成生产发布证明。
+
+已知故障、根因和推荐处理见
+`docs/04-operations/deployment/http-test-deployment-troubleshooting.md`。遇到异常时先按该手册
+缩小到单一边界，再继续本运行手册，不要同时修改 Nginx、systemd、数据库和应用。
 
 ## 1. 结论与硬边界
 
 - **本地整改候选**：只有本地专项门禁和全量门禁真实通过后才可判定 `GO`。
-- **HTTP 服务器部署**：完成本手册的服务器实测前保持 `NO-GO`。
+- **HTTP 服务器部署**：当前 deterministic 实例已有脱敏实测证据，结论为 `GO`；任何新主机或新 release 在重新完成本手册前仍为 `NO-GO`。
 - **生产发布**：保持 `NO-GO`。HTTP 测试通过不能替代 HTTPS、合规、容量、告警、备份恢复、回滚和外部签收。
 - 公网 8001 只使用 `deterministic` Provider；8002 只监听 `127.0.0.1`，不配置公网或 Nginx 入口。
 - 不在命令参数、聊天、Git、日志或 shell history 中输入真实 secret、账号、密码、API Key、Cookie 或 Token。

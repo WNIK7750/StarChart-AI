@@ -3,7 +3,16 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 Write-Host "==> Frontend entry contract"
-node --test tests/test_frontend_entries.mjs tests/test_frontend_api.mjs tests/test_frontend_url_safety.mjs tests/test_frontend_feedback.mjs tests/test_auth_ui.mjs
+node --test `
+  tests/test_frontend_entries.mjs `
+  tests/test_frontend_api.mjs `
+  tests/test_frontend_url_safety.mjs `
+  tests/test_frontend_feedback.mjs `
+  tests/test_auth_ui.mjs `
+  tests/test_frontend_performance.mjs `
+  tests/test_interaction_performance.mjs `
+  tests/test_learning_frontend.mjs `
+  tests/test_http_static_performance.mjs
 if ($LASTEXITCODE -ne 0) { throw "Frontend entry contract failed." }
 
 Write-Host "==> Frontend syntax"

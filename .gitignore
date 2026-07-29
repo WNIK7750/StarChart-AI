@@ -13,9 +13,13 @@ htmlcov/
 .idea/
 .workbuddy/
 test-results/
+.ci/
 uploads/
 frontend - 副本/
 *.log
 *.backup
 *.restore-tmp
 *.pre-restore-*
+.repo-backups/
+.tmp_*.txt
+release/

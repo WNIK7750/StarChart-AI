@@ -121,7 +121,11 @@ try {
     "tests/test_frontend_entries.mjs",
     "tests/test_guest_agent_memory.mjs",
     "tests/test_agent_frontend.mjs",
-    "tests/test_agent_sse.mjs"
+    "tests/test_agent_sse.mjs",
+    "tests/test_frontend_performance.mjs",
+    "tests/test_interaction_performance.mjs",
+    "tests/test_learning_frontend.mjs",
+    "tests/test_http_static_performance.mjs"
   )
   Invoke-PythonTestCheck "overlay" @(
     "tests.test_provision_http_test_account",
@@ -164,7 +168,7 @@ try {
   }
 
   $sourceCommit = "WORKTREE"
-  $status = @(git status --porcelain --untracked-files=no)
+  $status = @(git status --porcelain)
   if ($LASTEXITCODE -eq 0 -and $status.Count -eq 0) {
     $candidateCommit = (git rev-parse HEAD).Trim()
     if ($LASTEXITCODE -eq 0 -and $candidateCommit -match "^[0-9a-f]{40}$") {

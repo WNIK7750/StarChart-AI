@@ -1,7 +1,7 @@
 # AI 知识导航全项目审计整改独立复验提示词
 
 > 用途：粘贴到原审计对话或新的 Codex 对话中，对 2026-07-25 七批整改做独立复验。  
-> 适用工作区：`D:\Web期末作业\ai-nav2\ai-nav-fullstack`  
+> 适用工作区：`<PROJECT_ROOT>`
 > 文件路由入口：`docs/00-index/remediation-file-index.md`  
 > 待验证声明：`docs/05-quality/audits/full-project-remediation-report.md`  
 > 状态：可直接执行；目标是验证实际效果，不是复述整改报告。
@@ -11,7 +11,7 @@
 请进入工作区：
 
 ```text
-D:\Web期末作业\ai-nav2\ai-nav-fullstack
+<PROJECT_ROOT>
 ```
 
 完整阅读并严格执行本提示词。首先使用：

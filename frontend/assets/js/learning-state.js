@@ -14,6 +14,7 @@ import {
 } from "./learning-api.js";
 
 let dashboardPromise = null;
+let dashboardToken = "";
 const STYLE_ID = "learning-state-styles";
 
 function escapeHtml(value = "") {
@@ -45,10 +46,17 @@ function loggedIn() {
 }
 
 async function dashboard(force = false) {
-  if (!loggedIn()) return null;
-  if (force || !dashboardPromise) {
+  const token = getAccessToken();
+  if (!token) {
+    dashboardPromise = null;
+    dashboardToken = "";
+    return null;
+  }
+  if (force || !dashboardPromise || dashboardToken !== token) {
+    const requestToken = token;
+    dashboardToken = token;
     dashboardPromise = getLearningDashboard().catch((error) => {
-      dashboardPromise = null;
+      if (dashboardToken === requestToken) dashboardPromise = null;
       console.warn("Learning dashboard unavailable:", error);
       return null;
     });
@@ -74,10 +82,10 @@ function resumeBand(item) {
     </div>`;
 }
 
-export async function hydrateLearningDashboard() {
+export async function hydrateLearningDashboard(isCurrent = () => true) {
   injectStyles();
   const data = await dashboard();
-  if (!data?.resume) return;
+  if (!isCurrent() || !data?.resume) return;
   const heroTop = document.querySelector(".km-hero-top");
   if (heroTop && !document.querySelector(".km-hero .learning-resume-band")) {
     heroTop.insertAdjacentHTML("afterend", resumeBand(data.resume));
@@ -89,10 +97,12 @@ export async function hydrateLearningDashboard() {
   }
 }
 
-export async function decorateRoadmapProgress(scope = document) {
+export async function decorateRoadmapProgress(scope = document, isCurrent = () => true) {
   const data = await dashboard();
-  if (!data) return;
-  const progress = new Map((await listLearningProgress()).items.map((item) => [item.nodeSlug, item]));
+  if (!isCurrent() || !data) return;
+  const progressResult = await listLearningProgress();
+  if (!isCurrent()) return;
+  const progress = new Map(progressResult.items.map((item) => [item.nodeSlug, item]));
   scope.querySelectorAll(".km-node[data-node-slug]").forEach((node) => {
     const item = progress.get(node.dataset.nodeSlug);
     node.classList.toggle("learning-in-progress", item?.status === "in_progress");
@@ -116,20 +126,23 @@ function pageActivityKey(slug) {
   return value;
 }
 
-export async function hydrateNodeLearningState(slug, nodeData) {
+export async function hydrateNodeLearningState(slug, nodeData, isCurrent = () => true) {
   injectStyles();
   if (!loggedIn()) {
-    recordAnonymousNodeView(slug);
+    if (isCurrent()) recordAnonymousNodeView(slug);
     return;
   }
   await mergeAnonymousLearningState().catch((error) => {
     console.warn("Anonymous learning state import unavailable:", error);
   });
+  if (!isCurrent()) return;
   await recordActivity({ nodeSlug: slug, targetType: "learning_node", targetKey: slug, activityType: "view_node", metadata: { page: "learn-node" } }, pageActivityKey(slug));
+  if (!isCurrent()) return;
   let [nodeState, favoriteResult] = await Promise.all([
     getLearningNodeState(slug),
     listLearningFavorites({ page_size: 50 }),
   ]);
+  if (!isCurrent()) return;
   let progress = nodeState.progress;
   let sectionStates = new Map(nodeState.sections.map((item) => [item.sectionUid, item]));
   let favorite = favoriteResult.items.find((item) => item.targetType === "learning_node" && item.targetKey === slug) || null;

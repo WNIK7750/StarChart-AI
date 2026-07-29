@@ -9,6 +9,7 @@ import {
 } from "./api.js";
 import { consumeAgentEventStream } from "./agent-sse.js";
 import { AssistantSessionEpoch } from "./assistant-session-epoch.js";
+import { createFrameBuffer } from "./page-shell.js";
 import {
   appendGuestMessage,
   clearGuestConversations,
@@ -53,6 +54,7 @@ let renamingSession = null;
 const sessionEpoch = new AssistantSessionEpoch(getAccessToken());
 let authenticatedMode = Boolean(getAccessToken());
 let assistantModeInitialized = false;
+let sessionListRequestVersion = { short: 0, long: 0 };
 
 function isAuthenticatedMode() {
   return authenticatedMode;
@@ -194,7 +196,7 @@ function conversationEndpoint(sessionId) {
 }
 
 function renderConversationList(container, items = [], type = "short") {
-  container.replaceChildren();
+  const fragment = document.createDocumentFragment();
   items.forEach((session) => {
     const sessionId = type === "long" ? session.conversationId : session.sessionId;
     const row = element("div", "session-row");
@@ -240,8 +242,9 @@ function renderConversationList(container, items = [], type = "short") {
     menu.appendChild(remove);
     actions.append(summary, menu);
     row.append(open, actions);
-    container.appendChild(row);
+    fragment.appendChild(row);
   });
+  container.replaceChildren(fragment);
 }
 
 function renderSessionList(items = []) {
@@ -259,7 +262,7 @@ function renderLongConversationList(items = []) {
 }
 
 function renderGuestSessionList(items = []) {
-  sessionList.replaceChildren();
+  const fragment = document.createDocumentFragment();
   items.forEach((conversation) => {
     const row = element("div", "session-row");
     const open = element("button", "session-open");
@@ -270,8 +273,9 @@ function renderGuestSessionList(items = []) {
       element("span", "", `${conversation.messages.length} 条 · 浏览器内`),
     );
     row.appendChild(open);
-    sessionList.appendChild(row);
+    fragment.appendChild(row);
   });
+  sessionList.replaceChildren(fragment);
   sessionEmpty.hidden = items.length > 0;
   sessionEmpty.textContent = "还没有浏览器游客对话";
   setCurrentSession(currentSessionId);
@@ -295,37 +299,69 @@ function renderGuestConversation(conversationId = currentSessionId) {
   status.textContent = "游客模式 · 浏览器内保存";
 }
 
-async function loadSessionList() {
+async function loadSessionList({ short = true, long = true } = {}) {
   if (!isAuthenticatedMode() || !sessionAvailable) return;
+  const requestVersion = {
+    short: short ? ++sessionListRequestVersion.short : null,
+    long: long ? ++sessionListRequestVersion.long : null,
+  };
   const operation = sessionEpoch.beginOperation();
   try {
-    const [shortResult, longResult] = await Promise.all([
-      apiGet(
+    const [shortResult, longResult] = await Promise.allSettled([
+      short ? apiGet(
         "/agent/sessions",
         { limit: 20, offset: 0 },
         { retryCount: 0, signal: operation.signal },
-      ),
-      apiGet(
+      ) : Promise.resolve(null),
+      long ? apiGet(
         "/agent/long-conversations",
         { limit: 20, offset: 0 },
         { retryCount: 0, signal: operation.signal },
-      ),
+      ) : Promise.resolve(null),
     ]);
     if (!operation.isCurrent()) return;
-    renderSessionList(shortResult.items || []);
-    renderLongConversationList(longResult.items || []);
-  } catch (error) {
-    if (!operation.isCurrent()) return;
-    if (error?.status === 401) {
+    const shortCurrent = short && requestVersion.short === sessionListRequestVersion.short;
+    const longCurrent = long && requestVersion.long === sessionListRequestVersion.long;
+    const unauthorized = [shortResult, longResult].some(
+      (result) => result.status === "rejected" && result.reason?.status === 401,
+    );
+    if (unauthorized) {
       sessionPanel.hidden = true;
       return;
     }
-    sessionEmpty.hidden = false;
-    sessionEmpty.textContent = "会话列表暂时不可用";
-    longConversationEmpty.hidden = false;
-    longConversationEmpty.textContent = "长期对话暂时不可用";
-    sessionCreationBlocked = true;
-    syncNewSessionButton();
+    if (shortCurrent) {
+      if (shortResult.status === "fulfilled") {
+        renderSessionList(shortResult.value?.items || []);
+      } else {
+        sessionEmpty.hidden = false;
+        sessionEmpty.textContent = "会话列表暂时不可用";
+        sessionCreationBlocked = true;
+        syncNewSessionButton();
+      }
+    }
+    if (longCurrent) {
+      if (longResult.status === "fulfilled") {
+        renderLongConversationList(longResult.value?.items || []);
+      } else {
+        longConversationEmpty.hidden = false;
+        longConversationEmpty.textContent = "长期对话暂时不可用";
+      }
+    }
+  } catch (error) {
+    if (!operation.isCurrent()) return;
+    const shortCurrent = short && requestVersion.short === sessionListRequestVersion.short;
+    const longCurrent = long && requestVersion.long === sessionListRequestVersion.long;
+    if (!shortCurrent && !longCurrent) return;
+    if (shortCurrent) {
+      sessionEmpty.hidden = false;
+      sessionEmpty.textContent = "会话列表暂时不可用";
+      sessionCreationBlocked = true;
+      syncNewSessionButton();
+    }
+    if (longCurrent) {
+      longConversationEmpty.hidden = false;
+      longConversationEmpty.textContent = "长期对话暂时不可用";
+    }
   } finally {
     operation.finish();
   }
@@ -849,6 +885,7 @@ async function requestStream(payload, controller, stableRequestId, operation) {
   let answerBody = null;
   let completedResponse = null;
   let started = false;
+  let answerBuffer = null;
   try {
     const response = await apiPostStream("/agent/chat/stream", payload, {
       signal: controller.signal,
@@ -860,10 +897,13 @@ async function requestStream(payload, controller, stableRequestId, operation) {
       if (event.event === "response.started") {
         started = true;
         answerBody = addMessage("assistant", "");
+        answerBuffer = createFrameBuffer((chunk) => {
+          answerBody.textContent += chunk;
+          messages.scrollTop = messages.scrollHeight;
+        });
         status.textContent = "生成中";
       } else if (event.event === "response.answer.delta") {
-        answerBody.textContent += event.delta;
-        messages.scrollTop = messages.scrollHeight;
+        answerBuffer.push(event.delta);
       } else if (event.event === "response.completed") {
         completedResponse = event.response;
       }
@@ -888,6 +928,8 @@ async function requestStream(payload, controller, stableRequestId, operation) {
     });
     if (!operation.isCurrent()) throw operation.signal.reason;
     return { response, answerBody: null };
+  } finally {
+    answerBuffer?.flush();
   }
 }
 
@@ -956,8 +998,10 @@ async function submitMessage(message, options = {}) {
     }
     renderResponse(response, answerBody);
     if (authenticatedRequest && currentSessionId) {
-      await loadSessionList();
-      if (!operation.isCurrent()) return;
+      void loadSessionList({
+        short: !currentSessionId.startsWith("agl_"),
+        long: currentSessionId.startsWith("agl_"),
+      });
     } else if (!authenticatedRequest) {
       renderGuestSessionList(loadGuestConversations());
     }

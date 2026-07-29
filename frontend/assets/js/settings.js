@@ -273,7 +273,7 @@ function renderAvatar(url, remember = false) {
   const src = projectAvatarUrl(url);
   if (remember) rememberRecentAvatar(url);
   $all("[data-avatar-preview], [data-avatar-small]").forEach((image) => {
-    image.src = src || "assets/img/logo.png";
+    image.src = src || "assets/img/brand-mark.62793ed5.svg";
   });
 }
 
@@ -1102,7 +1102,9 @@ async function init() {
   showSection(window.location.hash.slice(1) || "profile");
   if (settingsVisibility.passwordChanges) setFormState("password", "idle");
   await loadAccount(user);
-  await loadAtomicAreas();
+  void loadAtomicAreas().catch((error) => {
+    console.warn("Secondary settings areas unavailable:", error);
+  });
 
   window.addEventListener("hashchange", () => showSection(window.location.hash.slice(1) || "profile"));
   $("[data-profile-form]").addEventListener("submit", saveProfile);
