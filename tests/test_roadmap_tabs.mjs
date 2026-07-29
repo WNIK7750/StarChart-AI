@@ -76,3 +76,20 @@ test("roadmap tabs keep exactly one selected category", async () => {
     ["false", "false", "true"],
   );
 });
+
+test("roadmap category highlighting takes precedence over learning progress", () => {
+  const learningState = fs.readFileSync("frontend/assets/js/learning-state.js", "utf8");
+
+  assert.match(
+    learningState,
+    /\.km-canvas:not\(\.has-domain\) \.km-node\.learning-in-progress \.km-node-rect/,
+  );
+  assert.match(
+    learningState,
+    /\.km-canvas:not\(\.has-domain\) \.km-node\.learning-completed \.km-node-rect/,
+  );
+  assert.match(
+    learningState,
+    /\.km-canvas:not\(\.has-domain\) \.km-node\.learning-completed \.km-node-dot/,
+  );
+});
