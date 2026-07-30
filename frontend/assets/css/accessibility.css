@@ -3,6 +3,16 @@
   outline-offset: 3px;
 }
 
+@supports (content-visibility: auto) {
+  .hero ~ .section,
+  .km-hero + section,
+  .latest-panel,
+  .category-section {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 720px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto !important;

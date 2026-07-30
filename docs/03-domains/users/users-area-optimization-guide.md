@@ -2,7 +2,7 @@
 
 版本：v1.1  
 日期：2026-07-14  
-适用仓库：`D:\Web期末作业\ai-nav2\ai-nav-fullstack`
+适用仓库：`<PROJECT_ROOT>`
 
 ## 1. 文档定位
 

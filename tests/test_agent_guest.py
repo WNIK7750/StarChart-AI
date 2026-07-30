@@ -51,8 +51,7 @@ class AgentGuestEndpointTest(unittest.IsolatedAsyncioTestCase):
 
     def _tripwire_patches(self):
         return (
-            patch.object(agent_router, "APP_ENV", "http_test", create=True),
-            patch.object(agent_router, "HTTP_TEST_GUEST_AGENT_ENABLED", True, create=True),
+            patch.object(agent_router, "AGENT_GUEST_CHAT_ENABLED", True, create=True),
             patch.object(agent_router, "SECRET_KEY", "guest-test-secret", create=True),
             patch.object(agent_router, "TRUSTED_PROXY_CIDRS", (), create=True),
             patch.object(agent_router, "get_agent_response_replay_cache", return_value=self.replay),
@@ -101,7 +100,7 @@ class AgentGuestEndpointTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_guest_chat_requires_no_authorization_and_has_no_user_or_provider_side_effects(self):
         patches = self._tripwire_patches()
-        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7], patches[8], patches[9], patches[10], patches[11]:
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7], patches[8], patches[9], patches[10]:
             response = await self._post(
                 {
                     "message": "帮我做论文工作流",
@@ -142,24 +141,23 @@ class AgentGuestEndpointTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("deterministic", response.meta.mode)
         self.assertTrue(response.meta.readOnly)
 
-    async def test_guest_chat_is_hidden_outside_enabled_http_test_profile(self):
-        for environment, enabled in (
-            ("development", True),
-            ("production", True),
-            ("http_test", False),
-        ):
-            with self.subTest(environment=environment, enabled=enabled):
+    async def test_guest_chat_is_available_only_when_effective_capability_is_enabled(self):
+        for enabled, expected_status in ((True, 200), (False, 404)):
+            with self.subTest(enabled=enabled):
+                patches = self._tripwire_patches()
                 with (
-                    patch.object(agent_router, "APP_ENV", environment, create=True),
                     patch.object(
                         agent_router,
-                        "HTTP_TEST_GUEST_AGENT_ENABLED",
+                        "AGENT_GUEST_CHAT_ENABLED",
                         enabled,
                         create=True,
                     ),
+                    patches[1], patches[2], patches[3], patches[4],
+                    patches[5], patches[6], patches[7], patches[8],
+                    patches[9], patches[10],
                 ):
                     response = await self._post({"message": "RAG 是什么"})
-                self.assertIn(response.status_code, {403, 404}, response.text)
+                self.assertEqual(expected_status, response.status_code, response.text)
 
     async def test_guest_chat_rejects_unbounded_or_unsafe_request_shapes(self):
         invalid_payloads = (
@@ -188,10 +186,9 @@ class AgentGuestEndpointTest(unittest.IsolatedAsyncioTestCase):
         for payload in invalid_payloads:
             with self.subTest(payload_keys=tuple(payload)):
                 with (
-                    patch.object(agent_router, "APP_ENV", "http_test", create=True),
                     patch.object(
                         agent_router,
-                        "HTTP_TEST_GUEST_AGENT_ENABLED",
+                        "AGENT_GUEST_CHAT_ENABLED",
                         True,
                         create=True,
                     ),
@@ -209,15 +206,15 @@ class AgentGuestEndpointTest(unittest.IsolatedAsyncioTestCase):
         ).hexdigest()[:24]
         patches = self._tripwire_patches()
         with (
-            patches[0], patches[1], patches[2],
+            patches[0], patches[1],
             patch.object(
                 agent_router,
                 "TRUSTED_PROXY_CIDRS",
                 ("10.0.0.0/8",),
                 create=True,
             ),
-            patches[4], patches[5], patches[6], patches[7], patches[8],
-            patches[9], patches[10], patches[11],
+            patches[3], patches[4], patches[5], patches[6], patches[7],
+            patches[8], patches[9], patches[10],
             self.assertLogs("app.agent.provider", level="INFO") as captured,
         ):
             response = await self._post(
@@ -252,7 +249,7 @@ class AgentGuestEndpointTest(unittest.IsolatedAsyncioTestCase):
         with (
             patches[0], patches[1], patches[2], patches[3], patches[4],
             patches[5], patches[6], patches[7], patches[8],
-            patches[9], patches[10], patches[11],
+            patches[9], patches[10],
             patch.object(agent_router, "_guest_admission_gate", gate, create=True),
         ):
             async with gate.slot("occupied"):

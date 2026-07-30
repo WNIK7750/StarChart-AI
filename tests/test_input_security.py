@@ -50,8 +50,8 @@ class InputSecurityRegressionTest(unittest.TestCase):
                 if not json_media.get("schema"):
                     missing.append(f"{method.upper()} {path}")
         self.assertEqual([], missing)
-        self.assertEqual(89, operations)
-        self.assertEqual(85, json_operations)
+        self.assertEqual(90, operations)
+        self.assertEqual(86, json_operations)
 
     def test_all_json_response_models_are_field_level_allowlists(self):
         response_models = [
@@ -59,7 +59,7 @@ class InputSecurityRegressionTest(unittest.TestCase):
             for route in iter_app_routes()
             if getattr(route, "response_model", None) is not None
         ]
-        self.assertEqual(86, len(response_models))
+        self.assertEqual(87, len(response_models))
         self.assertTrue(
             all(
                 isinstance(model, type)

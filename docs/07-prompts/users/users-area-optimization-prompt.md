@@ -5,7 +5,7 @@
 ```text
 你负责当前项目的“用户层企业级优化”任务。请在现有工作区持续实施，直到本阶段目标真正完成，不要只给计划或停在分析。
 
-工作区：D:\Web期末作业\ai-nav2\ai-nav-fullstack
+工作区：<PROJECT_ROOT>
 
 开始前必须阅读：
 1. docs/03-domains/users/users-area-optimization-guide.md

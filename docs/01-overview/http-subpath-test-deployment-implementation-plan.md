@@ -68,7 +68,7 @@ def validate_runtime_security(
 ### Step 1: 写失败配置测试
 
 - [ ] 在 `tests/test_http_test_runtime.py` 添加参数化测试，证明：
-  - `http_test` 接受显式 `http://47.100.94.1` origin、`Secure=false`、外部数据库和上传路径。
+  - `http_test` 接受通过服务器 root-only 环境文件注入的获批 HTTP origin、`Secure=false`、外部数据库和上传路径；仓库测试使用 RFC 5737 保留地址，不记录真实主机地址。
   - `http_test` 拒绝默认/短 secret、源码树内数据路径、`RESET_DATABASE_ON_START=1`、空测试账号标识、非 `/StarChart-AI` 形式的公共前缀、live Provider 或非 deterministic Provider。
   - `provider_preview` 拒绝非 loopback host、非 8002 不是硬性条件但端口必须合法、非 HTTPS Provider URL、空 Provider allowlist、缺少成本边界、源码树内数据路径。
   - `production` 的原有 HTTPS 与 Secure Cookie 失败用例保持不变。

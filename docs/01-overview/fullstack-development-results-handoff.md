@@ -2,7 +2,7 @@
 
 > 文档状态：当前开发成果的权威交接快照  
 > 基准日期：2026-07-28
-> 工作区：`D:\Web期末作业\ai-nav2\ai-nav-fullstack`  
+> 工作区：`<PROJECT_ROOT>`
 > 当前分支：`agent/sync-agent-foundation-cn`  
 > 已部署应用提交：`0025cbb0403659995374be09b239b839d751d341`
 > 当前结论：**本地整改候选与 deterministic HTTP 测试部署通过；生产发布继续 NO-GO**
@@ -1212,7 +1212,7 @@ AI_NAV_AGENT_PROVIDER_API_KEY=
 在项目根目录打开 PowerShell：
 
 ```powershell
-Set-Location -LiteralPath "D:\Web期末作业\ai-nav2\ai-nav-fullstack"
+Set-Location -LiteralPath "<PROJECT_ROOT>"
 python -m venv .venv
 & ".\.venv\Scripts\python.exe" -m pip install -r ".\backend\requirements.txt"
 ```
@@ -1222,7 +1222,7 @@ python -m venv .venv
 ### 13.2 全量离线门禁
 
 ```powershell
-Set-Location -LiteralPath "D:\Web期末作业\ai-nav2\ai-nav-fullstack"
+Set-Location -LiteralPath "<PROJECT_ROOT>"
 & ".\scripts\verify-foundation.ps1"
 & ".\scripts\verify-agent.ps1"
 ```
@@ -1251,13 +1251,13 @@ Agent 单独执行，避免普通站点能力被模型服务可用性耦合。
 ### 13.4 启动
 
 ```powershell
-Set-Location -LiteralPath "D:\Web期末作业\ai-nav2\ai-nav-fullstack"
+Set-Location -LiteralPath "<PROJECT_ROOT>"
 . ".\scripts\python-runtime.ps1"
 $python = Resolve-AiNavPython -Root (Get-Location)
 & $python ".\backend\run.py"
 ```
 
-不能从 `C:\Users\LEGION` 直接执行相对脚本；必须先进入项目根目录，或使用上述绝对路径。
+不能从 `<USER_HOME>` 直接执行相对脚本；必须先进入项目根目录，或使用上述绝对路径。
 
 ### 13.5 重要验收产物
 

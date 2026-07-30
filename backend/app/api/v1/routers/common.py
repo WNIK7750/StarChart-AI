@@ -3,9 +3,9 @@ import sqlite3
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import (
+    AGENT_GUEST_CHAT_ENABLED,
     AGENT_SESSIONS_ENABLED,
     APP_ENV,
-    HTTP_TEST_GUEST_AGENT_ENABLED,
     MIGRATIONS_DIR,
     PUBLIC_BASE_PATH,
 )
@@ -39,7 +39,7 @@ def get_public_runtime():
             "privacyWrites": not restricted_auth,
         },
         "agent": {
-            "guestChat": restricted_auth and HTTP_TEST_GUEST_AGENT_ENABLED,
+            "guestChat": AGENT_GUEST_CHAT_ENABLED,
             "authenticatedSessions": AGENT_SESSIONS_ENABLED,
         },
     }

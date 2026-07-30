@@ -1,13 +1,16 @@
 # Git 提交就绪报告与执行交接
 
-> 状态：**允许创建本地 Git 基线提交；禁止据此直接生产发布**  
+> 状态：**历史快照，已由 2026-07-29 仓库根目录迁移与 Git/HTTP 隐私复核取代；禁止继续执行本文暂存命令**
 > 日期：2026-07-25  
 > 用途：交给另一名 AI 执行暂存、复核和提交  
-> 仓库根目录：`D:/Web期末作业/ai-nav2`  
-> 项目目录：`D:/Web期末作业/ai-nav2/ai-nav-fullstack`  
+> 当时仓库根目录：`<PARENT_REPOSITORY_ROOT>`
+> 当时项目目录：`<PROJECT_ROOT>`
 > 当前分支：`agent/sync-agent-foundation-cn`  
 > 当前 HEAD：`45238d4e1054ff5240bb924f78210cbb2bbd33d0`  
 > 执行限制：只创建本地提交，不 push、不打 tag、不创建 Release、不部署
+
+本文保留用于解释 2026-07-25 基线，不再是当前 Git 操作入口。当前仓库根目录、
+追踪范围和隐私结论以 `docs/05-quality/audits/git-http-privacy-audit.md` 为准。
 
 ---
 
@@ -205,7 +208,7 @@ feat: establish audited full-stack remediation baseline
 在 Windows 11 PowerShell 中：
 
 ```powershell
-Set-Location -LiteralPath "D:\Web期末作业\ai-nav2"
+Set-Location -LiteralPath "<PARENT_REPOSITORY_ROOT>"
 git branch --show-current
 git rev-parse HEAD
 git status --short
@@ -223,7 +226,7 @@ git diff --cached --name-status
 ### 步骤 2：复跑当前门禁
 
 ```powershell
-Set-Location -LiteralPath "D:\Web期末作业\ai-nav2\ai-nav-fullstack"
+Set-Location -LiteralPath "<PROJECT_ROOT>"
 
 & "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" `
   -NoProfile -ExecutionPolicy Bypass `
@@ -271,7 +274,7 @@ Set-Location -LiteralPath "D:\Web期末作业\ai-nav2\ai-nav-fullstack"
 ### 步骤 4：从仓库根目录精确暂存
 
 ```powershell
-Set-Location -LiteralPath "D:\Web期末作业\ai-nav2"
+Set-Location -LiteralPath "<PARENT_REPOSITORY_ROOT>"
 
 git add -A -- `
   ".github/workflows/ai-nav-foundation-ci.yml" `

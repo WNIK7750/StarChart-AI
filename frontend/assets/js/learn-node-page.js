@@ -29,8 +29,9 @@ function bindContentTabs() {
   });
 }
 
-await initPageShell("learn");
+const shellReady = initPageShell("learn");
+void shellReady.catch((error) => console.warn("Page shell initialization unavailable:", error));
 bindNavbarScroll();
 bindContentTabs();
-await initNodePage();
+await initNodePage({ authReady: shellReady.then(([, user]) => user) });
 bindReveal();

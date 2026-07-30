@@ -1,7 +1,9 @@
-import { apiGet } from "./api.js";
+import { apiGet, getAccessToken } from "./api.js";
+import { AssistantSessionEpoch } from "./assistant-session-epoch.js";
 import { getLearningNode, getLearningRoadmap, listLearningResources } from "./learning-api.js";
-import { decorateRoadmapProgress, hydrateLearningDashboard, hydrateNodeLearningState } from "./learning-state.js";
+import { decorateRoadmapProgress, hydrateLearningDashboard, hydrateNodeLearningState } from "./learning-state.js?v=roadmap-filter-1";
 import { $, $$, bindReveal, bindSpotlight, escapeHtml } from "./page-shell.js";
+import { bindRoadmapTabs } from "./roadmap-tabs.js";
 import { safeHttpHref, safeInternalHref } from "./url-safety.js";
 import { feedbackKindForError, feedbackMarkup, renderFeedback } from "./ui-feedback.js";
 import {
@@ -52,7 +54,7 @@ function toolIcon(tool, className) {
 }
 
 function nodeSvg(node) {
-  const href = `learn-node.html?slug=${encodeURIComponent(node.slug)}`;
+  const href = safeInternalHref(`/learn/${encodeURIComponent(node.slug)}`);
   return `
     <g class="km-node" data-node-slug="${escapeHtml(node.slug)}" transform="translate(${node.x},${node.y})" role="link" tabindex="0">
       <rect class="km-node-rect" width="${node.width}" height="${node.height}" rx="8"/>
@@ -65,7 +67,6 @@ function nodeSvg(node) {
 }
 
 function wireRoadmapDomain(canvas, data) {
-  const tabs = $$(".line-tab, .roadmap-tab", document);
   const apply = (domain, color, glow) => {
     const slugs = data.domainNodes[domain] || [];
     canvas.classList.toggle("has-domain", slugs.length > 0);
@@ -81,18 +82,13 @@ function wireRoadmapDomain(canvas, data) {
       }
     });
   };
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      tabs.forEach((item) => item.classList.remove("active"));
-      tab.classList.add("active");
-      apply(tab.dataset.domain, tab.style.getPropertyValue("--domain-color"), tab.style.getPropertyValue("--domain-glow"));
-    });
+  const component = canvas.closest("section") || document;
+  bindRoadmapTabs(component, ({ domain, color, glow }) => {
+    apply(domain, color, glow);
   });
-  const active = tabs.find((tab) => tab.classList.contains("active") && tab.dataset.domain) || tabs[0];
-  if (active) apply(active.dataset.domain, active.style.getPropertyValue("--domain-color"), active.style.getPropertyValue("--domain-glow"));
 }
 
-async function hydrateRoadmap({ includeUserState = false } = {}) {
+async function hydrateRoadmap() {
   const canvas = $(".km-canvas");
   const svg = $(".km-svg");
   if (!canvas || !svg) return;
@@ -104,14 +100,13 @@ async function hydrateRoadmap({ includeUserState = false } = {}) {
       ${data.nodes.map(nodeSvg).join("")}`;
     $$(".km-node", svg).forEach((node) => {
       const slug = node.dataset.nodeSlug;
-      const open = () => { window.location.href = `learn-node.html?slug=${encodeURIComponent(slug)}`; };
+      const open = () => { window.location.href = safeInternalHref(`/learn/${encodeURIComponent(slug)}`); };
       node.addEventListener("click", open);
       node.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") open();
       });
     });
     wireRoadmapDomain(canvas, data);
-    if (includeUserState) await decorateRoadmapProgress(canvas);
     return data;
   } catch (error) {
     console.warn("Roadmap API fallback:", error);
@@ -121,7 +116,7 @@ async function hydrateRoadmap({ includeUserState = false } = {}) {
 
 function resourceCard(item) {
   return `
-    <a href="${escapeHtml(safeInternalHref(item.href, "learn.html"))}" class="resource-card" data-spotlight>
+    <a href="${escapeHtml(safeInternalHref(item.href, "/learn"))}" class="resource-card" data-spotlight>
       <div class="resource-cover ${escapeHtml(item.coverTheme)}">
         <div class="resource-cover-label">${escapeHtml(item.coverLabel)}</div>
         <div class="resource-cover-text">${escapeHtml(item.coverText)}</div>
@@ -133,7 +128,7 @@ function resourceCard(item) {
     </a>`;
 }
 
-async function hydrateLearningResources(domain = "") {
+async function hydrateLearningResources(domain = "", isCurrent = () => true) {
   const grid = $(".resource-grid");
   if (!grid) return;
   try {
@@ -141,10 +136,12 @@ async function hydrateLearningResources(domain = "") {
       listLearningResources(domain),
       getConsumerPreferences("learning"),
     ]);
+    if (!isCurrent()) return;
     const visibleItems = applyLearningResourcePreferences(items, preferences);
     grid.innerHTML = visibleItems.map(resourceCard).join("");
     bindSpotlight(grid);
   } catch (error) {
+    if (!isCurrent()) return;
     console.warn("Learning resources API fallback:", error);
     grid.innerHTML = feedbackMarkup({
       kind: feedbackKindForError(error),
@@ -157,10 +154,99 @@ async function hydrateLearningResources(domain = "") {
   }
 }
 
-export async function initLearnPage() {
-  await hydrateRoadmap({ includeUserState: true });
-  await hydrateLearningResources("");
-  await hydrateLearningDashboard();
+function resetLearningPageUserState() {
+  document.querySelector(".km-hero .learning-resume-band")?.remove();
+  document.querySelectorAll(".km-node[data-node-slug]").forEach((node) => {
+    node.classList.remove("learning-in-progress", "learning-completed");
+    node.removeAttribute("aria-label");
+  });
+  const recent = document.querySelector(".recent-entry");
+  if (recent) {
+    recent.setAttribute("href", "#");
+    if (recent.firstChild) recent.firstChild.textContent = "最近阅读 ";
+  }
+}
+
+function resetNodeLearningState(outline, mainMaterial, resources) {
+  document.querySelector(".node-learning-state")?.remove();
+  const outlineEl = $("[data-outline]");
+  if (outlineEl) {
+    outlineEl.innerHTML = outline.length
+      ? renderOutline(outline)
+      : feedbackMarkup({ message: "该节点暂未维护目录。", compact: true });
+  }
+  renderNodeResourceList(mainMaterial, resources);
+}
+
+function observeAuthenticatedLearning(
+  authReady,
+  hydrate,
+  hydrateAnonymous = null,
+  reset = null,
+) {
+  const epoch = new AssistantSessionEpoch(getAccessToken());
+  let authenticatedHydrated = false;
+  let hydrationPromise = null;
+  const reportError = (error) => {
+    console.warn("Authenticated learning state unavailable:", error);
+  };
+  const hydrateAuthenticated = () => {
+    if (authenticatedHydrated) return hydrationPromise;
+    const operation = epoch.beginOperation();
+    authenticatedHydrated = true;
+    hydrationPromise = Promise.resolve()
+      .then(() => hydrate(operation.isCurrent))
+      .catch((error) => {
+        if (operation.isCurrent()) authenticatedHydrated = false;
+        throw error;
+      })
+      .finally(operation.finish);
+    return hydrationPromise;
+  };
+  const transitionIdentity = () => {
+    const changed = epoch.transition(getAccessToken());
+    if (changed) {
+      authenticatedHydrated = false;
+      hydrationPromise = null;
+      reset?.();
+    }
+    return changed;
+  };
+
+  window.addEventListener("ai-nav-auth-changed", (event) => {
+    transitionIdentity();
+    if (!event.detail?.authenticated) {
+      authenticatedHydrated = false;
+      hydrationPromise = null;
+      return;
+    }
+    void hydrateAuthenticated().catch(reportError);
+  });
+
+  void Promise.resolve(authReady)
+    .then((user) => {
+      transitionIdentity();
+      if (user || getAccessToken()) return hydrateAuthenticated();
+      return hydrateAnonymous?.();
+    })
+    .catch(reportError);
+}
+
+export async function initLearnPage({ authReady = Promise.resolve(null) } = {}) {
+  const publicHydration = Promise.all([
+    hydrateRoadmap(),
+    hydrateLearningResources(""),
+  ]);
+  observeAuthenticatedLearning(authReady, async (isCurrent) => {
+    await publicHydration;
+    if (!isCurrent()) return;
+    await Promise.all([
+      decorateRoadmapProgress($(".km-canvas") || document, isCurrent),
+      hydrateLearningResources("", isCurrent),
+      hydrateLearningDashboard(isCurrent),
+    ]);
+  }, null, resetLearningPageUserState);
+  await publicHydration;
 }
 
 function latestToolCard(tool) {
@@ -192,7 +278,7 @@ async function hydrateHomeTools() {
       };
     });
     const cards = normalized.concat(normalized).map((tool) => `
-      <a href="${escapeHtml(safeHttpHref(tool.officialUrl, "tools.html"))}" target="_blank" rel="noopener noreferrer" class="marquee-card">
+      <a href="${escapeHtml(safeHttpHref(tool.officialUrl, "/tools"))}" target="_blank" rel="noopener noreferrer" class="marquee-card">
         ${toolIcon(tool, "marquee-fav")}
         <div><div class="marquee-name">${escapeHtml(tool.name)}</div><div class="marquee-maker">${escapeHtml(tool.description)}</div></div>
         <div class="marquee-cat">${escapeHtml(tool.tag)}</div>
@@ -274,11 +360,36 @@ function renderOutline(items) {
     </div>`).join("");
 }
 
-export async function initNodePage() {
+function renderNodeResourceList(mainMaterial, resources, preferences = {}) {
+  const list = $("[data-resources]");
+  if (!list) return;
+  const allResources = [
+    {
+      title: mainMaterial.title,
+      description: `主学习资料 · ${mainMaterial.provider}`,
+      url: mainMaterial.url,
+      linkType: mainMaterial.materialType,
+      accessType: mainMaterial.accessType,
+      linkStatus: mainMaterial.linkStatus,
+      isPrimary: true,
+      accentColor: "#7C5CFF",
+    },
+    ...applyLearningResourcePreferences(resources, preferences),
+  ];
+  list.innerHTML = allResources.length
+    ? allResources.map(resourceLink).join("")
+    : feedbackMarkup({ message: "该节点暂未维护补充资料。", compact: true });
+}
+
+export async function initNodePage({ authReady = Promise.resolve(null) } = {}) {
   const params = new URLSearchParams(location.search);
-  const slug = params.get("slug") || "ai-literacy";
+  const pathParts = location.pathname.split("/").filter(Boolean);
+  const learnIndex = pathParts.lastIndexOf("learn");
+  const pathSlug = learnIndex >= 0 ? pathParts[learnIndex + 1] || "" : "";
+  const slug = pathSlug || params.get("slug") || "ai-literacy";
   try {
-    const { node, mainMaterial, overview, outline, resources, tags, stats, navigation } = await getLearningNode(slug);
+    const nodePayload = await getLearningNode(slug);
+    const { node, mainMaterial, overview, outline, resources, tags, stats, navigation } = nodePayload;
     document.title = `${node.title} · 节点详情 · AI 知识导航`;
     setText("[data-node-title]", node.title);
     setText("[data-node-description]", `${node.title}：${node.subtitle}。${mainMaterial.description}`);
@@ -305,39 +416,31 @@ export async function initNodePage() {
     if (outlineEl) outlineEl.innerHTML = outline.length
       ? renderOutline(outline)
       : feedbackMarkup({ message: "该节点暂未维护目录。", compact: true });
-    const list = $("[data-resources]");
-    if (list) {
-      const preferences = await getConsumerPreferences("learning");
-      const allResources = [
-        {
-          title: mainMaterial.title,
-          description: `主学习资料 · ${mainMaterial.provider}`,
-          url: mainMaterial.url,
-          linkType: mainMaterial.materialType,
-          accessType: mainMaterial.accessType,
-          linkStatus: mainMaterial.linkStatus,
-          isPrimary: true,
-          accentColor: "#7C5CFF",
-        },
-        ...applyLearningResourcePreferences(resources, preferences),
-      ];
-      list.innerHTML = allResources.length
-        ? allResources.map(resourceLink).join("")
-        : feedbackMarkup({ message: "该节点暂未维护补充资料。", compact: true });
-    }
+    renderNodeResourceList(mainMaterial, resources);
     const tagsEl = $("[data-tags]");
     if (tagsEl) tagsEl.innerHTML = tags.map((tag) => `<span class="side-tag">${escapeHtml(tag)}</span>`).join("");
     const navEl = $("[data-node-nav]");
     if (navEl) {
       const links = [];
-      if (navigation.previous) links.push(`<a class="side-link" href="learn-node.html?slug=${escapeHtml(navigation.previous.slug)}">← ${escapeHtml(navigation.previous.title)}</a>`);
-      if (navigation.next) links.push(`<a class="side-link" href="learn-node.html?slug=${escapeHtml(navigation.next.slug)}">→ ${escapeHtml(navigation.next.title)}</a>`);
+      if (navigation.previous) links.push(`<a class="side-link" href="${escapeHtml(safeInternalHref(`/learn/${encodeURIComponent(navigation.previous.slug)}`))}">← ${escapeHtml(navigation.previous.title)}</a>`);
+      if (navigation.next) links.push(`<a class="side-link" href="${escapeHtml(safeInternalHref(`/learn/${encodeURIComponent(navigation.next.slug)}`))}">→ ${escapeHtml(navigation.next.title)}</a>`);
       navEl.innerHTML = links.length ? links.join("") : '<p class="side-text">当前节点暂无相邻路线。</p>';
     }
     bindReveal(document);
-    await hydrateNodeLearningState(slug, { node, mainMaterial, stats, outline }).catch((error) => {
-      console.warn("User learning state unavailable:", error);
-    });
+    observeAuthenticatedLearning(
+      authReady,
+      async (isCurrent) => {
+        await Promise.all([
+          hydrateNodeLearningState(slug, { node, mainMaterial, stats, outline }, isCurrent),
+          getConsumerPreferences("learning").then((preferences) => {
+            if (!isCurrent()) return;
+            renderNodeResourceList(mainMaterial, resources, preferences);
+          }),
+        ]);
+      },
+      () => hydrateNodeLearningState(slug, { node, mainMaterial, stats, outline }),
+      () => resetNodeLearningState(outline, mainMaterial, resources),
+    );
   } catch (error) {
     console.warn("Node API fallback:", error);
     document.title = "学习节点暂不可用 · AI 知识导航";

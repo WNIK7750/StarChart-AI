@@ -5,10 +5,10 @@ INSERT INTO app_settings(setting_key, setting_value, description) VALUES
 ('site_tagline', '从知识地图到工具实践的一站式 AI 学习入口', '站点副标题');
 
 INSERT INTO navigation_items(code, label, href, sort_order) VALUES
-('home', '主页', 'index.html', 10),
-('learn', '学习', 'learn.html', 20),
-('tools', '工具', 'tools.html', 30),
-('assistant', '助手', 'assistant.html', 40);
+('home', '主页', '/', 10),
+('learn', '学习', '/learn', 20),
+('tools', '工具', '/tools', 30),
+('assistant', '助手', '/assistant', 40);
 
 INSERT INTO difficulty_levels(code, name, color, sort_order) VALUES
 ('intro', '入门', '#16C76F', 10),
@@ -60,12 +60,12 @@ INSERT INTO roadmap_edges(from_slug, to_slug, path_d, sort_order) VALUES
 ('prompt', 'model-ops', 'M 1060 74 L 1085 74 M 1060 154 L 1085 154 M 1060 234 L 1085 234 M 1085 74 L 1085 234 M 1085 154 L 1110 154', 70);
 
 INSERT INTO learning_resources(slug, node_slug, title, description, cover_label, cover_text, cover_theme, href, sort_order, is_featured) VALUES
-('ai-literacy-course', 'ai-literacy', 'AI 通识 · 入门必读', '本节点讲解 AI 的定义、发展历史与核心概念', 'CORE', 'AI 通识', 'g-purple', 'learn-node.html?slug=ai-literacy', 10, 1),
-('machine-learning-course', 'machine-learning', '机器学习基础', '监督学习、无监督学习、强化学习', 'FUND', 'ML', 'g-pink', 'learn-node.html?slug=machine-learning', 20, 1),
-('deep-learning-course', 'neural-network', '深度学习与神经网络', '神经网络原理与常见架构详解', 'DEEP', 'DL', 'g-cyan', 'learn-node.html?slug=neural-network', 30, 1),
-('llm-course', 'llm-foundation', '大语言模型原理', 'Transformer 架构与自注意力机制', 'LLM', 'LLM', 'g-green', 'learn-node.html?slug=llm-foundation', 40, 1),
-('prompt-course', 'prompt', 'Prompt 工程实战', '结构化提示策略与 30+ 真实场景', 'PRMT', 'P', 'g-warm', 'learn-node.html?slug=prompt', 50, 1),
-('rag-course', 'rag', 'RAG 与知识库搭建', '检索增强生成与端到端项目实战', 'RAG', 'R', 'g-yellow', 'learn-node.html?slug=rag', 60, 1);
+('ai-literacy-course', 'ai-literacy', 'AI 通识 · 入门必读', '本节点讲解 AI 的定义、发展历史与核心概念', 'CORE', 'AI 通识', 'g-purple', '/learn/ai-literacy', 10, 1),
+('machine-learning-course', 'machine-learning', '机器学习基础', '监督学习、无监督学习、强化学习', 'FUND', 'ML', 'g-pink', '/learn/machine-learning', 20, 1),
+('deep-learning-course', 'neural-network', '深度学习与神经网络', '神经网络原理与常见架构详解', 'DEEP', 'DL', 'g-cyan', '/learn/neural-network', 30, 1),
+('llm-course', 'llm-foundation', '大语言模型原理', 'Transformer 架构与自注意力机制', 'LLM', 'LLM', 'g-green', '/learn/llm-foundation', 40, 1),
+('prompt-course', 'prompt', 'Prompt 工程实战', '结构化提示策略与 30+ 真实场景', 'PRMT', 'P', 'g-warm', '/learn/prompt', 50, 1),
+('rag-course', 'rag', 'RAG 与知识库搭建', '检索增强生成与端到端项目实战', 'RAG', 'R', 'g-yellow', '/learn/rag', 60, 1);
 
 INSERT INTO tool_categories(code, name, icon, logo_class, description, sort_order) VALUES
 ('chat', 'AI 对话聊天', '💬', 'logo-chat', '通用聊天、角色扮演、搜索增强和学习助手。', 10),

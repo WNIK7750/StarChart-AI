@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import subprocess
 import sys
@@ -25,7 +26,7 @@ def safe_runtime(**overrides):
     values = {
         "environment": "http_test",
         "secret_key": "s" * 32,
-        "cors_origins": ("http://47.100.94.1",),
+        "cors_origins": ("http://203.0.113.10",),
         "refresh_cookie_secure": False,
         "reset_database_on_start": False,
         "database_path": Path(tempfile.gettempdir()) / "ai-nav-http-test.sqlite3",
@@ -46,8 +47,13 @@ def safe_runtime(**overrides):
 def preview_environment(temp_root: Path, **overrides) -> dict[str, str]:
     database_path = temp_root / "preview.sqlite3"
     sqlite3.connect(database_path).close()
+    inherited_pythonpath = os.environ.get("PYTHONPATH", "")
     values = {
-        "PYTHONPATH": str(ROOT / "backend"),
+        "PYTHONPATH": os.pathsep.join(
+            path
+            for path in (str(ROOT / "backend"), inherited_pythonpath)
+            if path
+        ),
         "PYTHONUTF8": "1",
         "AI_NAV_DISABLE_DOTENV": "1",
         "AI_NAV_ENV": "provider_preview",
@@ -80,7 +86,7 @@ class HttpTestRuntimeTest(unittest.TestCase):
         with (
             patch.object(common, "APP_ENV", "http_test", create=True),
             patch.object(common, "PUBLIC_BASE_PATH", "/StarChart-AI", create=True),
-            patch.object(common, "HTTP_TEST_GUEST_AGENT_ENABLED", True, create=True),
+            patch.object(common, "AGENT_GUEST_CHAT_ENABLED", True, create=True),
             patch.object(common, "AGENT_SESSIONS_ENABLED", False, create=True),
         ):
             response = TestClient(app).get("/api/v1/runtime/public")
@@ -112,7 +118,7 @@ class HttpTestRuntimeTest(unittest.TestCase):
                 self.subTest(profile=profile),
                 patch.object(common, "APP_ENV", profile, create=True),
                 patch.object(common, "PUBLIC_BASE_PATH", "", create=True),
-                patch.object(common, "HTTP_TEST_GUEST_AGENT_ENABLED", True, create=True),
+                patch.object(common, "AGENT_GUEST_CHAT_ENABLED", True, create=True),
                 patch.object(common, "AGENT_SESSIONS_ENABLED", True, create=True),
             ):
                 response = TestClient(app).get("/api/v1/runtime/public")
@@ -129,7 +135,7 @@ class HttpTestRuntimeTest(unittest.TestCase):
                 payload["auth"],
             )
             self.assertEqual(
-                {"guestChat": False, "authenticatedSessions": True},
+                {"guestChat": True, "authenticatedSessions": True},
                 payload["agent"],
             )
             serialized = response.text.lower()

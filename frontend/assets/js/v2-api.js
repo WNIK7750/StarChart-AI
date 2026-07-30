@@ -2,4 +2,4 @@
 import { initPageShell } from "./page-shell.js";
 
 const page = document.body.dataset.page || "home";
-await initPageShell(page === "learn-node" ? "learn" : page);
+void initPageShell(page === "learn-node" ? "learn" : page).catch((error) => console.warn("Page shell initialization unavailable:", error));

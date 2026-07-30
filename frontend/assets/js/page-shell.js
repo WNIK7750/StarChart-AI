@@ -20,11 +20,13 @@ export function bindSpotlight(scope = document) {
   $$("[data-spotlight]", scope).forEach((card) => {
     if (card.dataset.spotlightBound === "true") return;
     card.dataset.spotlightBound = "true";
-    card.addEventListener("mousemove", (event) => {
+    const updateSpotlight = frameThrottle((event) => {
       const rect = card.getBoundingClientRect();
       card.style.setProperty("--mx", `${((event.clientX - rect.left) / rect.width) * 100}%`);
       card.style.setProperty("--my", `${((event.clientY - rect.top) / rect.height) * 100}%`);
     });
+    const pointerEvent = "PointerEvent" in window ? "pointermove" : "mousemove";
+    card.addEventListener(pointerEvent, updateSpotlight, { passive: true });
   });
 }
 
@@ -46,15 +48,71 @@ export function bindReveal(scope = document) {
   targets.forEach((element) => observer.observe(element));
 }
 
+export function frameThrottle(
+  callback,
+  schedule = globalThis.requestAnimationFrame?.bind(globalThis)
+    || ((run) => globalThis.setTimeout(run, 16)),
+) {
+  let scheduled = false;
+  let latestArgs = [];
+  return (...args) => {
+    latestArgs = args;
+    if (scheduled) return;
+    scheduled = true;
+    schedule(() => {
+      scheduled = false;
+      callback(...latestArgs);
+    });
+  };
+}
+
+export function createFrameBuffer(
+  render,
+  {
+    schedule = globalThis.requestAnimationFrame?.bind(globalThis)
+      || ((run) => globalThis.setTimeout(run, 16)),
+    cancel = globalThis.cancelAnimationFrame?.bind(globalThis)
+      || globalThis.clearTimeout?.bind(globalThis),
+  } = {},
+) {
+  let pending = "";
+  let frameId = null;
+  const renderPending = () => {
+    frameId = null;
+    if (!pending) return;
+    const chunk = pending;
+    pending = "";
+    render(chunk);
+  };
+  return {
+    push(chunk) {
+      pending += String(chunk ?? "");
+      if (frameId === null) frameId = schedule(renderPending);
+    },
+    flush() {
+      if (frameId !== null) {
+        cancel?.(frameId);
+        frameId = null;
+      }
+      renderPending();
+    },
+    cancel() {
+      if (frameId !== null) cancel?.(frameId);
+      frameId = null;
+      pending = "";
+    },
+  };
+}
+
 export function bindNavbarScroll(navbar = document.querySelector("#navbar")) {
   if (!navbar || navbar.dataset.scrollBound === "true") return;
   navbar.dataset.scrollBound = "true";
   let lastScroll = window.scrollY;
-  window.addEventListener("scroll", () => {
+  window.addEventListener("scroll", frameThrottle(() => {
     const current = window.scrollY;
     navbar.classList.toggle("hidden", current > 80 && current > lastScroll);
     lastScroll = current;
-  }, { passive: true });
+  }), { passive: true });
 }
 
 async function hydrateNavigation(activeCode) {
@@ -72,11 +130,13 @@ async function hydrateNavigation(activeCode) {
   }
 }
 
-export async function initPageShell(activeCode) {
+export function initPageShell(activeCode) {
   document.addEventListener("click", (event) => {
     if (event.target.closest('a[aria-disabled="true"]')) event.preventDefault();
   });
-  await hydrateNavigation(activeCode);
   initSiteSearch();
-  await initAuthUI();
+  return Promise.all([
+    hydrateNavigation(activeCode),
+    initAuthUI(),
+  ]);
 }

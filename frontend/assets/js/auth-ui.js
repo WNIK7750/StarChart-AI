@@ -6,6 +6,7 @@ import {
   saveAuthTokens,
 } from "./api.js";
 import { withPublicBasePath } from "./public-path.js";
+import { safeInternalHref } from "./url-safety.js";
 import {
   confirmPasswordReset,
   getCurrentUser,
@@ -24,11 +25,15 @@ import {
 
 const AUTH_STYLE_ID = "ai-nav-auth-style";
 const AUTH_PANEL_ID = "authPanel";
-const DEFAULT_AUTH_AVATAR = "assets/img/logo.png";
+const DEFAULT_AUTH_AVATAR = withPublicBasePath("/assets/img/brand-mark.62793ed5.svg");
 let authEntryVisibility = {
   registration: false,
   recovery: false,
 };
+let authInitializationPromise = null;
+let authEventsBound = false;
+let authRefreshVersion = 0;
+let latestAuthRefreshPromise = null;
 
 export function publicAuthEntryVisibility(runtime) {
   return {
@@ -247,13 +252,13 @@ function renderLoggedIn(user, avatarUrl = "", profile = {}) {
           <div><strong>${escapeHtml(displayName)}</strong><span>@${escapeHtml(user.username || "user")}</span></div>
         </div>
         <div class="user-popover-list">
-          <a href="settings.html#profile">个人资料</a>
-          <a href="settings.html#account">账号设置</a>
-          <a href="settings.html#security">密码与密保</a>
-          <a href="settings.html#sessions">登录设备</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#profile"))}">个人资料</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#account"))}">账号设置</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#security"))}">密码与密保</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#sessions"))}">登录设备</a>
           <div class="user-popover-sep"></div>
-          <a href="settings.html#learning">学习空间</a>
-          <a href="settings.html#workflows">工作流</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#learning"))}">学习空间</a>
+          <a href="${escapeHtml(safeInternalHref("/settings#workflows"))}">工作流</a>
           <div class="user-popover-sep"></div>
           <button class="danger" type="button" data-logout>退出登录</button>
         </div>
@@ -262,25 +267,35 @@ function renderLoggedIn(user, avatarUrl = "", profile = {}) {
   });
 }
 
-async function refreshAuthUI() {
-  if (!getAccessToken()) {
-    try {
-      await restoreAuthSession();
-    } catch {
-      renderLoggedOut();
-      return;
+function refreshAuthUI() {
+  const refreshVersion = ++authRefreshVersion;
+  const refreshPromise = (async () => {
+    if (!getAccessToken()) {
+      try {
+        await restoreAuthSession();
+      } catch {
+        if (refreshVersion !== authRefreshVersion) return latestAuthRefreshPromise;
+        renderLoggedOut();
+        return null;
+      }
     }
-  }
-  try {
-    const [{ user }, profileResult] = await Promise.all([
-      getCurrentUser(),
-      getUserProfile().catch(() => ({ profile: {} })),
-    ]);
-    renderLoggedIn(user, profileResult.profile?.avatarUrl || "", profileResult.profile || {});
-  } catch {
-    clearAuthTokens();
-    renderLoggedOut();
-  }
+    try {
+      const [{ user }, profileResult] = await Promise.all([
+        getCurrentUser(),
+        getUserProfile().catch(() => ({ profile: {} })),
+      ]);
+      if (refreshVersion !== authRefreshVersion) return latestAuthRefreshPromise;
+      renderLoggedIn(user, profileResult.profile?.avatarUrl || "", profileResult.profile || {});
+      return user;
+    } catch {
+      if (refreshVersion !== authRefreshVersion) return latestAuthRefreshPromise;
+      clearAuthTokens();
+      renderLoggedOut();
+      return null;
+    }
+  })();
+  latestAuthRefreshPromise = refreshPromise;
+  return refreshPromise;
 }
 
 async function handleLoginOrRegister(form, mode) {
@@ -293,12 +308,13 @@ async function handleLoginOrRegister(form, mode) {
     : await loginUser({ ...body, deviceName: "浏览器" });
   rememberPrivacyConsent(true);
   saveAuthTokens(data);
+  const authenticatedRefresh = refreshAuthUI();
   form.querySelectorAll('input[type="password"]').forEach((input) => { input.value = ""; });
   authPanel().classList.remove("open");
   await import("./anonymous-learning-state.js")
     .then(({ mergeAnonymousLearningState }) => mergeAnonymousLearningState())
     .catch((error) => console.warn("Anonymous learning state import unavailable:", error));
-  await refreshAuthUI();
+  return authenticatedRefresh;
 }
 
 async function handleResetStart(form) {
@@ -342,10 +358,9 @@ async function logout() {
   renderLoggedOut();
 }
 
-export async function initAuthUI() {
-  injectStyles();
-  applyPublicAuthCapabilities(null, authPanel());
-  await loadPublicAuthCapabilities();
+function bindAuthEvents() {
+  if (authEventsBound) return;
+  authEventsBound = true;
   document.addEventListener("click", async (event) => {
     const target = event.target;
     const trigger = target.closest("[data-auth-trigger]");
@@ -371,5 +386,18 @@ export async function initAuthUI() {
       if (input.checked && form) form.querySelector("[data-auth-error]").textContent = "";
     });
   });
-  await refreshAuthUI();
+}
+
+export function initAuthUI() {
+  if (authInitializationPromise) return authInitializationPromise;
+  injectStyles();
+  const panel = authPanel();
+  applyPublicAuthCapabilities(null, panel);
+  renderLoggedOut();
+  bindAuthEvents();
+  authInitializationPromise = Promise.all([
+    loadPublicAuthCapabilities(),
+    refreshAuthUI(),
+  ]).then(([, user]) => user);
+  return authInitializationPromise;
 }

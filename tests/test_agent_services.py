@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from app.agent.evaluator import validate_response
 from app.agent.providers import ProviderConversationMessage
+from app.agent.router import classify_intent
 from app.agent.schemas import (
     AgentChatRequest,
     AgentCitation,
@@ -13,7 +14,11 @@ from app.agent.schemas import (
     AgentLinkCard,
     AgentStructuredResponse,
 )
-from app.agent.service import agent_retrieval_query, draft_agent_response
+from app.agent.service import (
+    NO_RELEVANT_CONTENT_ANSWER,
+    agent_retrieval_query,
+    draft_agent_response,
+)
 
 
 class AgentServicesTest(unittest.TestCase):
@@ -95,13 +100,50 @@ class AgentServicesTest(unittest.TestCase):
 
     def test_learning_plan_is_deterministic_and_not_persisted(self):
         with (
-            patch("app.agent.service.search_learning_cards", return_value=self.learning_cards),
-            patch("app.agent.service.search_tool_cards", return_value=[]),
+            patch(
+                "app.agent.service.search_learning_cards",
+                return_value=self.learning_cards,
+            ) as learning,
+            patch(
+                "app.agent.service.search_tool_cards",
+                side_effect=AssertionError("unexpected tools call"),
+            ),
+            patch(
+                "app.agent.service.suggest_workflow",
+                side_effect=AssertionError("unexpected workflow call"),
+            ),
         ):
-            response = draft_agent_response(AgentChatRequest(message="RAG 怎么学"), self.user_context)
+            response = draft_agent_response(
+                AgentChatRequest(message="RAG 怎么学？"),
+                self.user_context,
+            )
         self.assertEqual("learning_plan", response.intent)
+        learning.assert_called_once_with("RAG", limit=5)
         self.assertEqual("learn-node.html?slug=rag", response.workflowSteps[0].targetHref)
         self.assertIsNone(response.workflowDraft)
+
+    def test_every_fixed_suggestion_has_the_same_grounded_empty_result(self):
+        fixed_prompts = (
+            "RAG 怎么学？",
+            "推荐免费优先的代码工具",
+            "带我去学习 Transformer",
+            "帮我做一个论文阅读工作流",
+        )
+        with (
+            patch("app.agent.service.search_learning_cards", return_value=[]),
+            patch("app.agent.service.search_tool_cards", return_value=[]),
+            patch("app.agent.service.search_navigation_cards", return_value=[]),
+            patch("app.agent.service.suggest_workflow", return_value=[]),
+        ):
+            for prompt in fixed_prompts:
+                with self.subTest(prompt=prompt):
+                    response = draft_agent_response(
+                        AgentChatRequest(message=prompt),
+                        self.user_context,
+                    )
+                    self.assertEqual(NO_RELEVANT_CONTENT_ANSWER, response.answer)
+                    self.assertEqual([], response.cards)
+                    self.assertEqual([], response.citations)
 
     def test_workflow_draft_uses_tools_and_requires_separate_save_command(self):
         workflow = [{
@@ -147,6 +189,34 @@ class AgentServicesTest(unittest.TestCase):
         self.assertEqual("RAG", agent_retrieval_query("请介绍RAG"))
         self.assertEqual("编程", agent_retrieval_query("推荐一个编程工具"))
         self.assertEqual("用户空间", agent_retrieval_query("打开用户空间"))
+        self.assertEqual("learning_plan", classify_intent("带我去学习 Transformer"))
+        self.assertEqual(
+            "Transformer",
+            agent_retrieval_query("带我去学习 Transformer", "learning_plan"),
+        )
+
+    def test_filtered_ungrounded_result_uses_fixed_empty_answer(self):
+        unsafe_card = {
+            "type": "page",
+            "sourceKey": "unsafe",
+            "title": "不安全页面",
+            "description": "会被最终证据校验移除。",
+            "href": "https://example.invalid",
+            "reason": "测试",
+        }
+        with (
+            patch("app.agent.service.search_navigation_cards", return_value=[unsafe_card]),
+            patch("app.agent.service.search_learning_cards", return_value=[]),
+            patch("app.agent.service.search_tool_cards", return_value=[]),
+            patch("app.agent.service.suggest_workflow", return_value=[]),
+        ):
+            response = draft_agent_response(
+                AgentChatRequest(message="打开不安全页面"),
+                self.user_context,
+            )
+        self.assertEqual(NO_RELEVANT_CONTENT_ANSWER, response.answer)
+        self.assertEqual([], response.cards)
+        self.assertEqual([], response.citations)
 
     def test_intent_plan_calls_only_needed_baseline_capabilities(self):
         with (

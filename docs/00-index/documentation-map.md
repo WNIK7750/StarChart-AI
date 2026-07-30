@@ -1,12 +1,12 @@
 # AI 知识导航文档地图
 
-> 版本：2026-07-28
+> 版本：2026-07-29
 > 目标：让设计、实现、运维、审计和机器证据各有唯一入口。
 
 ## 1. 权威阅读顺序
 
 1. 当前独立复验与发布判断：`docs/05-quality/audits/full-project-remediation-verification-report.md`
-2. Git 提交执行交接：`docs/05-quality/audits/git-commit-readiness-handoff.md`
+2. 当前本地部署与 Git 执行交接：`docs/01-overview/assistant-site-performance-local-deploy-git-handoff-20260729.md`
 3. 当前整改实施记录：`docs/05-quality/audits/full-project-remediation-report.md`
 4. 审计整改文件路由：`docs/00-index/remediation-file-index.md`
 5. 上一轮问题回测：`docs/05-quality/audits/full-project-reaudit-report.md`
@@ -77,13 +77,18 @@
 ### HTTP 测试部署
 
 - `docs/00-index/http-test-deployment-file-index.md`
+- `docs/01-overview/assistant-site-performance-local-deploy-git-handoff-20260729.md`
 - `docs/01-overview/http-subpath-test-deployment-implementation-plan.md`
 - `docs/02-architecture/deployment/http-subpath-test-deployment-design.md`
 - `docs/04-operations/deployment/http-test-deployment-runbook.md`
+- `docs/04-operations/deployment/http-test-deployment-troubleshooting.md`
+- `docs/05-quality/audits/http-test-assistant-site-performance-20260729.md`
+- `docs/superpowers/specs/2026-07-29-clean-http-routes-design.md`
+- `docs/superpowers/plans/2026-07-29-clean-http-routes.md`
 - `docs/06-evidence/platform/http-test-deployment-manifest.json`
 - `docs/06-evidence/platform/http-test-server-validation.json`
 
-当前状态为任务 1–13 的本地实现、复验和 deterministic HTTP 服务器部署已完成。真实 Provider 预览、HTTPS、备份恢复、回滚演练、容量、合规和外部生产签收尚未执行；HTTP 测试部署为 `GO`，生产发布继续 `NO-GO`。
+任务 1–13 的上一 deterministic HTTP release 已完成并有历史 `GO` 证据。2026-07-29 当前候选又完成干净页面地址、旧 `.html` 308 兼容、本地 8088 smoke 和桌面/移动 Playwright 验收，完整仓库本地候选为 `GO`；当前提交仍未部署到 HTTP 测试服务器，不得把上一 release 的 `GO` 套用到当前 worktree。真实 Provider 预览、HTTPS、备份恢复、回滚演练、容量、合规和外部生产签收尚未执行，生产发布继续 `NO-GO`。
 
 ### 审计整改提示词
 
@@ -92,6 +97,7 @@
 - `docs/05-quality/audits/full-project-remediation-verification-report.md`
 - `docs/05-quality/audits/full-project-remediation-report.md`
 - `docs/05-quality/audits/git-commit-readiness-handoff.md`
+- `docs/05-quality/audits/git-http-privacy-audit.md`
 - `docs/06-evidence/platform/dependency_input_remediation.json`
 - `docs/04-operations/production-external-signoff-checklist.md`
 

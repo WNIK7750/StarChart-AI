@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>探索知识地图 · AI 知识导航</title>
-<link rel="icon" type="image/png" href="assets/img/logo.png">
+<link rel="icon" type="image/svg+xml" href="assets/img/brand-mark.62793ed5.svg">
+<link rel="modulepreload" href="assets/js/learn-page.js">
 <link rel="stylesheet" href="assets/css/accessibility.css">
+<link rel="stylesheet" href="assets/css/roadmap-tabs.css">
 <style>
 /* AI知识导航 · 学习路径总览页 v7 - Python UTF-8 生成 */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -90,13 +92,6 @@ img, svg { max-width: 100%; display: block; }
 .km-legend-dot.heat-4 { background: #EB5AAF; width: 8px; height: 8px; }
 .km-legend-dot.heat-5 { background: #FF8A2A; width: 8px; height: 8px; }
 
-/* ---- Tabs ---- */
-.line-tabs { display: flex; gap: 10px; margin: 16px 0 12px; padding: 0 0 12px; border-bottom: 1px solid rgba(15,15,25,.06); overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.line-tab { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(15,15,25,.1); background: #FFF; font-size: 13px; color: #6E6E7A; font-weight: 600; white-space: nowrap; transition: all .18s cubic-bezier(.4,0,.2,1); }
-.line-tab::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--domain-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--domain-color) 14%, transparent); }
-.line-tab:hover { color: #0A0A0F; background: #F4F4F7; }
-.line-tab.active { background: #FFF; color: #0A0A0F; border-color: var(--domain-color); box-shadow: 0 10px 24px var(--domain-glow); }
-
 /* ---- Resource cards ---- */
 .resource-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin: 18px 0 24px; }
 .resource-card { display: flex; gap: 18px; min-height: 132px; padding: 18px; background: linear-gradient(180deg,#FFF 0%,#FDFDFF 100%); border: 1px solid rgba(15,15,25,.07); border-radius: 12px; transition: transform .22s cubic-bezier(.4,0,.2,1), box-shadow .22s cubic-bezier(.4,0,.2,1), border-color .22s cubic-bezier(.4,0,.2,1); cursor: pointer; position: relative; overflow: hidden; box-shadow: 0 1px 0 rgba(15,15,25,.03); }
@@ -124,7 +119,7 @@ img, svg { max-width: 100%; display: block; }
 /* ---- Reveal / Responsive / Reduced motion ---- */
 .reveal { opacity: 0; transform: translateY(20px); transition: opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1); }
 .reveal.in { opacity: 1; transform: translateY(0); }
-.line-tabs.reveal, .resource-grid.reveal, .load-more.reveal { opacity: 1; transform: none; }
+.roadmap-tabs.reveal, .resource-grid.reveal, .load-more.reveal { opacity: 1; transform: none; }
 @media (max-width: 1024px) { .resource-grid { grid-template-columns: repeat(2,1fr); } .km-title { font-size: 32px; } }
 @media (max-width: 768px) { body { font-size: 14px; } .km-title { font-size: 26px; } .km-hero-top { flex-direction: column; gap: 12px; } .nav-links { display: none; } .nav-actions .btn:not(.btn-primary) { display: none; } .resource-grid { grid-template-columns: 1fr; } .container { padding: 0 20px; } .km-canvas { justify-content: flex-start; padding: 62px 18px 30px; min-height: 360px; overflow-x: auto; } .km-svg { width: 1120px; min-width: 1120px; max-height: none; } .km-legend { left: 18px; right: auto; max-width: calc(100% - 36px); overflow-x: auto; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration: .01ms!important; animation-iteration-count: 1!important; transition-duration: .01ms!important; scroll-behavior: auto!important; } }
@@ -134,15 +129,15 @@ img, svg { max-width: 100%; display: block; }
 
 <header class="nav" id="navbar">
   <div class="nav-inner">
-    <a href="index.html" class="brand">
+    <a href="." class="brand">
       <span class="brand-mark">A+</span>
       <span>AI 知识导航</span>
     </a>
     <nav class="nav-links">
-      <a href="index.html">主页</a>
-      <a href="learn.html" class="active">学习</a>
-      <a href="tools.html">工具</a>
-      <a href="assistant.html">助手</a>
+      <a href=".">主页</a>
+      <a href="learn" class="active">学习</a>
+      <a href="tools">工具</a>
+      <a href="assistant">助手</a>
     </nav>
     <div class="nav-actions">
       <button class="icon-btn" title="搜索" aria-label="搜索">⌕</button>
@@ -167,12 +162,12 @@ img, svg { max-width: 100%; display: block; }
       </a>
     </div>
 
-    <div class="line-tabs reveal">
-      <button class="line-tab active" data-domain="core" style="--domain-color:#6D5EF6;--domain-glow:rgba(109,94,246,.18)">AI 基础</button>
-      <button class="line-tab" data-domain="ml" style="--domain-color:#0EA5E9;--domain-glow:rgba(14,165,233,.18)">机器学习</button>
-      <button class="line-tab" data-domain="dl" style="--domain-color:#C084FC;--domain-glow:rgba(192,132,252,.18)">深度学习与 LLM</button>
-      <button class="line-tab" data-domain="app" style="--domain-color:#14B8A6;--domain-glow:rgba(20,184,166,.18)">应用开发</button>
-      <button class="line-tab" data-domain="ops" style="--domain-color:#EF4444;--domain-glow:rgba(239,68,68,.16)">工程治理</button>
+    <div class="roadmap-tabs reveal" role="tablist">
+      <button class="roadmap-tab active" data-domain="core" style="--domain-color:#6D5EF6;--domain-glow:rgba(109,94,246,.18)" role="tab"><span class="tab-dot" style="background:#6D5EF6"></span>AI 基础</button>
+      <button class="roadmap-tab" data-domain="ml" style="--domain-color:#0EA5E9;--domain-glow:rgba(14,165,233,.18)" role="tab"><span class="tab-dot" style="background:#0EA5E9"></span>机器学习</button>
+      <button class="roadmap-tab" data-domain="dl" style="--domain-color:#C084FC;--domain-glow:rgba(192,132,252,.18)" role="tab"><span class="tab-dot" style="background:#C084FC"></span>深度学习与 LLM</button>
+      <button class="roadmap-tab" data-domain="app" style="--domain-color:#14B8A6;--domain-glow:rgba(20,184,166,.18)" role="tab"><span class="tab-dot" style="background:#14B8A6"></span>应用开发</button>
+      <button class="roadmap-tab" data-domain="ops" style="--domain-color:#EF4444;--domain-glow:rgba(239,68,68,.16)" role="tab"><span class="tab-dot" style="background:#EF4444"></span>工程治理</button>
     </div>
 
     <div class="km-canvas reveal">
@@ -363,42 +358,42 @@ img, svg { max-width: 100%; display: block; }
 <section style="padding: 0;">
   <div class="container">
     <div class="resource-grid reveal">
-      <a href="learn-node.html" class="resource-card" data-spotlight>
+      <a href="learn/ai-literacy" class="resource-card" data-spotlight>
         <div class="resource-cover g-purple"><div class="resource-cover-label">CORE</div><div class="resource-cover-text">AI 通识</div></div>
         <div class="resource-info">
           <div class="resource-title">AI 通识 · 入门必读</div>
           <div class="resource-desc">本节点讲解 AI 的定义、发展历史与核心概念</div>
         </div>
       </a>
-      <a href="learn-node.html" class="resource-card" data-spotlight>
+      <a href="learn/machine-learning" class="resource-card" data-spotlight>
         <div class="resource-cover g-pink"><div class="resource-cover-label">FUND</div><div class="resource-cover-text">ML</div></div>
         <div class="resource-info">
           <div class="resource-title">机器学习基础</div>
           <div class="resource-desc">监督学习、无监督学习、强化学习</div>
         </div>
       </a>
-      <a href="learn-node.html" class="resource-card" data-spotlight>
+      <a href="learn/neural-network" class="resource-card" data-spotlight>
         <div class="resource-cover g-cyan"><div class="resource-cover-label">DEEP</div><div class="resource-cover-text">DL</div></div>
         <div class="resource-info">
           <div class="resource-title">深度学习与神经网络</div>
           <div class="resource-desc">神经网络原理与常见架构详解</div>
         </div>
       </a>
-      <a href="learn-node.html" class="resource-card" data-spotlight>
+      <a href="learn/llm-foundation" class="resource-card" data-spotlight>
         <div class="resource-cover g-green"><div class="resource-cover-label">LLM</div><div class="resource-cover-text">LLM</div></div>
         <div class="resource-info">
           <div class="resource-title">大语言模型原理</div>
           <div class="resource-desc">Transformer 架构与自注意力机制</div>
         </div>
       </a>
-      <a href="learn-node.html" class="resource-card" data-spotlight>
+      <a href="learn/prompt" class="resource-card" data-spotlight>
         <div class="resource-cover g-warm"><div class="resource-cover-label">PRMT</div><div class="resource-cover-text">P</div></div>
         <div class="resource-info">
           <div class="resource-title">Prompt 工程实战</div>
           <div class="resource-desc">结构化提示策略与 30+ 真实场景</div>
         </div>
       </a>
-      <a href="learn-node.html" class="resource-card" data-spotlight>
+      <a href="learn/rag" class="resource-card" data-spotlight>
         <div class="resource-cover g-yellow"><div class="resource-cover-label">RAG</div><div class="resource-cover-text">R</div></div>
         <div class="resource-info">
           <div class="resource-title">RAG 与知识库搭建</div>
@@ -415,8 +410,8 @@ img, svg { max-width: 100%; display: block; }
   <div class="container" style="display:flex; justify-content:space-between; font-size:12px; color:#6E6E7A; font-family:&quot;SF Mono&quot;,&quot;JetBrains Mono&quot;,Menlo,Consolas,monospace;">
     <span>© 2026 AI 知识导航 · v2 concept · 由 WorkBuddy 重新设计</span>
     <div style="display:flex; gap:24px;">
-      <a href="index.html">← 返回主页</a>
-      <a href="learn-node.html" style="color:#7C5CFF">查看节点详情 →</a>
+      <a href=".">← 返回主页</a>
+      <a href="learn/rag" style="color:#7C5CFF">查看节点详情 →</a>
     </div>
   </div>
 </footer>

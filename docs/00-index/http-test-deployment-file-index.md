@@ -1,8 +1,10 @@
 # HTTP 测试部署文件索引
 
 > 用途：作为 HTTP 子路径测试部署的文件路由、实现进度、验证证据和回滚同步入口。
-> 状态：任务 1 至任务 13 的 deterministic HTTP 测试实例已实施并完成服务器验证；Provider 预览、HTTPS、备份恢复和回滚演练未执行，生产发布继续 NO-GO。
-> 日期：2026-07-28。
+> 状态：上一 deterministic HTTP release 已完成服务器验证；2026-07-29 性能
+> 候选仅完成本地前端验证，尚未部署。Provider 预览、HTTPS、备份恢复和回滚
+> 演练未执行，生产发布继续 NO-GO。
+> 日期：2026-07-29。
 > 权威性：本索引记录本任务事实，不替代当前审计报告、生产发布清单或服务器实际运行记录。
 
 ## 1. 阅读顺序
@@ -46,7 +48,8 @@
 | `deploy/http-test/` | Nginx、systemd、项目选择页、无秘密环境模板和脚本 | 已完成任务 8，并在任务 9 纳入发布 allowlist；仅本地结构、shell 语法和发布包选择已验证 |
 | `scripts/verify-http-test-deployment.ps1` | 顺序运行 Tasks 1–9 聚焦功能流并产生本次结构化计数 | 已完成任务 10；已接入 foundation 本地门禁和 CI |
 | `scripts/build-http-test-server-validation.py` | 从脱敏服务器快照与交互验证报告生成严格服务器证据 | 已完成任务 13；拒绝额外敏感字段和不一致计数 |
-| `docs/04-operations/deployment/http-test-deployment-runbook.md` | 参数化的备份、安装、初始化、验证、停止和回滚步骤 | 已完成任务 11；仅结构与交叉链接通过，本地/服务器命令未据此执行 |
+| `docs/04-operations/deployment/http-test-deployment-runbook.md` | 参数化的备份、安装、初始化、验证、停止和回滚步骤 | 已完成任务 11并用于任务 13 部署；恢复、回滚和 Provider 章节未执行 |
+| `docs/04-operations/deployment/http-test-deployment-troubleshooting.md` | 本次实机部署故障的现象、根因、推荐处理、验证和误判边界 | 已新增部署复盘；不包含秘密或生产成功声明 |
 | `docs/06-evidence/platform/http-test-deployment-manifest.json` | 无内容、无秘密的本地专项门禁机器证据 | 已由任务 10 生成；所有外部验证仍为 `not_run` |
 | `docs/06-evidence/platform/http-test-server-validation.json` | 任务 13 的脱敏服务器事实、24 项全功能流与分离结论 | 已由生成器写入并通过 schema/秘密扫描 |
 
@@ -193,6 +196,62 @@
 - 最终复验使用服务器 `/tmp` 中的同提交临时源码副本和隔离 Python 3.12 运行 Python 专项组，分别通过 runtime 49、policy 8、agentHistory 74、guestAgent 27、overlay 22 项；overlay 首次在 Linux 暴露文件枚举顺序断言，改用 `assertCountEqual` 后 22/22 通过。Windows 专属 release 组回到本机运行并通过 7/7，本机 Node 前端组通过 47/47；生成器 2/2、Ruff、Python 编译、发布 allowlist 365/0/10、定向秘密扫描和 `git diff --check` 均通过。本机旧 `.venv` 的解释器目标已丢失，因此没有把本次服务器 Python 专项误记成完整本地 quality 门禁；应用源码仅有已部署的 409 路由修复，相关 HTTP/Agent 专项已覆盖。
 - 当前结论分别为：本地整改候选 `GO`；deterministic HTTP 测试部署 `GO`；真实 Provider 预览 `NOT RUN`；生产发布 `NO-GO`。最小应用回滚路径是把 `/opt/starchart-ai/current` 指回上一不可变发布并重启 8001；覆盖层或旧站恢复没有实际演练，因此不能宣称回滚通过。
 
+### 3.15 文档批次：2026-07-28，部署故障复盘
+
+- 已新增 `docs/04-operations/deployment/http-test-deployment-troubleshooting.md`，将本次真实出现的 SSH、终端回显、CRLF、解压工具、Python/依赖、runtime backend、systemd 就绪、Nginx 子路径与旧站精确路由、SQLite、Agent 空会话、Windows SCP、脱敏报告和验证时长问题整理为快速定位表及分层排查步骤。
+- 每个问题均区分现象、根因、推荐处理、验证和误判边界；没有记录主机地址、账号标识、密码、Token、Cookie、真实 `.env` 或 Provider 内容。
+- 备份完整性、恢复、回滚、deterministic Agent、真实 Provider 和生产发布保持分离结论；未执行的事项继续标记为 `NOT RUN`。
+- 本批次只修改 Markdown 导航与故障文档；验证只运行文档秘密扫描、显式路径检查和 `git diff --check`，不复用或重复运行与文档无关的长测试套件。
+
+### 3.16 Git 与 HTTP 隐私复核：2026-07-29
+
+- 当前权威记录为 `docs/05-quality/audits/git-http-privacy-audit.md`。
+- HTTP 文件不再记录真实服务器 origin、本机绝对路径、测试账号标识或 SSH 登录串；运行时测试使用 RFC 5737 文档保留地址。
+- 发现首次仓库根目录迁移仍继承旧父仓库历史，已创建干净 subtree 候选并保持现有 `master` 可恢复；默认分支是否再次替换必须以候选发布与确认结果为准。
+- 本次 HTTP 专项门禁以隔离 Python 重跑并通过 runtime 49、policy 8、agentHistory 74、guestAgent 27、frontend 47、overlay 22、release 7；发布选择为 366/0/10。
+
+### 3.17 性能批次：2026-07-29，助手与全站启动/交互优化
+
+- 权威复验记录为 `docs/05-quality/audits/http-test-assistant-site-performance-20260729.md`；设计和执行清单分别位于 `docs/superpowers/specs/2026-07-29-assistant-and-site-performance-design.md` 与 `docs/superpowers/plans/2026-07-29-assistant-and-site-performance.md`。
+- 已将无确定性答案的默认比较问题改为“RAG 怎么学？”，并完成助手 SSE 帧缓冲、短/长期列表分区后台刷新、请求版本隔离和 `DocumentFragment` 批量挂载。
+- 已完成公共页面非阻塞认证启动、搜索去抖/取消/最新结果、学习页并行水合、全站滚动/悬停帧合并、屏外绘制跳过、关键 module preload、352 B 指纹品牌图和 Nginx gzip/精确 immutable 缓存。
+- 本次真实 Node 全集为 73/73，正式前端门禁为 58/58，所有目标 JavaScript 语法与 `git diff --check` 通过。完整质量门禁运行 259 项 Python 测试，分支覆盖率 86.4%，Ruff 与依赖审计通过；发布选择为 367/0/10。
+- Foundation 门禁通过；HTTP 专项门禁最新七组计数为 runtime 49、policy 8、agentHistory 74、guestAgent 27、frontend 72、overlay 22、release 7。机器证据保持 `sourceCommit=WORKTREE` 且 `containsSecrets=false`。
+- 普通 8088 实例的 10 个清单路径全部为 200。本地 Playwright 复验覆盖桌面五页、390×844 助手页、游客 deterministic 问答/草稿/设置门禁，以及临时合成账号注册、短会话创建和登录会话问答；临时实例和数据库已删除。
+- 当前 performance worktree 的前端实现候选和完整仓库本地候选均为 `GO`，本次 HTTP release 为 `NOT DEPLOYED`，生产发布为 `NO-GO`。上一已部署 release 的历史 `GO` 仍只对其自身有效。
+
+### 3.18 执行交接：2026-07-29，本地部署复验与 Git
+
+- 当前执行入口为 `docs/01-overview/assistant-site-performance-local-deploy-git-handoff-20260729.md`。
+- 交接记录原工作目录的命名分支、当前 HEAD、detached Codex worktree、已完成实现、
+  73/73 与 58/58 前端证据，以及本轮新增的 Python、浏览器和 8088 本地运行证据。
+- 本轮已经在原工作目录完成本地源码、运行实例、正式门禁与浏览器复验；后续从
+  文档同步、精确 Git 审计、功能分支提交和 CI 继续。不得从 detached worktree
+  直接 push，不得用历史通过代替当前验证。
+- 当前性能候选 HTTP 仍为 `NOT DEPLOYED`，生产发布仍为 `NO-GO`。
+
+### 3.19 干净 HTTP 页面地址：2026-07-29，本地验收
+
+- 设计与执行清单分别为
+  `docs/superpowers/specs/2026-07-29-clean-http-routes-design.md` 和
+  `docs/superpowers/plans/2026-07-29-clean-http-routes.md`。
+- FastAPI 新增统一页面适配层，正式地址为 `/`、`/assistant`、`/learn`、
+  `/learn/{slug}`、`/tools`、`/settings`；旧 `index.html`、`assistant.html`、
+  `learn.html`、`learn-node.html?slug=...`、`tools.html`、`settings.html`
+  均返回 308 到对应干净地址，并保留允许的查询参数。
+- 静态 HTML、搜索、Learning、设置、助手和数据库导航/资源种子均改为干净地址；
+  新增迁移 `database/migrations/021_clean_page_routes.sql`。学习节点嵌套路由
+  使用 `../assets/...`，运行时头像回退使用部署前缀安全的根资源地址。
+- 本地正式门禁通过：Node 77/77、前端 62/62、质量门禁 Python 264 项、
+  覆盖率 86.5%、Foundation、HTTP 专项门禁和发布包 369/0/10 均通过。
+- 8088 的 10 个页面/API/资源均为 200；六个旧 `.html` 地址均为 308 且
+  Location 正确。1440×900 与 390×844 的六个干净页面均非空、无横向溢出、
+  无 `pageerror` 或非预期 4xx；设置游客门禁、查询/片段历史和隔离
+  deterministic “RAG 怎么学？”流程通过。
+- 当前源代码候选提交为 `f620bde`，本地 8088 保持单一监听供验收。当前候选
+  尚未推送本轮提交、尚未等待精确 HEAD 的 CI，也尚未部署服务器；PR #3 保持
+  draft，不执行合并。上一服务器 release 的历史 `GO` 不适用于当前候选。
+
 ## 4. 强制同步字段
 
 每次实现或部署更新都必须追加：
@@ -228,9 +287,9 @@
 - 应用实现：任务 1 的运行时配置档、任务 2 的公开运行能力与公共路径投影、任务 3 的测试账号服务端策略、任务 4 的登录会话有界对话上下文、任务 5 的确定性游客助手后端入口、任务 6 的浏览器游客记忆与身份模式切换和任务 7 的无秘密测试账号初始化器已完成；任务 8 没有修改应用源码。
 - 部署覆盖层：已创建并纳入 deny-first 发布包；本地结构测试、shell 语法和发布选择通过，Linux Nginx/systemd 加载验证仍为 `NOT RUN`。
 - 本地专项测试：任务 1 至任务 10 已按各自范围运行并通过；任务 11 只执行文档链接、秘密扫描、差异检查和人工结构审查；最新专项门禁七组真实计数已写入无秘密 manifest。
-- 全量门禁：已于 2026-07-28 使用源码外临时数据库重新运行并通过；质量门禁 252 项、覆盖率 86.5%，专项门禁七组计数为 49/8/74/27/47/20/6。
+- 全量门禁：已于 2026-07-29 在原工作目录重新运行并通过；质量门禁 259 项、覆盖率 86.4%，专项门禁七组计数为 49/8/74/27/72/22/7，发布选择为 367/0/10。
 - 服务器部署：deterministic 8001 实例已执行并通过本次 smoke、公开路由、隔离边界和 24 项账号/游客全功能验证。
-- 本地整改候选：`GO`。
-- HTTP 服务器部署：`GO`，仅限当前无 HTTPS、无真实隐私数据、无 live Provider 的测试用途；备份恢复和回滚演练仍为 `NOT RUN`。
+- 上一已部署 release 的本地整改候选：`GO`；2026-07-29 performance worktree 的完整仓库本地候选：`GO`。
+- HTTP 服务器部署：上一已验证 release 为 `GO`，仅限当前无 HTTPS、无真实隐私数据、无 live Provider 的测试用途；2026-07-29 performance worktree 为 `NOT DEPLOYED`，备份恢复和回滚演练仍为 `NOT RUN`。
 - 真实 Provider 预览：`NOT RUN`，8002 保持关闭。
 - 生产发布：`NO-GO`，HTTPS、外部签收和生产证据仍缺失。

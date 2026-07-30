@@ -34,13 +34,49 @@ async function applyCurrentOperation(epoch, pending, apply, onStart = null) {
 
 test("login dialog uses the site logo until a recent account avatar exists", () => {
   const source = read("frontend/assets/js/auth-ui.js");
-  assert.match(source, /DEFAULT_AUTH_AVATAR = "assets\/img\/logo\.png"/);
+  assert.match(
+    source,
+    /DEFAULT_AUTH_AVATAR = withPublicBasePath\("\/assets\/img\/brand-mark\.[a-f0-9]{8}\.svg"\)/,
+  );
+  assert.doesNotMatch(source, /assets\/img\/logo\.png/);
   assert.match(source, /data-auth-avatar/);
   assert.match(source, /getRecentAvatarUrl\(\)/);
   assert.match(source, /rememberRecentAvatar\(avatarUrl\)/);
   assert.match(source, /input\[type=\"password\"\]/);
   assert.match(source, /name="phone" type="tel" autocomplete="tel"/);
   assert.match(source, /if \(mode === "login"\) body\.rememberMe/);
+});
+
+test("auth bootstrap binds immediately and starts independent network work together", () => {
+  const source = read("frontend/assets/js/auth-ui.js");
+  assert.match(source, /let authInitializationPromise = null/);
+  assert.match(source, /let authRefreshVersion = 0/);
+  assert.match(source, /refreshVersion !== authRefreshVersion/);
+  assert.match(source, /function bindAuthEvents\(\)/);
+  assert.match(source, /if \(authInitializationPromise\) return authInitializationPromise/);
+  assert.match(
+    source,
+    /Promise\.all\(\[\s*loadPublicAuthCapabilities\(\),\s*refreshAuthUI\(\),?\s*\]\)/,
+  );
+  const init = source.match(/export function initAuthUI\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.ok(
+    init.indexOf("bindAuthEvents()") < init.indexOf("Promise.all"),
+    "auth controls must be interactive before network hydration",
+  );
+});
+
+test("successful login invalidates an older bootstrap refresh before any further await", () => {
+  const source = read("frontend/assets/js/auth-ui.js");
+  const handler = source.match(
+    /async function handleLoginOrRegister\(form, mode\) \{([\s\S]*?)\n\}/,
+  )?.[1] || "";
+  const savedAt = handler.indexOf("saveAuthTokens(data)");
+  const refreshedAt = handler.indexOf("const authenticatedRefresh = refreshAuthUI()");
+  const importAt = handler.indexOf('await import("./anonymous-learning-state.js")');
+  assert.ok(savedAt >= 0, "login must save the new access token");
+  assert.ok(refreshedAt > savedAt, "login must invalidate the bootstrap refresh after saving");
+  assert.ok(importAt > refreshedAt, "no awaited follow-up may leave the old refresh current");
+  assert.match(handler, /return authenticatedRefresh/);
 });
 
 test("account settings expose email and phone binding with password confirmation", () => {

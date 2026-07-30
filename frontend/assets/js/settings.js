@@ -1,9 +1,8 @@
 import {
   apiGet,
   clearAuthTokens,
-  getAccessToken,
-  restoreAuthSession,
 } from "./api.js";
+import { initAuthUI } from "./auth-ui.js";
 import { withPublicBasePath } from "./public-path.js";
 import { rememberPrivacyConsent, rememberRecentAvatar } from "./auth-local-state.js";
 import { formatLearningTime, learningTimeTitle } from "./time-format.js";
@@ -274,7 +273,7 @@ function renderAvatar(url, remember = false) {
   const src = projectAvatarUrl(url);
   if (remember) rememberRecentAvatar(url);
   $all("[data-avatar-preview], [data-avatar-small]").forEach((image) => {
-    image.src = src || "assets/img/logo.png";
+    image.src = src || withPublicBasePath("/assets/img/brand-mark.62793ed5.svg");
   });
 }
 
@@ -296,23 +295,15 @@ function fillQuestionRows(items = []) {
   wireFormLabels(box);
 }
 
-async function requireLogin() {
-  if (!getAccessToken()) {
-    try {
-      await restoreAuthSession();
-    } catch {
-      window.location.href = "index.html";
-      return null;
-    }
-  }
-  try {
-    const data = await getCurrentUser();
-    return data.user;
-  } catch {
-    clearAuthTokens();
-    window.location.href = "index.html";
-    return null;
-  }
+function requireLogin(user) {
+  return user || null;
+}
+
+function renderLoginRequired() {
+  $("[data-settings-content]").hidden = true;
+  const gate = $("[data-settings-login-required]");
+  gate.hidden = false;
+  gate.querySelector('[data-auth-trigger="login"]')?.focus();
 }
 
 async function loadAccountDetails(user = currentUser) {
@@ -527,10 +518,10 @@ async function loadLearningAreas() {
   ]);
   renderLearningDashboard(dashboard);
   renderLearningItems("[data-progress-box]", progress, "暂无节点进度。", (item) => `
-    <div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "learn.html"))}">${escapeHtml(item.title)}</a><span>${escapeHtml(item.status === "completed" ? "已完成" : item.status === "in_progress" ? "学习中" : "未开始")}</span></div><em>${item.progressPercent || 0}%</em></div>`);
+    <div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "/learn"))}">${escapeHtml(item.title)}</a><span>${escapeHtml(item.status === "completed" ? "已完成" : item.status === "in_progress" ? "学习中" : "未开始")}</span></div><em>${item.progressPercent || 0}%</em></div>`);
   renderRecentItems(recent);
   renderLearningItems("[data-favorites-box]", favorites, "暂无收藏。", (item) => `
-    <div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "learn.html"))}">${escapeHtml(item.title)}</a><span>${escapeHtml(item.description || "学习收藏")}</span></div><button class="btn subtle" type="button" data-remove-favorite="${escapeHtml(item.favoriteUid)}">移除</button></div>`);
+    <div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "/learn"))}">${escapeHtml(item.title)}</a><span>${escapeHtml(item.description || "学习收藏")}</span></div><button class="btn subtle" type="button" data-remove-favorite="${escapeHtml(item.favoriteUid)}">移除</button></div>`);
 }
 
 function workflowToolMarkup(step) {
@@ -608,7 +599,7 @@ async function loadWorkflows() {
 function learningHistoryItem(item) {
   const time = item.lastReadAt || item.lastStudiedAt || item.updatedAt;
   const detail = time ? formatLearningTime(time) : item.description || "最近阅读";
-  return `<div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "learn.html"))}">${escapeHtml(item.title)}</a><span title="${escapeHtml(learningTimeTitle(time))}">${escapeHtml(detail)}</span></div><em>继续</em></div>`;
+  return `<div class="learning-item"><div><a href="${escapeHtml(safeInternalHref(item.href, "/learn"))}">${escapeHtml(item.title)}</a><span title="${escapeHtml(learningTimeTitle(time))}">${escapeHtml(detail)}</span></div><em>继续</em></div>`;
 }
 
 function renderLearningItems(selector, result, emptyText, template) {
@@ -787,7 +778,7 @@ async function savePassword(event) {
     clearAuthTokens();
     setFormState("password", "loading", "密码已修改，请重新登录。");
     window.setTimeout(() => {
-      window.location.href = "index.html";
+      window.location.href = safeInternalHref("/");
     }, 900);
   } catch (err) {
     setFormState("password", "error", err.message || "修改失败");
@@ -1079,7 +1070,7 @@ async function logout() {
     // Local logout should not be blocked by an expired server session.
   }
   clearAuthTokens();
-  window.location.href = "index.html";
+  window.location.href = safeInternalHref("/");
 }
 
 async function retryArea(area) {
@@ -1097,16 +1088,23 @@ async function retryArea(area) {
 }
 
 async function init() {
+  const user = requireLogin(await initAuthUI());
+  if (!user) {
+    renderLoginRequired();
+    return;
+  }
+  $("[data-settings-login-required]").hidden = true;
+  $("[data-settings-content]").hidden = false;
   applyPublicSettingsCapabilities(null);
-  const user = await requireLogin();
-  if (!user) return;
   currentUser = user;
   wireFormLabels();
   await loadPublicSettingsCapabilities();
   showSection(window.location.hash.slice(1) || "profile");
   if (settingsVisibility.passwordChanges) setFormState("password", "idle");
   await loadAccount(user);
-  await loadAtomicAreas();
+  void loadAtomicAreas().catch((error) => {
+    console.warn("Secondary settings areas unavailable:", error);
+  });
 
   window.addEventListener("hashchange", () => showSection(window.location.hash.slice(1) || "profile"));
   $("[data-profile-form]").addEventListener("submit", saveProfile);

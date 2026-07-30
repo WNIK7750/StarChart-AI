@@ -14,6 +14,7 @@ import {
 } from "./learning-api.js";
 
 let dashboardPromise = null;
+let dashboardToken = "";
 const STYLE_ID = "learning-state-styles";
 
 function escapeHtml(value = "") {
@@ -34,7 +35,7 @@ function injectStyles() {
     .learning-resume-copy{min-width:0}.learning-resume-kicker{font-size:11px;font-weight:700;color:#6d5ef6;margin-bottom:3px}.learning-resume-copy strong{display:block;font-size:16px}.learning-resume-copy span{display:block;color:#6e6e7a;font-size:12px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .learning-resume-meta{display:flex;align-items:center;gap:12px}.learning-resume-progress{font-size:12px;font-weight:700;color:#57606a;white-space:nowrap}.learning-resume-link{height:34px;display:inline-flex;align-items:center;padding:0 12px;border-radius:7px;background:#24292f;color:#fff!important;font-size:12px;font-weight:700}
     .node-learning-state{margin-top:14px;padding-top:14px;border-top:1px solid rgba(15,15,25,.08);display:grid;gap:9px}.node-state-head{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px}.node-state-head strong{font-size:13px}.node-state-track{height:6px;border-radius:3px;background:#ececf1;overflow:hidden}.node-state-track i{display:block;height:100%;background:#16a36a;border-radius:inherit;transition:width .2s}.node-state-actions{display:flex;flex-wrap:wrap;gap:8px}.node-state-btn{height:32px;padding:0 11px;border:1px solid rgba(15,15,25,.12);border-radius:7px;background:#fff;color:#24292f;font-size:12px;font-weight:700}.node-state-btn:hover{background:#f6f8fa}.node-state-btn:disabled{opacity:.55;cursor:wait}.node-state-btn.is-favorite{color:#cf7b00;background:#fff8e6}.node-state-message{min-height:17px;font-size:12px;color:#57606a}.node-state-message.error{color:#cf222e}
-    .km-node.learning-in-progress .km-node-rect{stroke:#0ea5e9;stroke-width:2}.km-node.learning-completed .km-node-rect{stroke:#16a36a;stroke-width:2;fill:#f3fbf7}.km-node.learning-completed .km-node-dot{fill:#16a36a}
+    .km-canvas:not(.has-domain) .km-node.learning-in-progress .km-node-rect{stroke:#0ea5e9;stroke-width:2}.km-canvas:not(.has-domain) .km-node.learning-completed .km-node-rect{stroke:#16a36a;stroke-width:2;fill:#f3fbf7}.km-canvas:not(.has-domain) .km-node.learning-completed .km-node-dot{fill:#16a36a}
     @media(max-width:768px){.nav .brand{white-space:nowrap}.nav .brand>span:last-child{display:none}.learning-resume-band{grid-template-columns:1fr}.learning-resume-meta{justify-content:space-between}.learning-resume-copy span{white-space:normal}.node-state-actions{display:grid;grid-template-columns:1fr 1fr}.node-state-btn{width:100%}}
   `;
   document.head.appendChild(style);
@@ -45,10 +46,17 @@ function loggedIn() {
 }
 
 async function dashboard(force = false) {
-  if (!loggedIn()) return null;
-  if (force || !dashboardPromise) {
+  const token = getAccessToken();
+  if (!token) {
+    dashboardPromise = null;
+    dashboardToken = "";
+    return null;
+  }
+  if (force || !dashboardPromise || dashboardToken !== token) {
+    const requestToken = token;
+    dashboardToken = token;
     dashboardPromise = getLearningDashboard().catch((error) => {
-      dashboardPromise = null;
+      if (dashboardToken === requestToken) dashboardPromise = null;
       console.warn("Learning dashboard unavailable:", error);
       return null;
     });
@@ -69,34 +77,37 @@ function resumeBand(item) {
       </div>
       <div class="learning-resume-meta">
         ${percent ? `<span class="learning-resume-progress">${percent}%</span>` : ""}
-        <a class="learning-resume-link" href="${escapeHtml(safeInternalHref(item.href, "learn.html"))}">继续 →</a>
+        <a class="learning-resume-link" href="${escapeHtml(safeInternalHref(item.href, "/learn"))}">继续 →</a>
       </div>
     </div>`;
 }
 
-export async function hydrateLearningDashboard() {
+export async function hydrateLearningDashboard(isCurrent = () => true) {
   injectStyles();
   const data = await dashboard();
-  if (!data?.resume) return;
+  if (!isCurrent() || !data?.resume) return;
   const heroTop = document.querySelector(".km-hero-top");
   if (heroTop && !document.querySelector(".km-hero .learning-resume-band")) {
     heroTop.insertAdjacentHTML("afterend", resumeBand(data.resume));
   }
   const recent = document.querySelector(".recent-entry");
   if (recent && data.recent?.[0]) {
-    recent.href = safeInternalHref(data.recent[0].href, "settings.html#learning");
+    recent.href = safeInternalHref(data.recent[0].href, "/settings#learning");
     recent.firstChild.textContent = `最近阅读 · ${data.recent[0].title} `;
   }
 }
 
-export async function decorateRoadmapProgress(scope = document) {
+export async function decorateRoadmapProgress(scope = document, isCurrent = () => true) {
   const data = await dashboard();
-  if (!data) return;
-  const progress = new Map((await listLearningProgress()).items.map((item) => [item.nodeSlug, item]));
+  if (!isCurrent() || !data) return;
+  const progressResult = await listLearningProgress();
+  if (!isCurrent()) return;
+  const progress = new Map(progressResult.items.map((item) => [item.nodeSlug, item]));
+  const showProgressDecoration = !scope.classList?.contains("has-domain");
   scope.querySelectorAll(".km-node[data-node-slug]").forEach((node) => {
     const item = progress.get(node.dataset.nodeSlug);
-    node.classList.toggle("learning-in-progress", item?.status === "in_progress");
-    node.classList.toggle("learning-completed", item?.status === "completed");
+    node.classList.toggle("learning-in-progress", showProgressDecoration && item?.status === "in_progress");
+    node.classList.toggle("learning-completed", showProgressDecoration && item?.status === "completed");
     if (item) node.setAttribute("aria-label", `${node.getAttribute("aria-label") || "学习节点"}，进度 ${item.progressPercent}%`);
   });
 }
@@ -116,20 +127,23 @@ function pageActivityKey(slug) {
   return value;
 }
 
-export async function hydrateNodeLearningState(slug, nodeData) {
+export async function hydrateNodeLearningState(slug, nodeData, isCurrent = () => true) {
   injectStyles();
   if (!loggedIn()) {
-    recordAnonymousNodeView(slug);
+    if (isCurrent()) recordAnonymousNodeView(slug);
     return;
   }
   await mergeAnonymousLearningState().catch((error) => {
     console.warn("Anonymous learning state import unavailable:", error);
   });
+  if (!isCurrent()) return;
   await recordActivity({ nodeSlug: slug, targetType: "learning_node", targetKey: slug, activityType: "view_node", metadata: { page: "learn-node" } }, pageActivityKey(slug));
+  if (!isCurrent()) return;
   let [nodeState, favoriteResult] = await Promise.all([
     getLearningNodeState(slug),
     listLearningFavorites({ page_size: 50 }),
   ]);
+  if (!isCurrent()) return;
   let progress = nodeState.progress;
   let sectionStates = new Map(nodeState.sections.map((item) => [item.sectionUid, item]));
   let favorite = favoriteResult.items.find((item) => item.targetType === "learning_node" && item.targetKey === slug) || null;

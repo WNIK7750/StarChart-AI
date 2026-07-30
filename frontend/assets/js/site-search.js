@@ -2,24 +2,25 @@ import { apiGet } from "./api.js";
 import { safeHttpHref, safeInternalHref } from "./url-safety.js";
 
 const SEARCH_STYLE_ID = "ai-nav-site-search-style";
+const SEARCH_DEBOUNCE_MS = 180;
 let searchIndexPromise = null;
 
 const PAGES = [
-  { type: "页面", title: "学习路线", description: "AI 知识地图、学习节点和主资料目录。", url: "learn.html#roadmap", keywords: "学习 路线 知识地图 roadmap ai 课程 节点" },
-  { type: "页面", title: "工具导航", description: "按场景查找 AI 工具、组合工作流和最新工具。", url: "tools.html#directory", keywords: "工具 导航 tools ai workflow 工作流 推荐" },
-  { type: "页面", title: "AI 学习助手", description: "站内 Agent 问答与工作流生成入口。", url: "assistant.html", keywords: "助手 agent 工作流 问答 智能体" },
-  { type: "页面", title: "关于本站", description: "项目定位、内容来源和后续规划。", url: "index.html#about", keywords: "关于 项目 说明" },
+  { type: "页面", title: "学习路线", description: "AI 知识地图、学习节点和主资料目录。", url: "/learn#roadmap", keywords: "学习 路线 知识地图 roadmap ai 课程 节点" },
+  { type: "页面", title: "工具导航", description: "按场景查找 AI 工具、组合工作流和最新工具。", url: "/tools#directory", keywords: "工具 导航 tools ai workflow 工作流 推荐" },
+  { type: "页面", title: "AI 学习助手", description: "站内 Agent 问答与工作流生成入口。", url: "/assistant", keywords: "助手 agent 工作流 问答 智能体" },
+  { type: "页面", title: "关于本站", description: "项目定位、内容来源和后续规划。", url: "/#about", keywords: "关于 项目 说明" },
 ];
 
 const LEARNING = [
-  ["AI 通识", "概念、边界和 AI 基础认知。", "learn-node.html?slug=ai-literacy#overview", "ai 人工智能 通识 基础"],
-  ["Python", "AI 学习常用语法、环境和实践基础。", "learn-node.html?slug=python#overview", "python 编程"],
-  ["数学基础", "概率、线代和机器学习前置知识。", "learn-node.html?slug=math-foundation#overview", "数学 概率 线性代数"],
-  ["机器学习", "监督学习、无监督学习与训练评估。", "learn-node.html?slug=machine-learning#overview", "机器学习 ml"],
-  ["Transformer", "注意力机制和大模型核心结构。", "learn-node.html?slug=transformer#overview", "transformer llm 大模型"],
-  ["Prompt", "提示工程、结构化输出和上下文设计。", "learn-node.html?slug=prompt#overview", "prompt 提示工程"],
-  ["RAG", "检索增强生成、向量库和知识库问答。", "learn-node.html?slug=rag#overview", "rag 检索增强 知识库"],
-  ["Agent", "规划、工具调用和智能体工作流。", "learn-node.html?slug=agent#overview", "agent 智能体 工具调用"],
+  ["AI 通识", "概念、边界和 AI 基础认知。", "/learn/ai-literacy#overview", "ai 人工智能 通识 基础"],
+  ["Python", "AI 学习常用语法、环境和实践基础。", "/learn/python#overview", "python 编程"],
+  ["数学基础", "概率、线代和机器学习前置知识。", "/learn/math-foundation#overview", "数学 概率 线性代数"],
+  ["机器学习", "监督学习、无监督学习与训练评估。", "/learn/machine-learning#overview", "机器学习 ml"],
+  ["Transformer", "注意力机制和大模型核心结构。", "/learn/transformer#overview", "transformer llm 大模型"],
+  ["Prompt", "提示工程、结构化输出和上下文设计。", "/learn/prompt#overview", "prompt 提示工程"],
+  ["RAG", "检索增强生成、向量库和知识库问答。", "/learn/rag#overview", "rag 检索增强 知识库"],
+  ["Agent", "规划、工具调用和智能体工作流。", "/learn/agent#overview", "agent 智能体 工具调用"],
 ].map(([title, description, url, keywords]) => ({ type: "学习", title, description, url, keywords }));
 
 const QUERY_EXPANSIONS = {
@@ -178,7 +179,7 @@ async function buildSearchIndex() {
         type: "工具",
         title: tool.name,
         description: `${tool.categories?.join("、") || "AI 工具"} · ${tool.description}`,
-        url: `tools.html?q=${encodeURIComponent(tool.name)}#directory`,
+        url: `/tools?q=${encodeURIComponent(tool.name)}#directory`,
         iconUrl: tool.icon,
         iconFallbacks: tool.iconFallbacks || [],
         mark: tool.mark,
@@ -190,7 +191,7 @@ async function buildSearchIndex() {
         type: "学习",
         title: node.title,
         description: `${node.subtitle} · 点击查看节点介绍页。`,
-        url: `learn-node.html?slug=${encodeURIComponent(node.slug)}#overview`,
+        url: `/learn/${encodeURIComponent(node.slug)}#overview`,
         keywords: `${node.title} ${node.subtitle} ${node.slug}`,
       })) : LEARNING;
       return [...apiTools, ...nodes, ...PAGES].map(enrichItem);
@@ -269,9 +270,9 @@ function scoreResult(item, query) {
   return score;
 }
 
-async function getResults(queryText, limit = 7) {
+async function getResults(queryText, limit = 7, signal) {
   try {
-    const data = await apiGet("/tools/search", { q: queryText || "", limit });
+    const data = await apiGet("/tools/search", { q: queryText || "", limit }, { retryCount: 0, signal });
     if (Array.isArray(data.items)) return data.items.map((item) => ({
       type: item.type,
       title: item.title,
@@ -284,7 +285,8 @@ async function getResults(queryText, limit = 7) {
       reason: item.reason,
       source: "api",
     }));
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
     // Local catalog fallback keeps static previews usable when the API is not running.
   }
   const query = expandQuery(queryText);
@@ -339,10 +341,37 @@ function goToResult(item) {
   if (href) window.location.href = href;
 }
 
-async function updateResults(form) {
+async function updateResults(form, { signal, sequence } = {}) {
   const input = form.elements.q;
   form.classList.toggle("has-value", Boolean(input.value.trim()));
-  renderResults(form, await getResults(input.value));
+  const results = await getResults(input.value, 7, signal);
+  if (sequence !== undefined && sequence !== form._searchSequence) return;
+  renderResults(form, results);
+}
+
+function requestResults(form, { debounce = false } = {}) {
+  const input = form.elements.q;
+  form._searchSequence = (form._searchSequence || 0) + 1;
+  const sequence = form._searchSequence;
+  if (form._searchTimer) window.clearTimeout(form._searchTimer);
+  form._searchTimer = null;
+  form._searchController?.abort();
+
+  const run = () => {
+    form._searchTimer = null;
+    const controller = new AbortController();
+    form._searchController = controller;
+    updateResults(form, { signal: controller.signal, sequence }).catch((error) => {
+      if (controller.signal.aborted || sequence !== form._searchSequence) return;
+      console.warn("Site search unavailable:", error);
+    });
+  };
+
+  if (debounce && input.value.trim()) {
+    form._searchTimer = window.setTimeout(run, SEARCH_DEBOUNCE_MS);
+    return;
+  }
+  run();
 }
 
 function searchFormHtml(value = "") {
@@ -366,8 +395,8 @@ function setActiveResult(form) {
 
 function bindForm(form) {
   const input = form.elements.q;
-  input.addEventListener("focus", () => updateResults(form));
-  input.addEventListener("input", () => updateResults(form));
+  input.addEventListener("focus", () => requestResults(form));
+  input.addEventListener("input", () => requestResults(form, { debounce: true }));
   input.addEventListener("keydown", (event) => {
     const results = form._results || [];
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -392,7 +421,7 @@ function bindForm(form) {
     if (clear) {
       input.value = "";
       input.focus();
-      updateResults(form);
+      requestResults(form);
       return;
     }
     const result = event.target.closest("[data-result-index]");
@@ -435,7 +464,7 @@ export function initSiteSearch() {
       goToResult((await getResults(link.textContent))[0]);
     });
   });
-  if (location.hash && !location.pathname.endsWith("/tools.html")) {
+  if (location.hash && !location.pathname.endsWith("/tools")) {
     window.setTimeout(() => document.querySelector(location.hash)?.scrollIntoView({ behavior: "smooth", block: "start" }), 180);
   }
 }

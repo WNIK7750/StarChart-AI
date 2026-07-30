@@ -113,6 +113,54 @@ class AgentSessionStore:
             ).fetchone()
             return self._summary(row)
 
+    def ensure_draft(
+        self,
+        user_id: int,
+        session_uid: str,
+        title: str,
+        expires_at: str,
+    ) -> dict:
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                """
+                DELETE FROM agent_chat_sessions
+                WHERE user_id = ? AND expires_at <= CURRENT_TIMESTAMP
+                """,
+                (user_id,),
+            )
+            row = conn.execute(
+                """
+                SELECT s.*, 0 AS message_count
+                FROM agent_chat_sessions s
+                WHERE s.user_id = ? AND s.expires_at > CURRENT_TIMESTAMP
+                  AND NOT EXISTS (
+                    SELECT 1 FROM agent_chat_messages m WHERE m.session_id = s.id
+                  )
+                ORDER BY s.updated_at DESC, s.id DESC
+                LIMIT 1
+                """,
+                (user_id,),
+            ).fetchone()
+            if row:
+                return self._summary(row)
+            cursor = conn.execute(
+                """
+                INSERT INTO agent_chat_sessions(
+                    session_uid, user_id, title, expires_at
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (session_uid, user_id, title, expires_at),
+            )
+            created = conn.execute(
+                """
+                SELECT s.*, 0 AS message_count
+                FROM agent_chat_sessions s WHERE s.id = ?
+                """,
+                (cursor.lastrowid,),
+            ).fetchone()
+            return self._summary(created)
+
     def list(self, user_id: int, limit: int, offset: int) -> tuple[list[dict], int]:
         with self._connect() as conn:
             conn.execute(
@@ -711,6 +759,16 @@ class AgentSessionService:
             )
         return {
             "session": session
+        }
+
+    def ensure_draft(self, user_id: int) -> dict:
+        return {
+            "session": self.store.ensure_draft(
+                user_id,
+                f"ags_{uuid4().hex}",
+                "新对话",
+                self._expires_at(),
+            )
         }
 
     def list(self, user_id: int, limit: int, offset: int) -> dict:

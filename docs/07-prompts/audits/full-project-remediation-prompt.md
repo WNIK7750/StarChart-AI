@@ -1,7 +1,7 @@
 # AI 知识导航全项目审计整改总控提示词
 
 > 用途：粘贴到一个新的 Codex 对话中，让新对话基于 2026-07-25 复审结果实施整改。  
-> 适用工作区：`D:\Web期末作业\ai-nav2\ai-nav-fullstack`  
+> 适用工作区：`<PROJECT_ROOT>`
 > 权威问题清单：`docs/05-quality/audits/full-project-reaudit-report.md`  
 > 状态：可直接执行，不是仅供讨论的规划稿。
 
@@ -10,7 +10,7 @@
 你正在维护本地项目：
 
 ```text
-D:\Web期末作业\ai-nav2\ai-nav-fullstack
+<PROJECT_ROOT>
 ```
 
 请完整阅读以下文件，然后直接开展整改，不要只输出计划：

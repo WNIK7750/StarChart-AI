@@ -46,11 +46,10 @@ from app.agent.runtime import get_agent_runtime_profile
 from app.agent.service import needs_user_context
 from app.agent.streaming import encode_sse, project_response_events
 from app.core.config import (
+    AGENT_GUEST_CHAT_ENABLED,
     AGENT_SESSIONS_ENABLED,
     AGENT_STREAM_BUFFER_EVENTS,
     AGENT_STREAM_ENABLED,
-    APP_ENV,
-    HTTP_TEST_GUEST_AGENT_ENABLED,
     PRIVACY_POLICY_VERSION,
     SECRET_KEY,
     TRUSTED_PROXY_CIDRS,
@@ -116,7 +115,7 @@ def _safe_request_id(request: Request) -> str:
 
 
 def _require_guest_agent_enabled() -> None:
-    if APP_ENV != "http_test" or not HTTP_TEST_GUEST_AGENT_ENABLED:
+    if not AGENT_GUEST_CHAT_ENABLED:
         raise HTTPException(status_code=404, detail="Not Found")
 
 
@@ -377,6 +376,17 @@ def create_agent_session(
         _session_error(exc)
 
 
+@router.post(
+    "/sessions/draft",
+    response_model=AgentSessionCreateResponse,
+)
+def ensure_agent_session_draft(
+    current_user: dict = Depends(require_permission("agent:chat")),
+):
+    _require_sessions_enabled()
+    return get_agent_session_service().ensure_draft(current_user["id"])
+
+
 @router.get("/sessions", response_model=AgentSessionListResponse)
 def list_agent_sessions(
     limit: int = Query(default=20, ge=1, le=50),
@@ -557,9 +567,7 @@ def agent_runtime(
 @router.post(
     "/guest/chat",
     response_model=AgentStructuredResponse,
-    include_in_schema=(
-        APP_ENV == "http_test" and HTTP_TEST_GUEST_AGENT_ENABLED
-    ),
+    include_in_schema=AGENT_GUEST_CHAT_ENABLED,
     responses={
         404: {"model": AgentErrorResponse},
         409: {"model": AgentErrorResponse},
