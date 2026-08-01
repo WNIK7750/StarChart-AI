@@ -258,6 +258,72 @@ class LearningServicesTest(unittest.TestCase):
 
 
 class MigrationTest(unittest.TestCase):
+    def test_stable_uid_backfill_repairs_late_learning_content_import(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            database = root / "late-content.sqlite3"
+            legacy_migrations = root / "legacy-migrations"
+            legacy_migrations.mkdir()
+            for migration in sorted((ROOT / "database" / "migrations").glob("*.sql")):
+                if migration.name == "022_learning_stable_uid_backfill.sql":
+                    continue
+                (legacy_migrations / migration.name).write_text(
+                    migration.read_text(encoding="utf-8"),
+                    encoding="utf-8",
+                )
+
+            conn = sqlite3.connect(database)
+            try:
+                conn.execute("PRAGMA foreign_keys = ON")
+                conn.executescript((ROOT / "database" / "schema.sql").read_text(encoding="utf-8"))
+                conn.executescript((ROOT / "database" / "seed.sql").read_text(encoding="utf-8"))
+                apply_migrations(conn, legacy_migrations)
+                conn.executescript((ROOT / "database" / "learning_content.sql").read_text(encoding="utf-8"))
+                self.assertGreater(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM learning_materials WHERE material_uid IS NULL"
+                    ).fetchone()[0],
+                    0,
+                )
+                self.assertGreater(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM learning_material_sections WHERE section_uid IS NULL"
+                    ).fetchone()[0],
+                    0,
+                )
+                self.assertGreater(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM learning_node_links WHERE link_uid IS NULL"
+                    ).fetchone()[0],
+                    0,
+                )
+
+                apply_migrations(conn, ROOT / "database" / "migrations")
+                for table, column in (
+                    ("learning_materials", "material_uid"),
+                    ("learning_material_sections", "section_uid"),
+                    ("learning_node_links", "link_uid"),
+                ):
+                    self.assertEqual(
+                        0,
+                        conn.execute(
+                            f'SELECT COUNT(*) FROM "{table}" '
+                            f'WHERE "{column}" IS NULL OR trim("{column}") = ""'
+                        ).fetchone()[0],
+                    )
+                conn.commit()
+            finally:
+                conn.close()
+
+            def connection_factory():
+                connection = sqlite3.connect(database)
+                connection.row_factory = dict_factory
+                connection.execute("PRAGMA foreign_keys = ON")
+                return connection
+
+            node = LearningService(SQLiteLearningRepository(connection_factory)).get_node("ai-literacy")
+            LearningNodeResponse.model_validate(node)
+
     def test_migration_checksum_detects_drift(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
