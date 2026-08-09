@@ -24,8 +24,10 @@ $allowedRoots = @(
   "backend/app",
   "database/migrations",
   "frontend",
+  "docs/assets/screenshots/readme",
   "docs/04-operations",
-  "deploy/http-test"
+  "deploy/http-test",
+  "deploy/production"
 )
 $allowedFiles = @(
   "backend/requirements.txt",
@@ -36,10 +38,10 @@ $allowedFiles = @(
   "database/learning_content.sql",
   "scripts/check-no-secrets.py",
   "scripts/provision-http-test-account.py",
-  "production.env.example",
+  "LICENSE",
   "README.md"
 )
-$forbiddenPattern = '(^|[\\/])(__pycache__|uploads|test-results|htmlcov|\.idea|\.workbuddy)([\\/]|$)|(\.pyc|\.pyo|\.log|\.sqlite3(|-.*)|\.coverage|\.env)$|frontend - 副本'
+$forbiddenPattern = '(^|[\\/])(__pycache__|uploads|test-results|htmlcov|\.idea|\.workbuddy)([\\/]|$)|(\.pyc|\.pyo|\.log|\.sqlite3(|-.*)|\.coverage|\.env)$|frontend - 副本|full-stack-analysis|(^|[\\/])production\.env\.example$'
 
 $excludedPattern = '(^|[\\/])(__pycache__|test-results|htmlcov|\.idea|\.workbuddy)([\\/]|$)|(\.pyc|\.pyo|\.coverage)$'
 $sensitivePattern = '(^|[\\/])(uploads|logs?|backups?)([\\/]|$)|(\.log|\.sqlite3(|-.*)|\.sqlite|\.db|\.bak|\.backup|\.old|\.orig|\.dump|\.zip|\.7z|\.tar|\.tar\.gz|\.sql\.gz)$|(^|[\\/])[^\\/]*(backup|dump)[^\\/]*$|(^|[\\/])[^\\/]*provider[^\\/]*(response|evidence)[^\\/]*$|(^|[\\/])[^\\/]*(response|evidence)[^\\/]*provider[^\\/]*$'
@@ -53,6 +55,9 @@ function Test-EnvironmentTemplate {
 function Test-ForbiddenReleasePath {
   param([string]$RelativePath)
   $leaf = Split-Path -Leaf $RelativePath
+  if ($RelativePath -match '(?i)^deploy[\\/]production[\\/]scripts[\\/]backup\.sh$') {
+    return $false
+  }
   if (($leaf -eq ".env" -or $leaf -match '(?i)\.env($|\.)') -and -not (Test-EnvironmentTemplate $RelativePath)) {
     return $true
   }
@@ -134,11 +139,17 @@ if ($ValidateOnly) {
       (Get-ReleaseRelativePath -BasePath $root -FullPath $_.FullName) -like "deploy\http-test\*"
     }
   ).Count
+  $productionOverlayCount = @(
+    $files | Where-Object {
+      (Get-ReleaseRelativePath -BasePath $root -FullPath $_.FullName) -like "deploy\production\*"
+    }
+  ).Count
   [ordered]@{
     passed = $true
     fileCount = $files.Count
     forbiddenCount = 0
     deploymentOverlayCount = $deploymentOverlayCount
+    productionOverlayCount = $productionOverlayCount
   } |
     ConvertTo-Json -Compress
   exit 0

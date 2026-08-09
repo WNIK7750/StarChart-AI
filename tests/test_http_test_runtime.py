@@ -80,6 +80,15 @@ def preview_environment(temp_root: Path, **overrides) -> dict[str, str]:
 
 
 class HttpTestRuntimeTest(unittest.TestCase):
+    def test_http_gate_can_import_test_only_provider_support(self):
+        script = (ROOT / "scripts" / "verify-http-test-deployment.ps1").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            '$env:PYTHONPATH = "backend$([IO.Path]::PathSeparator)tests"',
+            script,
+        )
+
     def test_public_runtime_exposes_only_http_test_capabilities(self):
         app = FastAPI()
         app.include_router(common.router, prefix="/api/v1")

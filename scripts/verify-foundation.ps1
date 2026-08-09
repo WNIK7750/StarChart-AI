@@ -17,5 +17,6 @@ Invoke-Verification "Tools" ".\scripts\verify-tools.ps1"
 Invoke-Verification "Learning and platform" ".\scripts\verify-learning.ps1"
 Invoke-Verification "Users and release safety" ".\scripts\verify-users.ps1"
 Invoke-Verification "HTTP test deployment" ".\scripts\verify-http-test-deployment.ps1"
+Invoke-Verification "Production deployment preparation" ".\scripts\verify-production-deployment.ps1"
 
 Write-Host "`nNon-Agent foundation verification passed." -ForegroundColor Green

@@ -1,0 +1,43 @@
+[Unit]
+Description=StarChart AI production HTTPS application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=starchart-ai-production
+Group=starchart-ai-production
+WorkingDirectory=/opt/starchart-ai/current
+EnvironmentFile=/etc/starchart-ai/production.env
+Environment=PYTHONPATH=/opt/starchart-ai/current/backend
+Environment=AI_NAV_APP_HOST=127.0.0.1
+Environment=AI_NAV_APP_PORT=8003
+Environment=AI_NAV_API_WORKERS=1
+Environment=AI_NAV_DATABASE_PATH=/srv/starchart-ai-production/data/ai_nav.sqlite3
+Environment=AI_NAV_UPLOAD_DIR=/srv/starchart-ai-production/uploads
+ExecStart=/opt/starchart-ai/venv/bin/python backend/run.py
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+ReadOnlyPaths=/opt/starchart-ai
+ReadWritePaths=/srv/starchart-ai-production
+InaccessiblePaths=-/srv/starchart-ai-http-test
+InaccessiblePaths=-/srv/starchart-ai-provider-preview
+InaccessiblePaths=-/etc/starchart-ai/http-test.env
+InaccessiblePaths=-/etc/starchart-ai/provider-preview.env
+
+[Install]
+WantedBy=multi-user.target

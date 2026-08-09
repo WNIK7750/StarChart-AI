@@ -1,21 +1,28 @@
+# Local environments and editor state
 .venv/
+.idea/
+.workbuddy/
+
+# Python, test and coverage output
 __pycache__/
 *.pyc
-database/*.sqlite3
-database/*.sqlite3-*
-.env
-.env.*
-!.env.example
+.pytest_cache/
+.ruff_cache/
 .coverage
 coverage.xml
 htmlcov/
-.ruff_cache/
-.idea/
-.workbuddy/
 test-results/
 .ci/
+
+# Runtime data and private configuration
+database/*.sqlite3
+database/*.sqlite3-*
 uploads/
-frontend - 副本/
+.env
+.env.*
+!.env.example
+
+# Logs, temporary files, recovery bundles and generated releases
 *.log
 *.backup
 *.restore-tmp
@@ -23,3 +30,7 @@ frontend - 副本/
 .repo-backups/
 .tmp_*.txt
 release/
+
+# Retired layout names must never become an alternative source tree.
+frontend - 副本/
+full-stack-analysis/

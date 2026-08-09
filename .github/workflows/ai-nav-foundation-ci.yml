@@ -13,7 +13,10 @@ on:
       - "docs/06-evidence/agent/**"
       - "docs/06-evidence/platform/**"
       - "docs/04-operations/agent/**"
+      - "docs/04-operations/deployment/**"
+      - "docs/00-index/repository-layout.md"
       - "deploy/http-test/**"
+      - "deploy/production/**"
       - ".github/workflows/ai-nav-foundation-ci.yml"
   push:
     branches: [master]
@@ -28,7 +31,10 @@ on:
       - "docs/06-evidence/agent/**"
       - "docs/06-evidence/platform/**"
       - "docs/04-operations/agent/**"
+      - "docs/04-operations/deployment/**"
+      - "docs/00-index/repository-layout.md"
       - "deploy/http-test/**"
+      - "deploy/production/**"
       - ".github/workflows/ai-nav-foundation-ci.yml"
 
 permissions:

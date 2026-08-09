@@ -11,7 +11,7 @@ $manifestPath = Join-Path $root "docs\06-evidence\platform\http-test-deployment-
 $env:AI_NAV_DISABLE_DOTENV = "1"
 $env:AI_NAV_PASSWORD_HASH_ROUNDS = "1000"
 $env:AI_NAV_DATABASE_PATH = $databasePath
-$env:PYTHONPATH = "backend"
+$env:PYTHONPATH = "backend$([IO.Path]::PathSeparator)tests"
 
 function New-StructuredResult {
   param(

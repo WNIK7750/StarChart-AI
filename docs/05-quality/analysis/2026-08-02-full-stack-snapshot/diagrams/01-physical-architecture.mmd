@@ -1,0 +1,23 @@
+flowchart LR
+    subgraph client ["Client Apps"]
+        browser["原生 Web 前端"]
+    end
+    subgraph gateway ["Edge Gateway"]
+        nginx["Nginx HTTPS"]
+    end
+    subgraph service ["Application"]
+        fastapi["FastAPI 模块化单体"]
+    end
+    subgraph datastore ["Data Stores"]
+        sqlite["SQLite 持久库"]
+        uploads["头像上传目录"]
+    end
+    subgraph external ["External Provider"]
+        bailian["阿里云百炼北京"]
+    end
+
+    browser -->|"HTTPS JSON/SSE"| nginx
+    nginx -->|"反向代理"| fastapi
+    fastapi -->|"事务与查询"| sqlite
+    fastapi -->|"受控文件写入"| uploads
+    fastapi -.->|"FastAPI: OpenAI 兼容调用"| bailian

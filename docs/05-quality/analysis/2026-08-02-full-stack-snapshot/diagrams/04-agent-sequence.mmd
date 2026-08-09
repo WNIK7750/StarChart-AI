@@ -1,0 +1,24 @@
+sequenceDiagram
+    title Agent 登录请求时序
+    participant Browser
+    participant AgentAPI
+    participant SessionStore
+    participant ReplayCache
+    participant Orchestrator
+    participant DomainServices
+    participant Provider
+
+    Browser->>AgentAPI: POST chat with requestId
+    AgentAPI->>SessionStore: Load owned history
+    SessionStore-->>AgentAPI: Bounded history
+    AgentAPI->>ReplayCache: Check fingerprint
+    ReplayCache-->>AgentAPI: Miss
+    AgentAPI->>Orchestrator: Respond with context
+    Orchestrator->>DomainServices: Search Learning and Tools
+    DomainServices-->>Orchestrator: Safe cards and citations
+    Orchestrator->>Provider: Generate from evidence
+    Provider-->>Orchestrator: Answer and usage
+    Orchestrator-->>AgentAPI: Validated structured response
+    AgentAPI->>SessionStore: Append final exchange
+    AgentAPI->>ReplayCache: Store completed response
+    AgentAPI-->>Browser: JSON or SSE completed

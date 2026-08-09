@@ -37,14 +37,13 @@ $requirementsHashPath = Join-Path $launcherRoot "requirements.sha256"
 [void][IO.Directory]::CreateDirectory($launcherRoot)
 
 if ([string]::IsNullOrWhiteSpace($env:AI_NAV_AGENT_GUEST_CHAT_ENABLED)) {
-  $env:AI_NAV_AGENT_GUEST_CHAT_ENABLED = "1"
+  $env:AI_NAV_AGENT_GUEST_CHAT_ENABLED = "0"
 }
 if ([string]::IsNullOrWhiteSpace($env:AI_NAV_AGENT_SESSIONS_ENABLED)) {
   $env:AI_NAV_AGENT_SESSIONS_ENABLED = "1"
 }
-if ([string]::IsNullOrWhiteSpace($env:AI_NAV_AGENT_PROVIDER_LIVE_ENABLED)) {
-  $env:AI_NAV_AGENT_PROVIDER_LIVE_ENABLED = "0"
-}
+# Do not inject a Provider override here. The application loads the explicit
+# .env value; production-safe defaults still live in app.core.config.
 
 function Test-PythonCommand {
   param(
@@ -145,7 +144,7 @@ function Test-ExistingAiNav {
     return (
       $health.status -eq "ok" -and
       -not [string]::IsNullOrWhiteSpace([string]$runtime.deploymentProfile) -and
-      $runtime.agent.guestChat -eq $true -and
+      $runtime.agent.guestChat -eq $false -and
       (
         $env:AI_NAV_AGENT_SESSIONS_ENABLED -ne "1" -or
         $runtime.agent.authenticatedSessions -eq $true

@@ -1,0 +1,62 @@
+flowchart LR
+    input["POST chat 或 stream"]
+    auth{"游客还是登录用户"}
+    guestGate["游客容量门"]
+    permission["agent:chat 权限"]
+    session["读取会话历史"]
+    replay{"重放缓存命中"}
+
+    subgraph grounding ["确定性证据阶段"]
+        intent["规则意图分类"]
+        capability["能力规划"]
+        retrieval["站内检索适配器"]
+        deterministic["结构化基线回答"]
+        evidence{"存在有效证据"}
+    end
+
+    subgraph providerStage ["Provider 可选阶段"]
+        consent{"当前隐私同意"}
+        budget["并发与费用预留"]
+        model["OpenAI 兼容调用"]
+        outputGuard{"输出守卫通过"}
+    end
+
+    fallback["确定性回退"]
+    finalize["统一响应校验"]
+    persist["会话追加与重放写入"]
+    transport{"响应传输"}
+    json["完整 JSON"]
+    sse["SSE 事件投影"]
+
+    input --> auth
+    auth -->|"游客"| guestGate
+    auth -->|"登录"| permission
+    guestGate --> intent
+    permission --> session
+    session --> replay
+    replay -->|"是"| transport
+    replay -->|"否"| intent
+    intent --> capability
+    capability --> retrieval
+    retrieval --> deterministic
+    deterministic --> evidence
+    evidence -->|"否"| fallback
+    evidence -->|"是"| consent
+    consent -->|"否"| fallback
+    consent -->|"是"| budget
+    budget -->|"拒绝"| fallback
+    budget -->|"允许"| model
+    model -->|"失败或超时"| fallback
+    model -->|"回答"| outputGuard
+    outputGuard -->|"否"| fallback
+    outputGuard -->|"是"| finalize
+    fallback --> finalize
+    finalize --> persist
+    persist --> transport
+    transport -->|"普通接口"| json
+    transport -->|"流式接口"| sse
+
+    style grounding fill:#E8F3FF,stroke:#3DADFF
+    style providerStage fill:#FFF4D6,stroke:#FFC943
+    style fallback fill:#FFCDC2,stroke:#FF7556
+    style finalize fill:#CDF4D3,stroke:#66D575

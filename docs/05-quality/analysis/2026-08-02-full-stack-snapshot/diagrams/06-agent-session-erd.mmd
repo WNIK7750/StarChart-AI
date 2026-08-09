@@ -1,0 +1,42 @@
+erDiagram
+    direction LR
+    user_accounts ||--o{ agent_chat_sessions : owns
+    agent_chat_sessions ||--o{ agent_chat_messages : contains
+    user_accounts ||--o{ agent_long_conversations : owns
+    agent_long_conversations ||--o{ agent_long_conversation_messages : contains
+
+    user_accounts {
+        int id PK
+        string user_uid UK
+        string status
+    }
+    agent_chat_sessions {
+        int id PK
+        string session_uid UK
+        int user_id FK
+        string title
+        datetime pinned_at
+        datetime expires_at
+    }
+    agent_chat_messages {
+        int id PK
+        string message_uid UK
+        int session_id FK
+        string role
+        string request_id
+    }
+    agent_long_conversations {
+        int id PK
+        string conversation_uid UK
+        int user_id FK
+        string source_session_uid UK
+        string title
+        datetime pinned_at
+    }
+    agent_long_conversation_messages {
+        int id PK
+        string message_uid UK
+        int conversation_id FK
+        string role
+        string request_id
+    }

@@ -35,8 +35,12 @@ class ReleaseHttpTestOverlayTests(unittest.TestCase):
             "AI_NAV_AGENT_PROVIDER_API_KEY=\n",
         )
         self._write("deploy/http-test/nginx/ai-nav.conf", "server {}\n")
+        self._write("deploy/production/env.example", "AI_NAV_SECRET_KEY=\n")
+        self._write("deploy/production/nginx/starchart-ai.conf", "server {}\n")
+        self._write("deploy/production/scripts/backup.sh", "#!/usr/bin/env bash\n")
+        self._write("docs/assets/screenshots/readme/home-desktop.png", "png fixture\n")
         self._write("frontend/index.html", "<!doctype html>\n")
-        self._write("production.env.example", "AI_NAV_SECRET_KEY=\n")
+        self._write("LICENSE", "PolyForm Noncommercial License 1.0.0\n")
         self._write("README.md", "# Fixture\n")
 
     def tearDown(self) -> None:
@@ -95,9 +99,15 @@ class ReleaseHttpTestOverlayTests(unittest.TestCase):
         self.assertIn("deploy/http-test/env.example", members)
         self.assertIn("deploy/http-test/provider-preview.env.example", members)
         self.assertIn("deploy/http-test/nginx/ai-nav.conf", members)
+        self.assertIn("deploy/production/env.example", members)
+        self.assertIn("deploy/production/nginx/starchart-ai.conf", members)
+        self.assertIn("deploy/production/scripts/backup.sh", members)
+        self.assertNotIn("production.env.example", members)
         self.assertIn("frontend/public.env.example", members)
         self.assertIn("scripts/provision-http-test-account.py", members)
         self.assertIn("scripts/check-no-secrets.py", members)
+        self.assertIn("LICENSE", members)
+        self.assertIn("docs/assets/screenshots/readme/home-desktop.png", members)
         environment_members = [
             name
             for name in members

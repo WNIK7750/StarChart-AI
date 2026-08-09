@@ -1,0 +1,54 @@
+flowchart LR
+    subgraph stateBox ["Agent State"]
+        requestState["请求: message + pageContext"]
+        sessionState["会话: sessionId + bounded history"]
+        planState["计划: intent + capabilities"]
+        evidenceState["证据: cards + citations"]
+        resultState["结果: answer + fallbackReason"]
+    end
+
+    subgraph loopBox ["Grounded Agent Loop"]
+        startNode(("Start"))
+        loadNode(("Load State"))
+        routerNode(("Intent Router"))
+        plannerNode(("Capability Planner"))
+        agentNode(("Orchestrator"))
+        toolNode(("Read Tool Hub"))
+        reflectNode(("Evidence Check"))
+        providerGate{"Provider 条件满足?"}
+        governanceNode["并发 + 成本治理"]
+        providerNode(("LLM Provider"))
+        outputGate{"输出守卫通过?"}
+        fallbackNode["Deterministic Fallback"]
+        finalizeNode(("Finalize"))
+        persistNode["Session + Replay"]
+        finishNode(("End"))
+
+        startNode --> loadNode --> routerNode --> plannerNode --> agentNode
+        agentNode -.->|"选择能力"| toolNode
+        toolNode -->|"Learning, Tools, Navigation, Users"| reflectNode
+        reflectNode -->|"单轮证据反馈"| agentNode
+        agentNode --> providerGate
+        providerGate -->|"否"| fallbackNode
+        providerGate -->|"是"| governanceNode --> providerNode --> outputGate
+        outputGate -->|"否"| fallbackNode
+        outputGate -->|"是"| finalizeNode
+        fallbackNode --> finalizeNode --> persistNode --> finishNode
+    end
+
+    requestState -.-> loadNode
+    sessionState -.-> loadNode
+    routerNode -.-> planState
+    plannerNode -.-> planState
+    reflectNode -.-> evidenceState
+    finalizeNode -.-> resultState
+
+    style stateBox fill:#F8FAFC,stroke:#64748B,stroke-width:2px
+    style loopBox fill:#FFFFFF,stroke:#334155,stroke-width:2px
+    style agentNode fill:#DBEAFE,stroke:#2563EB,stroke-width:3px
+    style toolNode fill:#FEF3C7,stroke:#D97706,stroke-width:2px
+    style reflectNode fill:#EDE9FE,stroke:#7C3AED,stroke-width:2px
+    style fallbackNode fill:#FEE2E2,stroke:#DC2626,stroke-width:2px
+    style finalizeNode fill:#DCFCE7,stroke:#16A34A,stroke-width:2px
+    style providerGate fill:#FFF7ED,stroke:#EA580C,stroke-width:2px
+    style outputGate fill:#FFF7ED,stroke:#EA580C,stroke-width:2px

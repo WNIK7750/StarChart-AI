@@ -1,0 +1,43 @@
+flowchart LR
+    suite["版本化 30 条用例"]
+    freeze["冻结问题与证据"]
+    runBase["运行 qwen3.5-flash"]
+    runCandidate["运行 qwen3.7-plus"]
+    anonymize["生成匿名样本"]
+    blind["盲评五档质量"]
+    hardGate{"安全与 grounding 零失败"}
+    coverage{"至少 20 个不同用例"}
+    quality{"质量提升至少 0.05"}
+    cost{"成本与 P95 不超 1.5 倍"}
+    keep["保持 0%"]
+    review["进入人工审查"]
+    canary["最多 5% 灰度"]
+    observe["观察质量成本回退率"]
+    expand{"是否继续达标"}
+    ten["单独审查 10%"]
+
+    suite --> freeze
+    freeze --> runBase
+    freeze --> runCandidate
+    runBase --> anonymize
+    runCandidate --> anonymize
+    anonymize --> blind
+    blind --> hardGate
+    hardGate -->|"否"| keep
+    hardGate -->|"是"| coverage
+    coverage -->|"否"| keep
+    coverage -->|"是"| quality
+    quality -->|"否"| keep
+    quality -->|"是"| cost
+    cost -->|"否"| keep
+    cost -->|"是"| review
+    review --> canary
+    canary --> observe
+    observe --> expand
+    expand -->|"否"| keep
+    expand -->|"是"| ten
+
+    style keep fill:#FFCDC2,stroke:#FF7556
+    style review fill:#FFECBD,stroke:#FFC943
+    style canary fill:#DCCCFF,stroke:#874FFF
+    style ten fill:#CDF4D3,stroke:#66D575

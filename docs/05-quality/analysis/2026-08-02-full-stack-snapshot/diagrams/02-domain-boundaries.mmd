@@ -1,0 +1,36 @@
+flowchart LR
+    browser["浏览器页面"]
+    http["FastAPI 路由层"]
+
+    subgraph domains ["领域服务"]
+        platform["Platform/Core"]
+        learning["Learning 公共事实"]
+        tools["Tools 公共事实"]
+        users["Users 私有状态"]
+        agent["Agent 编排"]
+    end
+
+    sqlite[("SQLite")]
+    provider["阿里云百炼"]
+    frontend["静态 HTML/CSS/JS"]
+
+    browser -->|"加载页面"| frontend
+    browser -->|"JSON/SSE"| http
+    http --> platform
+    http --> learning
+    http --> tools
+    http --> users
+    http --> agent
+    learning -->|"公开读"| sqlite
+    tools -->|"公开读"| sqlite
+    users -->|"私有读写"| sqlite
+    agent -->|"会话持久化"| sqlite
+    agent -->|"薄适配读取"| learning
+    agent -->|"薄适配读取"| tools
+    agent -->|"上下文与命令"| users
+    agent -.->|"受控模型调用"| provider
+
+    style domains fill:#E8F3FF,stroke:#3DADFF
+    style agent fill:#DCCCFF,stroke:#874FFF
+    style users fill:#CDF4D3,stroke:#66D575
+    style provider fill:#FFECBD,stroke:#FFC943
