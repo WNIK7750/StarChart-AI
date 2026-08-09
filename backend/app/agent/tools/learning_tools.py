@@ -13,7 +13,15 @@ def search_learning_cards(query: str, limit: int = 5) -> list[dict]:
             "title": node["title"],
             "description": node["summary"],
             "href": node["href"],
-            "reason": "站内学习节点",
+            "reason": (
+                "站内学习节点；命中：" + "、".join(node.get("matchedTerms", [])[:6])
+                if node.get("matchedTerms")
+                else "站内学习节点"
+            ),
+            "matchedTerms": node.get("matchedTerms", []),
+            "matchedFields": node.get("matchedFields", []),
+            "outlineHighlights": node.get("outlineHighlights", []),
+            "resourceHighlights": node.get("resourceHighlights", []),
         }
         for node in search_learning_nodes(query, limit)
     ]

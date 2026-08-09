@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class StrictResponseModel(BaseModel):
@@ -45,6 +45,11 @@ class ToolItem(StrictResponseModel):
 class ToolCatalogMeta(StrictResponseModel):
     source: str
     contractVersion: int
+    catalogVersion: int
+    catalogFingerprint: str
+    publishedToolCount: int
+    placementCount: int
+    readiness: str
 
 
 class ToolCatalogResponse(StrictResponseModel):
@@ -70,6 +75,8 @@ class ToolSearchItem(StrictResponseModel):
     mark: str | None
     score: float
     reason: str
+    matchedCapabilities: list[str] = Field(default_factory=list)
+    reasonCodes: list[str] = Field(default_factory=list)
     tool: ToolItem
 
 
@@ -87,6 +94,8 @@ class AgentToolItem(StrictResponseModel):
     url: str
     href: str
     reason: str
+    matchedCapabilities: list[str] = Field(default_factory=list)
+    reasonCodes: list[str] = Field(default_factory=list)
 
 
 class WorkflowSuggestion(StrictResponseModel):

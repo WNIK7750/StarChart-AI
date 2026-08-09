@@ -15,6 +15,8 @@ def search_tool_cards(query: str, limit: int = 5) -> list[dict]:
             "description": item["tool"]["description"],
             "href": item["tool"]["href"],
             "reason": item["reason"],
+            "matchedCapabilities": item.get("matchedCapabilities", []),
+            "reasonCodes": item.get("reasonCodes", []),
             "officialUrl": item["tool"]["url"],
             "tags": item["tool"].get("tags", []),
             "isFree": item["tool"].get("isFree", False),
@@ -34,6 +36,7 @@ def suggest_workflow(query: str, limit: int = 3) -> list[dict]:
                 {
                     "id": tool["id"],
                     "name": tool["name"],
+                    "description": tool.get("description", ""),
                     "href": tool["href"],
                     "officialUrl": tool["url"],
                 }

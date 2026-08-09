@@ -64,10 +64,30 @@ class LearningServicesTest(unittest.TestCase):
         self.assertEqual(180, node["stats"]["suggestedMinutes"])
         self.assertEqual("3h", node["stats"]["suggestedDuration"])
         self.assertEqual("rag", self.learning.search("RAG", 1)["items"][0]["slug"])
+        self.assertEqual(
+            "rag",
+            self.learning.search("从零学习 RAG 并做第一个知识库问答 Demo", 5)["items"][0]["slug"],
+        )
         RoadmapResponse.model_validate(roadmap)
         LearningNodeResponse.model_validate(node)
         with self.assertRaises(ValidationError):
             RoadmapResponse.model_validate({**roadmap, "unexpected": True})
+
+    def test_agent_learning_recall_scans_sections_tags_and_resources(self):
+        context = self.learning.get_agent_context(
+            "从零学习 RAG 并做第一个知识库问答 Demo",
+            5,
+        )
+
+        self.assertEqual("rag", context["nodes"][0]["slug"])
+        self.assertIn("rag", context["nodes"][0]["matchedTerms"])
+        self.assertIn("sectionText", context["nodes"][0]["matchedFields"])
+        self.assertTrue(
+            any("向量检索" in item["title"] for item in context["nodes"][0]["outlineHighlights"])
+        )
+        self.assertTrue(
+            any("RAG" in item["title"] for item in context["nodes"][0]["resourceHighlights"])
+        )
 
     def test_learning_contract_snapshot_and_semantic_relations(self):
         snapshot = json.loads((ROOT / "tests" / "contracts" / "learning_contract_v1.json").read_text(encoding="utf-8"))

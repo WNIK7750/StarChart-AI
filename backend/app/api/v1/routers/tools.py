@@ -53,6 +53,8 @@ def get_agent_tool_context(q: str = "", limit: int = Query(default=7, ge=1, le=2
                 "url": item["tool"]["url"],
                 "href": item["tool"]["href"],
                 "reason": item["reason"],
+                "matchedCapabilities": item["matchedCapabilities"],
+                "reasonCodes": item["reasonCodes"],
             }
             for item in results
         ],

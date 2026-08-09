@@ -4,6 +4,7 @@ from sqlite3 import Connection
 from typing import Any, Iterator
 
 from app.db.database import get_connection
+from app.learning.search import rank_learning_rows
 
 
 class SQLiteLearningRepository:
@@ -165,24 +166,45 @@ class SQLiteLearningRepository:
         return {"prerequisites": prerequisites, "recommendedNext": recommended, "related": related}
 
     def search(self, query: str, limit: int) -> list[dict[str, Any]]:
-        value = query.strip()
-        term = f"%{value}%"
         with self._connect() as conn:
-            return conn.execute(
+            rows = conn.execute(
                 """
-                SELECT DISTINCT n.slug, n.title, n.subtitle, n.difficulty_code AS difficultyCode,
-                       d.name AS difficultyName, COALESCE(m.description, n.subtitle) AS summary
+                SELECT n.slug, n.title, n.subtitle, n.difficulty_code AS difficultyCode,
+                       d.name AS difficultyName, COALESCE(m.description, n.subtitle) AS summary,
+                       COALESCE(m.title, '') AS materialTitle,
+                       COALESCE(m.provider, '') AS provider,
+                       COALESCE(m.description, '') AS materialDescription,
+                       COALESCE(m.overview, '') AS materialOverview,
+                       COALESCE((
+                           SELECT GROUP_CONCAT(t.tag, ' ')
+                           FROM learning_node_tags t WHERE t.node_slug = n.slug
+                       ), '') AS tagsText,
+                       COALESCE((
+                           SELECT GROUP_CONCAT(s.title || ' ' || s.description, ' ')
+                           FROM learning_material_sections s
+                           WHERE s.material_id = m.id AND s.is_active = 1
+                       ), '') AS sectionText,
+                       COALESCE((
+                           SELECT GROUP_CONCAT(l.title || ' ' || l.description, ' ')
+                           FROM learning_node_links l
+                           WHERE l.node_slug = n.slug AND l.is_active = 1
+                             AND l.publication_status = 'published'
+                       ), '') AS resourceText,
+                       COALESCE((
+                           SELECT GROUP_CONCAT(r.title || ' ' || r.description, ' ')
+                           FROM learning_resources r
+                           WHERE r.node_slug = n.slug AND r.is_active = 1
+                       ), '') AS catalogResourceText
                 FROM roadmap_nodes n
                 JOIN difficulty_levels d ON d.code = n.difficulty_code
-                LEFT JOIN learning_materials m ON m.node_slug = n.slug AND m.is_primary = 1 AND m.is_active = 1
-                LEFT JOIN learning_node_tags t ON t.node_slug = n.slug
+                LEFT JOIN learning_materials m ON m.node_slug = n.slug
+                  AND m.is_primary = 1 AND m.is_active = 1
+                  AND m.publication_status = 'published'
                 WHERE n.is_active = 1
-                  AND (? = '' OR n.title LIKE ? OR n.subtitle LIKE ? OR m.description LIKE ? OR t.tag LIKE ?)
-                ORDER BY CASE WHEN n.title = ? THEN 0 WHEN n.title LIKE ? THEN 1 ELSE 2 END, n.sort_order, n.id
-                LIMIT ?
+                ORDER BY n.sort_order, n.id
                 """,
-                (value, term, term, term, term, value, f"{value}%", limit),
             ).fetchall()
+        return rank_learning_rows(rows, query, limit)
 
     def next_node(self, slug: str) -> dict[str, Any] | None:
         with self._connect() as conn:

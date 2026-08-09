@@ -241,6 +241,10 @@ class AgentLearningNode(StrictModel):
     href: str
     prerequisiteSlugs: list[str]
     recommendedNextSlugs: list[str]
+    matchedTerms: list[str] = Field(default_factory=list)
+    matchedFields: list[str] = Field(default_factory=list)
+    outlineHighlights: list[dict[str, str]] = Field(default_factory=list)
+    resourceHighlights: list[dict[str, str]] = Field(default_factory=list)
     evidence: LearningEvidence
 
 

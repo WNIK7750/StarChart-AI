@@ -15,6 +15,7 @@ function Invoke-Step {
 Invoke-Step "Compile Tools module" {
   & $python -m py_compile `
     backend/app/tools/repository.py `
+    backend/app/tools/query.py `
     backend/app/tools/service.py `
     backend/app/api/v1/routers/tools.py `
     scripts/generate-tool-catalog-migration.py `

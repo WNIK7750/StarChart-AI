@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from functools import lru_cache
 from typing import Any
 
+from app.tools.query import TASK_QUERY_NORMALIZER, capability_matches
 from app.tools.repository import SQLiteToolCatalogRepository
 
 QUERY_EXPANSIONS: dict[str, str] = {
@@ -71,8 +74,10 @@ def terms(value: str | None) -> list[str]:
 
 
 def expand_query(query: str | None) -> dict[str, Any]:
-    raw = str(query or "").strip().lower()
-    base_terms = terms(raw)
+    normalized = TASK_QUERY_NORMALIZER.normalize(query)
+    raw = normalized.raw
+    focused = normalized.focused_text or raw
+    base_terms = terms(focused)
     extra: list[str] = []
     known_keys = [*QUERY_EXPANSIONS.keys(), *PINYIN_ALIASES.keys(), "code", "ide", "agent", "workflow", "rag", "prompt", "llm", "ppt", "pdf"]
     remainder = raw
@@ -84,12 +89,18 @@ def expand_query(query: str | None) -> dict[str, Any]:
     for key, value in PINYIN_ALIASES.items():
         if key in raw:
             extra.append(value)
+    extra.extend(normalized.capability_search_terms)
     return {
         "raw": raw,
         "compact": compact(raw),
+        "focused": focused,
+        "focusedCompact": compact(focused),
         "terms": list(dict.fromkeys([*base_terms, *terms(" ".join(extra))])),
         "direct_terms": base_terms,
-        "is_known_intent": raw in {key.lower() for key in QUERY_EXPANSIONS} or raw in PINYIN_ALIASES or re.match(r"^(code|ide|agent|workflow|rag|prompt|llm|ppt|pdf)$", raw, re.I) is not None or (bool(raw) and len(remainder) == 0),
+        "genericTerms": normalized.generic_terms,
+        "capabilityTaxa": normalized.capabilities,
+        "capabilities": normalized.capability_ids,
+        "is_known_intent": bool(normalized.capabilities) or raw in {key.lower() for key in QUERY_EXPANSIONS} or raw in PINYIN_ALIASES or re.match(r"^(code|ide|agent|workflow|rag|prompt|llm|ppt|pdf)$", raw, re.I) is not None or (bool(raw) and len(remainder) == 0),
     }
 
 
@@ -162,7 +173,7 @@ def get_tool_catalog() -> dict[str, Any]:
         )
         for tool in tools
     ]
-    return {
+    catalog = {
         "version": data.get("version", 1),
         "categories": data.get("categories", []),
         "placements": data.get("placements", []),
@@ -170,6 +181,26 @@ def get_tool_catalog() -> dict[str, Any]:
         "latestTools": data.get("latestTools", []),
         "searchItems": search_items,
     }
+    fingerprint_payload = {
+        "version": catalog["version"],
+        "categories": catalog["categories"],
+        "placements": catalog["placements"],
+        "tools": catalog["tools"],
+        "latestTools": catalog["latestTools"],
+    }
+    serialized = json.dumps(
+        fingerprint_payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    catalog["fingerprint"] = hashlib.sha256(serialized).hexdigest()
+    catalog["readiness"] = (
+        "ready"
+        if catalog["categories"] and catalog["tools"] and catalog["placements"]
+        else "unready"
+    )
+    return catalog
 
 
 def clear_tool_catalog_cache() -> None:
@@ -184,16 +215,49 @@ def catalog_snapshot() -> dict[str, Any]:
         "tools": catalog["tools"],
         "placements": catalog["placements"],
         "latestTools": catalog["latestTools"],
-        "meta": {"source": "tools.database", "contractVersion": 1},
+        "meta": {
+            "source": "tools.database",
+            "contractVersion": 2,
+            "catalogVersion": catalog["version"],
+            "catalogFingerprint": catalog["fingerprint"],
+            "publishedToolCount": len(catalog["tools"]),
+            "placementCount": len(catalog["placements"]),
+            "readiness": catalog["readiness"],
+        },
     }
 
 
 def meaningful_direct_terms(query: dict[str, Any]) -> list[str]:
+    generic = {compact(term) for term in query.get("genericTerms", ())}
     return [
         term
         for term in [compact(term) for term in query["direct_terms"]]
-        if len(term) >= 2 and term not in STOP_TERMS and (term != query["compact"] or len(term) <= 5)
+        if len(term) >= 2
+        and term not in STOP_TERMS
+        and term not in generic
+        and (term != query["focusedCompact"] or len(term) <= 5)
     ]
+
+
+def matched_capabilities(item: dict[str, Any], query: dict[str, Any]) -> list[str]:
+    return [
+        capability.id
+        for capability in query.get("capabilityTaxa", ())
+        if capability_matches(item["_all_text"], capability)
+    ]
+
+
+def reason_codes(item: dict[str, Any], query: dict[str, Any]) -> list[str]:
+    codes = []
+    if item["_title"] == query["compact"]:
+        codes.append("exact_title_match")
+    if item.get("matchedCapabilities"):
+        codes.append("capability_match")
+    if item.get("directMatches", 0):
+        codes.append("direct_term_match")
+    if item["score"] > 0 and not codes:
+        codes.append("semantic_expansion_match")
+    return codes
 
 
 def direct_match_count(item: dict[str, Any], query: dict[str, Any]) -> int:
@@ -208,6 +272,8 @@ def reason_for(item: dict[str, Any], query: dict[str, Any]) -> str:
         return "精确匹配"
     if item["_title"].startswith(query["compact"]):
         return "名称前缀"
+    if item.get("matchedCapabilities"):
+        return "任务能力"
     if any(term in item["_keywords"] for term in direct):
         return "关键词"
     if any(term in item["_description"] for term in direct):
@@ -247,6 +313,9 @@ def score_result(item: dict[str, Any], query: dict[str, Any]) -> float:
             score += 12 * weight
         if term in item["_term_text"]:
             score += 8 * weight
+    capability_ids = matched_capabilities(item, query)
+    if capability_ids:
+        score += 150 + 20 * len(capability_ids)
     if score > 0:
         score += 6 + min(18, (item.get("heat") or 0) / 6)
     if "国产" in query["raw"] and re.search(r"国产|国内|中文|中国|阿里|百度|腾讯|字节|月之暗面|深度求索", item["keywords"], re.I):
@@ -262,6 +331,8 @@ def is_acceptable_match(item: dict[str, Any], query: dict[str, Any]) -> bool:
         return True
     if item["score"] <= 18:
         return False
+    if query.get("capabilities"):
+        return bool(item.get("matchedCapabilities"))
     if query["is_known_intent"]:
         return True
     direct = meaningful_direct_terms(query)
@@ -283,6 +354,8 @@ def search_tools(query_text: str | None, limit: int = 7) -> list[dict[str, Any]]
             "score": score,
             "directMatches": direct_match_count(item, query),
         }
+        candidate["matchedCapabilities"] = matched_capabilities(candidate, query)
+        candidate["reasonCodes"] = reason_codes(candidate, query)
         candidate["reason"] = reason_for(candidate, query)
         if is_acceptable_match(candidate, query):
             results.append(candidate)
@@ -308,6 +381,8 @@ def public_search_result(item: dict[str, Any]) -> dict[str, Any]:
         "mark": item.get("mark"),
         "score": round(float(item["score"]), 2),
         "reason": item["reason"],
+        "matchedCapabilities": item.get("matchedCapabilities", []),
+        "reasonCodes": item.get("reasonCodes", []),
         "tool": item["tool"],
     }
 

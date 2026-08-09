@@ -62,19 +62,41 @@ class LearningService:
         return {"nodeSlug": slug, "relations": relations, "meta": {"contractVersion": 1}}
 
     def search(self, query: str, limit: int = 10) -> dict[str, Any]:
-        items = [{**item, "href": site_learning_node_href(item["slug"])} for item in self.repository.search(query, limit)]
+        public_fields = {
+            "slug", "title", "subtitle", "difficultyCode", "difficultyName", "summary"
+        }
+        items = [
+            {
+                **{key: value for key, value in item.items() if key in public_fields},
+                "href": site_learning_node_href(item["slug"]),
+            }
+            for item in self.repository.search(query, limit)
+        ]
         return {"query": query, "items": items, "meta": {"contractVersion": 1}}
 
     def get_agent_context(self, query: str, limit: int = 7) -> dict[str, Any]:
-        result = self.search(query, limit)
+        results = self.repository.search(query, limit)
         nodes = []
-        for item in result["items"]:
+        for item in results:
             relations = self.repository.node_relations(item["slug"])
+            bundle = self.repository.node_bundle(item["slug"])
+            outline = list((bundle or {}).get("outline") or [])
+            resources = list((bundle or {}).get("resources") or [])
             nodes.append({
                 "slug": item["slug"], "title": item["title"], "summary": item["summary"],
-                "difficultyCode": item["difficultyCode"], "href": item["href"],
+                "difficultyCode": item["difficultyCode"], "href": site_learning_node_href(item["slug"]),
                 "prerequisiteSlugs": [relation["slug"] for relation in relations["prerequisites"]],
                 "recommendedNextSlugs": [relation["slug"] for relation in relations["recommendedNext"]],
+                "matchedTerms": list(item.get("matchedTerms") or []),
+                "matchedFields": list(item.get("matchedFields") or []),
+                "outlineHighlights": [
+                    {"title": section["title"], "description": section["description"]}
+                    for section in outline[:6]
+                ],
+                "resourceHighlights": [
+                    {"title": resource["title"], "description": resource["description"]}
+                    for resource in resources[:6]
+                ],
                 "evidence": {"sourceType": "learning_node", "sourceKey": item["slug"]},
             })
         return {"query": query, "nodes": nodes, "meta": {"contractVersion": 1}}

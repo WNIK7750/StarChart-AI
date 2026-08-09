@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from app.db.database import apply_migrations, dict_factory
+from app.tools.query import TASK_QUERY_NORMALIZER
 from app.tools.repository import SQLiteToolCatalogRepository
 from app.tools import service as tool_catalog
 
@@ -102,6 +103,75 @@ class ToolsServicesTest(unittest.TestCase):
         self.assertTrue(any(item["tool"]["name"] in {"Tabnine", "Glean", "Sentry", "Snyk AI"} for item in enterprise))
         self.assertEqual("tools.database", snapshot["meta"]["source"])
         self.assertEqual(134, len(snapshot["tools"]))
+
+    def test_task_language_retrieves_visual_creation_tools(self):
+        """Users should not need to know the site's category vocabulary."""
+        with patch("app.tools.service.SQLiteToolCatalogRepository", return_value=self.repository):
+            tool_catalog.clear_tool_catalog_cache()
+            results = tool_catalog.search_tools("制作一张小红书封面", limit=5)
+
+        self.assertGreaterEqual(len(results), 3)
+        visual_terms = ("绘画", "图像", "设计", "修图", "排版", "封面", "文生图", "生图")
+        for result in results:
+            tool = result["tool"]
+            evidence = " ".join([
+                tool["name"],
+                tool["description"],
+                *tool["categories"],
+                *tool["subcategories"],
+                *tool["tags"],
+            ])
+            self.assertTrue(
+                any(term in evidence for term in visual_terms),
+                f"irrelevant visual-creation result: {tool['name']}",
+            )
+
+    def test_generic_ai_prefix_does_not_dominate_visual_intent(self):
+        """Matching only the generic 'AI' prefix is not relevant evidence."""
+        with patch("app.tools.service.SQLiteToolCatalogRepository", return_value=self.repository):
+            tool_catalog.clear_tool_catalog_cache()
+            results = tool_catalog.search_tools("AI制图", limit=5)
+
+        self.assertEqual(5, len(results))
+        visual_terms = ("绘画", "图像", "设计", "修图", "排版", "文生图", "生图")
+        for result in results:
+            tool = result["tool"]
+            evidence = " ".join([
+                tool["name"],
+                tool["description"],
+                *tool["categories"],
+                *tool["subcategories"],
+                *tool["tags"],
+            ])
+            self.assertTrue(
+                any(term in evidence for term in visual_terms),
+                f"generic AI match outranked visual intent: {tool['name']}",
+            )
+
+    def test_visual_results_explain_capability_and_catalog_identity(self):
+        """Agent consumers need stable facts and inspectable match reasons."""
+        with patch("app.tools.service.SQLiteToolCatalogRepository", return_value=self.repository):
+            tool_catalog.clear_tool_catalog_cache()
+            results = tool_catalog.search_tools("AI制图", limit=5)
+            first_snapshot = tool_catalog.catalog_snapshot()
+            second_snapshot = tool_catalog.catalog_snapshot()
+
+        self.assertTrue(all("visual_creation" in item["matchedCapabilities"] for item in results))
+        self.assertTrue(all("capability_match" in item["reasonCodes"] for item in results))
+        meta = first_snapshot["meta"]
+        self.assertEqual("ready", meta["readiness"])
+        self.assertEqual(3, meta["catalogVersion"])
+        self.assertEqual(134, meta["publishedToolCount"])
+        self.assertEqual(136, meta["placementCount"])
+        self.assertRegex(meta["catalogFingerprint"], r"^[a-f0-9]{64}$")
+        self.assertEqual(meta["catalogFingerprint"], second_snapshot["meta"]["catalogFingerprint"])
+
+    def test_normalizer_removes_only_standalone_generic_ai(self):
+        self.assertEqual("制图", TASK_QUERY_NORMALIZER.normalize("AI制图").focused_text)
+        self.assertEqual(
+            "airtable",
+            TASK_QUERY_NORMALIZER.normalize("Airtable AI").focused_text,
+        )
 
     def test_generated_migration_is_deterministic_and_baseline_is_frozen(self):
         script_path = ROOT / "scripts" / "generate-tool-catalog-migration.py"
