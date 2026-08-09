@@ -27,6 +27,14 @@ PROVIDER_DOMAIN_PATTERN = re.compile(
     r"(?:[a-z]{2,63})"
     r"(?![A-Za-z0-9_-])"
 )
+# Bare-domain detection excludes common code/document artifacts rather than
+# maintaining an inevitably incomplete TLD allowlist. Explicit URL schemes,
+# Markdown links, IP addresses and HTML remain separate hard failures below.
+CODE_ARTIFACT_SUFFIXES = frozenset({
+    "c", "cfg", "cpp", "cs", "csv", "env", "go", "h", "ini", "java",
+    "js", "json", "jsx", "lock", "md", "php", "ps1", "py", "rb", "rs",
+    "sh", "sql", "toml", "ts", "tsx", "txt", "xml", "yaml", "yml",
+})
 PROVIDER_IPV4_PATTERN = re.compile(
     r"(?<![A-Za-z0-9_-])(?:\d{1,3}\.){3}\d{1,3}(?![A-Za-z0-9_-])"
 )
@@ -35,7 +43,7 @@ PROVIDER_IPV6_PATTERN = re.compile(
     r"(?![A-Za-z0-9_:])"
 )
 PROVIDER_CITATION_PATTERN = re.compile(
-    r"(?i)(?:(?<![A-Za-z0-9_-])(?:learning_node|tool|page):"
+    r"(?i)(?:(?<![A-Za-z0-9_-])(?:learning_node|tool|page|web):"
     r"[A-Za-z0-9][A-Za-z0-9_.-]*(?![A-Za-z0-9_.-])|citationId\s*[:=])"
 )
 PROVIDER_SECRET_PATTERN = re.compile(
@@ -68,11 +76,17 @@ PROVIDER_HTML_PATTERN = re.compile(
 CONTROL_CHARACTER_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
+def _is_probable_public_domain(value: str) -> bool:
+    suffix = value.rsplit(".", 1)[-1].lower()
+    return suffix not in CODE_ARTIFACT_SUFFIXES
+
+
 def extract_grounded_dotted_terms(values: list[str] | tuple[str, ...]) -> set[str]:
     return {
         match.group(0).lower()
         for value in values
         for match in PROVIDER_DOMAIN_PATTERN.finditer(value)
+        if _is_probable_public_domain(match.group(0))
     }
 
 
@@ -102,11 +116,14 @@ def validate_provider_answer(
         raise ValueError("control_character")
     if PROVIDER_LINK_PATTERN.search(value):
         raise ValueError("link")
-    if any(
-        match.group(0).lower() not in (allowed_dotted_terms or set())
+    ungrounded_domain = next((
+        match.group(0).lower()
         for match in PROVIDER_DOMAIN_PATTERN.finditer(value)
-    ):
-        raise ValueError("domain")
+        if _is_probable_public_domain(match.group(0))
+        and match.group(0).lower() not in (allowed_dotted_terms or set())
+    ), None)
+    if ungrounded_domain:
+        raise ValueError(f"domain:{ungrounded_domain}")
     if contains_ip_address(value):
         raise ValueError("ip_address")
     if PROVIDER_CITATION_PATTERN.search(value):
@@ -139,17 +156,39 @@ def is_allowed_internal_href(href: str) -> bool:
     )
 
 
+def is_allowed_external_href(href: str) -> bool:
+    if not isinstance(href, str) or not href or len(href) > 2000 or "\\" in href:
+        return False
+    if CONTROL_CHARACTER_PATTERN.search(href):
+        return False
+    parsed = urlsplit(href)
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or not host or parsed.username or parsed.password:
+        return False
+    if host == "localhost" or host.endswith(".localhost"):
+        return False
+    try:
+        ip_address(host)
+    except ValueError:
+        return True
+    return False
+
+
 def validate_response(response: AgentStructuredResponse) -> AgentStructuredResponse:
     """Final response guardrail for deterministic and future LLM outputs."""
-    response.cards = [
-        card
-        for card in response.cards
-        if is_allowed_internal_href(card.href)
-    ]
+    response.cards = [card for card in response.cards if (
+        is_allowed_external_href(card.href)
+        if card.type == "web"
+        else is_allowed_internal_href(card.href)
+    )]
     response.citations = [
         citation
         for citation in response.citations
-        if is_allowed_internal_href(citation.href)
+        if (
+            is_allowed_external_href(citation.href)
+            if citation.sourceType == "web"
+            else is_allowed_internal_href(citation.href)
+        )
     ]
     citation_ids = {citation.citationId for citation in response.citations}
     for card in response.cards:

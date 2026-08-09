@@ -35,8 +35,8 @@ class ProviderConversationMessage:
     def __post_init__(self) -> None:
         if self.role not in {"user", "assistant"}:
             raise ValueError("provider conversation role must be user or assistant")
-        if not isinstance(self.content, str) or not 1 <= len(self.content) <= 6000:
-            raise ValueError("provider conversation content must contain 1 to 6000 characters")
+        if not isinstance(self.content, str) or not 1 <= len(self.content) <= 12000:
+            raise ValueError("provider conversation content must contain 1 to 12000 characters")
 
 
 @dataclass(frozen=True, slots=True)

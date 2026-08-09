@@ -7,7 +7,7 @@ from app.users.common import ResponseModel, StrictModel
 
 
 AgentIntent = Literal["qa", "navigation", "tool_recommendation", "workflow_generation", "learning_plan"]
-AgentSourceType = Literal["learning_node", "tool", "page"]
+AgentSourceType = Literal["learning_node", "tool", "page", "web"]
 AgentHistoryRole = Literal["user", "assistant"]
 
 
@@ -54,7 +54,7 @@ class AgentChatRequest(StrictModel):
 
 class AgentHistoryMessage(StrictModel):
     role: AgentHistoryRole
-    content: str = Field(min_length=1, max_length=6000)
+    content: str = Field(min_length=1, max_length=12000)
 
 
 class AgentGuestChatRequest(StrictModel):
@@ -64,8 +64,13 @@ class AgentGuestChatRequest(StrictModel):
 
     @model_validator(mode="after")
     def validate_history_budget(self):
+        # The authenticated session path can retain wider same-conversation
+        # context. The legacy guest DTO remains deliberately smaller because it
+        # has no user-owned model/session boundary and is not used by Assistant UI.
+        if any(len(message.content) > 6000 for message in self.history):
+            raise ValueError("guest history messages must contain at most 6000 characters")
         if sum(len(message.content) for message in self.history) > 12000:
-            raise ValueError("history must contain at most 12000 characters")
+            raise ValueError("guest history must contain at most 12000 characters")
         return self
 
 
@@ -78,7 +83,6 @@ class AgentCapabilities(StrictModel):
 class AgentRuntimeProvider(StrictModel):
     mode: Literal[
         "deterministic",
-        "fake",
         "configured_off",
         "live",
         "invalid",
@@ -96,6 +100,8 @@ class AgentRuntimeFeatures(StrictModel):
     responseReplay: bool
     observability: bool
     openAICompatibleIncremental: bool
+    langChainAgentLoop: bool = False
+    langGraphStateGraph: bool = False
 
 
 class AgentRuntimeSafety(StrictModel):
@@ -239,8 +245,9 @@ class AgentToolCall(StrictModel):
         "tools.workflow",
         "users.context",
         "navigation.read",
+        "web.search",
     ]
-    status: Literal["completed", "skipped"] = "completed"
+    status: Literal["completed", "partial", "failed", "skipped"] = "completed"
     resultCount: int = Field(default=0, ge=0)
 
 
@@ -292,10 +299,48 @@ class AgentUserContextMeta(StrictModel):
     capabilities: AgentUserContextCapabilities
 
 
+class AgentExecutionObjective(StrictModel):
+    objective: str = Field(min_length=1, max_length=200)
+    status: Literal["completed", "partial", "unfulfilled"]
+    explanation: str = Field(min_length=1, max_length=600)
+
+
+class AgentExecutionError(StrictModel):
+    code: str = Field(min_length=1, max_length=100)
+    message: str = Field(min_length=1, max_length=500)
+    stage: Literal["model", "tool", "inspection", "projection", "runtime"]
+    retryable: bool = False
+    partial: bool = False
+    diagnosticId: str = Field(min_length=1, max_length=128)
+    toolName: str | None = Field(default=None, max_length=100)
+
+
+class AgentExecutionStep(StrictModel):
+    stepId: str = Field(min_length=1, max_length=128)
+    title: str = Field(min_length=1, max_length=160)
+    status: Literal["completed", "partial", "failed"]
+    toolName: str = Field(min_length=1, max_length=100)
+    resultCount: int = Field(default=0, ge=0)
+    durationMs: float = Field(default=0, ge=0)
+    errorCode: str | None = Field(default=None, max_length=100)
+
+
+class AgentExecutionTrace(StrictModel):
+    runtime: Literal["langchain_agent", "deterministic_fallback"] = "langchain_agent"
+    graph: Literal["langgraph_state_graph", "not_run"] = "langgraph_state_graph"
+    status: Literal["complete", "partial", "failed"]
+    modelCalls: int = Field(default=0, ge=0, le=12)
+    objectives: list[AgentExecutionObjective] = Field(default_factory=list, max_length=8)
+    steps: list[AgentExecutionStep] = Field(default_factory=list, max_length=12)
+    errors: list[AgentExecutionError] = Field(default_factory=list, max_length=12)
+
+
 class AgentResponseMeta(StrictModel):
     source: Literal["agent.deterministic", "agent.provider"] = "agent.deterministic"
     contractVersion: int = 1
     mode: Literal["deterministic", "provider"] = "deterministic"
+    runtime: Literal["deterministic", "legacy_provider", "langchain_agent"] = "deterministic"
+    outcome: Literal["complete", "partial", "failed"] = "complete"
     readOnly: bool = True
     userContext: AgentUserContextMeta | None = None
     provider: str | None = None
@@ -327,29 +372,45 @@ class AgentStructuredResponse(StrictModel):
     workflowSteps: list[AgentWorkflowStep] = Field(default_factory=list)
     workflowDraft: AgentWorkflowDraft | None = None
     followups: list[str] = Field(default_factory=list)
+    execution: AgentExecutionTrace | None = None
     meta: AgentResponseMeta = Field(default_factory=AgentResponseMeta)
+
+
+class AgentProgress(StrictModel):
+    stage: Literal["understand", "tool", "synthesize", "inspect", "runtime"]
+    status: Literal["running", "completed", "failed"]
+    title: str = Field(min_length=1, max_length=160)
+    detail: str | None = Field(default=None, max_length=500)
+    toolName: str | None = Field(default=None, max_length=100)
+    resultCount: int | None = Field(default=None, ge=0)
+    errorCode: str | None = Field(default=None, max_length=100)
 
 
 class AgentStreamEvent(StrictModel):
     event: Literal[
         "response.started",
+        "agent.progress",
         "response.answer.delta",
         "response.completed",
     ]
     sequence: int = Field(ge=0)
     requestId: str = Field(min_length=1, max_length=128)
     delta: str | None = Field(default=None, min_length=1, max_length=1000)
+    progress: AgentProgress | None = None
     response: AgentStructuredResponse | None = None
 
     @model_validator(mode="after")
     def validate_event_payload(self):
-        if self.event == "response.answer.delta":
-            if self.delta is None or self.response is not None:
+        if self.event == "agent.progress":
+            if self.progress is None or self.delta is not None or self.response is not None:
+                raise ValueError("progress events require only progress")
+        elif self.event == "response.answer.delta":
+            if self.delta is None or self.progress is not None or self.response is not None:
                 raise ValueError("answer delta events require only delta")
         elif self.event == "response.completed":
-            if self.response is None or self.delta is not None:
+            if self.response is None or self.delta is not None or self.progress is not None:
                 raise ValueError("completed events require only response")
-        elif self.delta is not None or self.response is not None:
+        elif self.delta is not None or self.progress is not None or self.response is not None:
             raise ValueError("started events cannot contain payload")
         return self
 

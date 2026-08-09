@@ -220,10 +220,13 @@ class AgentSessionServiceTest(unittest.TestCase):
             )
 
         history = self.service.context(self.alice_id, empty["sessionId"])
-        self.assertEqual(12, len(history))
+        self.assertEqual(8, len(history))
         self.assertEqual(
-            ["user-2", "assistant-2", "user-3", "assistant-3"],
-            [message.content for message in history[:4]],
+            [
+                "[当前对话内的已完成任务记录]",
+                "[当前对话内的已完成任务记录]",
+            ],
+            [message.content.splitlines()[0] for message in history[:2]],
         )
         self.assertEqual(
             ["user-7", "assistant-7"],
@@ -232,6 +235,43 @@ class AgentSessionServiceTest(unittest.TestCase):
         self.assertTrue(
             all(message.role in {"user", "assistant"} for message in history)
         )
+        self.assertTrue(all(message.role == "assistant" for message in history[:4]))
+        self.assertIn("用户目标：user-2", history[0].content)
+        self.assertIn("最终结果：assistant-2", history[0].content)
+
+    def test_conversation_context_never_includes_another_conversation(self):
+        first = self.service.create(self.alice_id, None)["session"]
+        self.service.append_exchange(
+            self.alice_id,
+            first["sessionId"],
+            "request-isolation-a",
+            "只属于对话 A 的临时口令：青松",
+            "已在对话 A 中收到",
+        )
+        second = self.service.create(self.alice_id, None)["session"]
+        self.service.append_exchange(
+            self.alice_id,
+            second["sessionId"],
+            "request-isolation-b",
+            "只属于对话 B 的问题",
+            "已在对话 B 中回答",
+        )
+
+        first_history = self.service.context(self.alice_id, first["sessionId"])
+        second_history = self.service.context(self.alice_id, second["sessionId"])
+        self.assertIn("青松", " ".join(item.content for item in first_history))
+        self.assertNotIn("青松", " ".join(item.content for item in second_history))
+
+        upgraded = self.service.upgrade(
+            self.alice_id,
+            first["sessionId"],
+        )["conversation"]
+        long_history = self.service.context(
+            self.alice_id,
+            upgraded["conversationId"],
+        )
+        self.assertIn("青松", " ".join(item.content for item in long_history))
+        self.assertNotIn("对话 B", " ".join(item.content for item in long_history))
 
     def test_context_trims_only_whole_messages_from_the_oldest_end(self):
         session = self.service.create(self.alice_id, None)["session"]
@@ -254,6 +294,35 @@ class AgentSessionServiceTest(unittest.TestCase):
         self.assertEqual(["1", "1", "2", "2"], [item.content[0] for item in history])
         self.assertEqual(12_000, sum(len(item.content) for item in history))
         self.assertTrue(all(len(item.content) == 3000 for item in history))
+
+    def test_context_compaction_is_session_scoped_and_excludes_runtime_artifacts(self):
+        first = self.service.create(self.alice_id, None)["session"]
+        for index in range(5):
+            self.service.append_exchange(
+                self.alice_id,
+                first["sessionId"],
+                f"request-report-{index}",
+                f"对话 A 任务 {index}",
+                f"对话 A 最终成果 {index}",
+            )
+        second = self.service.create(self.alice_id, None)["session"]
+        self.service.append_exchange(
+            self.alice_id,
+            second["sessionId"],
+            "request-report-b",
+            "对话 B 私有目标",
+            "对话 B 最终成果",
+        )
+
+        history = self.service.context(self.alice_id, first["sessionId"])
+        joined = "\n".join(item.content for item in history)
+
+        self.assertIn("[当前对话内的已完成任务记录]", joined)
+        self.assertIn("对话 A 最终成果 2", joined)
+        self.assertNotIn("对话 B", joined)
+        self.assertNotIn("Traceback", joined)
+        self.assertNotIn("diagnosticNote", joined)
+        self.assertNotIn("toolEvidence", joined)
 
     def test_rename_and_multiple_pin_order_is_user_owned(self):
         first = self.service.create(self.alice_id, None)["session"]

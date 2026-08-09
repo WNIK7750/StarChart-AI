@@ -11,6 +11,7 @@ from uuid import uuid4
 from app.db.database import get_connection
 from app.core.config import AGENT_SESSION_RETENTION_DAYS
 from app.agent.schemas import AgentHistoryMessage
+from app.agent.conversation_context import compact_conversation_history
 
 
 _UNCHANGED = object()
@@ -828,16 +829,23 @@ class AgentSessionService:
         session_uid: str,
         *,
         limit: int = 12,
-        max_chars: int = 12_000,
+        max_chars: int = 24_000,
     ) -> tuple[AgentHistoryMessage, ...]:
         if limit < 1 or max_chars < 1:
             raise ValueError("history limits must be positive")
-        rows = self.store.context(user_id, session_uid, limit)
+        # Read a bounded wider window so completed older exchanges can be
+        # represented by compact final reports instead of disappearing or
+        # sending their full transcripts back to the model.
+        rows = self.store.context(user_id, session_uid, min(max(limit * 3, limit), 48))
         if rows is None:
             if session_uid.startswith("agl_"):
                 raise self._long_not_found()
             raise self._not_found()
-        history = tuple(AgentHistoryMessage.model_validate(row) for row in rows)
+        history = compact_conversation_history(
+            tuple(AgentHistoryMessage.model_validate(row) for row in rows),
+            recent_exchanges=2,
+            max_reports=min(4, max(0, limit - 4)),
+        )
         total_chars = 0
         selected: list[AgentHistoryMessage] = []
         for message in reversed(history):

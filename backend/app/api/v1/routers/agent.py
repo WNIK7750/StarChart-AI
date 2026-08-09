@@ -11,7 +11,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.api.v1.dependencies.authorization import require_permission
 from app.api.v1.routers.auth import _client_ip
-from app.agent.factory import get_agent_orchestrator
+from app.agent.factory import build_user_agent_loop, get_agent_orchestrator
 from app.agent.governance import AgentAdmissionGate, AgentGovernanceRejected
 from app.agent.orchestrator import AgentOrchestrator
 from app.agent.observability import get_agent_metrics
@@ -38,13 +38,14 @@ from app.agent.schemas import (
     AgentSessionUpdate,
     AgentSessionUpdateResponse,
     AgentStreamEvent,
+    AgentProgress,
     AgentStructuredResponse,
     AgentRuntimeProfile,
 )
 from app.agent.sessions import AgentSessionError, get_agent_session_service
 from app.agent.runtime import get_agent_runtime_profile
 from app.agent.service import needs_user_context
-from app.agent.streaming import encode_sse, project_response_events
+from app.agent.streaming import encode_sse, iter_answer_chunks
 from app.core.config import (
     AGENT_GUEST_CHAT_ENABLED,
     AGENT_SESSIONS_ENABLED,
@@ -58,6 +59,7 @@ from app.users.assets.facade import get_user_assets_facade
 from app.users.assets.schemas import WorkflowCreate, WorkflowCreateResponse
 from app.users.common import UsersError, users_error_detail
 from app.users.context.facade import get_user_context_facade
+from app.users.model_settings.service import get_agent_model_settings_service
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -181,6 +183,7 @@ async def _run_agent_request(
     request_id: str,
     *,
     on_answer_delta=None,
+    on_progress=None,
 ) -> AgentStructuredResponse:
     async with get_agent_replay_singleflight().slot(current_user["id"], request_id):
         return await _run_serialized_agent_request(
@@ -189,6 +192,7 @@ async def _run_agent_request(
             orchestrator,
             request_id,
             on_answer_delta=on_answer_delta,
+            on_progress=on_progress,
         )
 
 
@@ -199,6 +203,7 @@ async def _run_serialized_agent_request(
     request_id: str,
     *,
     on_answer_delta=None,
+    on_progress=None,
 ) -> AgentStructuredResponse:
     session_service = None
     history = ()
@@ -237,8 +242,24 @@ async def _run_serialized_agent_request(
         current_user.get("privacyConsentAction") == "granted"
         and current_user.get("privacyConsentPolicyVersion") == PRIVACY_POLICY_VERSION
     )
+    user_agent_loop = None
+    if provider_allowed:
+        try:
+            resolved_model = await run_in_threadpool(
+                get_agent_model_settings_service().resolve,
+                current_user["id"],
+                current_user.get("user_uid") or f"user:{current_user['id']}",
+            )
+            if resolved_model is not None:
+                user_agent_loop = build_user_agent_loop(resolved_model)
+        except UsersError:
+            user_agent_loop = None
     user_context = None
-    if needs_user_context(payload):
+    uses_model_loop = (
+        isinstance(orchestrator, AgentOrchestrator)
+        and (user_agent_loop is not None or orchestrator.agent_loop is not None)
+    )
+    if uses_model_loop or needs_user_context(payload):
         try:
             user_context = await asyncio.wait_for(
                 run_in_threadpool(
@@ -257,6 +278,10 @@ async def _run_serialized_agent_request(
     }
     if on_answer_delta is not None:
         response_options["on_answer_delta"] = on_answer_delta
+    if on_progress is not None:
+        response_options["on_progress"] = on_progress
+    if user_agent_loop is not None:
+        response_options["agent_loop_override"] = user_agent_loop
     result = await orchestrator.respond(payload, user_context, **response_options)
 
     async def finalize_response() -> None:
@@ -651,14 +676,17 @@ async def agent_chat_stream(
     request_id = _safe_request_id(request)
 
     async def event_stream():
-        delta_queue: asyncio.Queue[str] = asyncio.Queue(
+        event_queue: asyncio.Queue[tuple[str, object]] = asyncio.Queue(
             maxsize=AGENT_STREAM_BUFFER_EVENTS
         )
 
         async def on_answer_delta(delta: str) -> None:
             # A bounded queue links Provider production to network consumption.
             # When the client is slow, queue.put pauses the producer.
-            await delta_queue.put(delta)
+            await event_queue.put(("delta", delta))
+
+        async def on_progress(progress: AgentProgress) -> None:
+            await event_queue.put(("progress", progress))
 
         response_task = asyncio.create_task(
             _run_agent_request(
@@ -667,6 +695,7 @@ async def agent_chat_stream(
                 orchestrator,
                 request_id,
                 on_answer_delta=on_answer_delta,
+                on_progress=on_progress,
             )
         )
         disconnect_task = asyncio.create_task(_wait_for_disconnect(request))
@@ -684,7 +713,7 @@ async def agent_chat_stream(
             await asyncio.sleep(0)
 
             while True:
-                delta_task = asyncio.create_task(delta_queue.get())
+                delta_task = asyncio.create_task(event_queue.get())
                 done, _pending = await asyncio.wait(
                     {response_task, disconnect_task, delta_task},
                     return_when=asyncio.FIRST_COMPLETED,
@@ -699,17 +728,22 @@ async def agent_chat_stream(
                     return
 
                 if delta_task in done:
-                    delta = delta_task.result()
+                    item_type, item = delta_task.result()
                     sequence += 1
-                    emitted_incremental_delta = True
-                    yield encode_sse(
-                        AgentStreamEvent(
-                            event="response.answer.delta",
-                            sequence=sequence,
-                            requestId=request_id,
-                            delta=delta,
-                        )
-                    )
+                    if item_type == "progress":
+                        yield encode_sse(AgentStreamEvent(
+                            event="agent.progress", sequence=sequence,
+                            requestId=request_id, progress=item,
+                        ))
+                    else:
+                        emitted_incremental_delta = True
+                        sequence -= 1
+                        for chunk in iter_answer_chunks(item):
+                            sequence += 1
+                            yield encode_sse(AgentStreamEvent(
+                                event="response.answer.delta", sequence=sequence,
+                                requestId=request_id, delta=chunk,
+                            ))
                     await asyncio.sleep(0)
                     continue
 
@@ -718,17 +752,22 @@ async def agent_chat_stream(
                 # validated delta is never skipped before completion.
                 await asyncio.sleep(0)
                 if delta_task.done():
-                    delta = delta_task.result()
+                    item_type, item = delta_task.result()
                     sequence += 1
-                    emitted_incremental_delta = True
-                    yield encode_sse(
-                        AgentStreamEvent(
-                            event="response.answer.delta",
-                            sequence=sequence,
-                            requestId=request_id,
-                            delta=delta,
-                        )
-                    )
+                    if item_type == "progress":
+                        yield encode_sse(AgentStreamEvent(
+                            event="agent.progress", sequence=sequence,
+                            requestId=request_id, progress=item,
+                        ))
+                    else:
+                        emitted_incremental_delta = True
+                        sequence -= 1
+                        for chunk in iter_answer_chunks(item):
+                            sequence += 1
+                            yield encode_sse(AgentStreamEvent(
+                                event="response.answer.delta", sequence=sequence,
+                                requestId=request_id, delta=chunk,
+                            ))
                     await asyncio.sleep(0)
                     continue
 
@@ -742,25 +781,18 @@ async def agent_chat_stream(
                 disconnect_task.add_done_callback(_consume_background_task)
                 disconnect_task = None
 
-                if emitted_incremental_delta:
-                    sequence += 1
-                    yield encode_sse(
-                        AgentStreamEvent(
-                            event="response.completed",
-                            sequence=sequence,
-                            requestId=request_id,
-                            response=result,
-                        )
-                    )
-                    return
-
-                for event in project_response_events(result, request_id):
-                    if event.event == "response.started":
-                        continue
-                    if await request.is_disconnected():
-                        return
-                    yield encode_sse(event)
-                    await asyncio.sleep(0)
+                if not emitted_incremental_delta and result.answer:
+                    for chunk in iter_answer_chunks(result.answer):
+                        sequence += 1
+                        yield encode_sse(AgentStreamEvent(
+                            event="response.answer.delta", sequence=sequence,
+                            requestId=request_id, delta=chunk,
+                        ))
+                sequence += 1
+                yield encode_sse(AgentStreamEvent(
+                    event="response.completed", sequence=sequence,
+                    requestId=request_id, response=result,
+                ))
                 return
         finally:
             if not response_task.done():

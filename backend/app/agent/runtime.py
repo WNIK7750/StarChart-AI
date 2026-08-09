@@ -29,13 +29,18 @@ def get_agent_runtime_profile() -> AgentRuntimeProfile:
     else:
         if settings.provider == "openai_compatible":
             mode = "live" if settings.live_enabled else "configured_off"
+            configuration_valid = True
+        elif settings.provider == "deterministic":
+            mode = "deterministic"
+            configuration_valid = True
         else:
-            mode = settings.provider
+            mode = "invalid"
+            configuration_valid = False
         provider = AgentRuntimeProvider(
             mode=mode,
             model=settings.model,
             live=settings.provider == "openai_compatible" and settings.live_enabled,
-            configurationValid=True,
+            configurationValid=configuration_valid,
             upgradeModel=settings.upgrade_model,
             upgradeRatio=settings.upgrade_ratio,
         )
@@ -48,6 +53,8 @@ def get_agent_runtime_profile() -> AgentRuntimeProfile:
             responseReplay=True,
             observability=True,
             openAICompatibleIncremental=False,
+            langChainAgentLoop=provider.mode == "live",
+            langGraphStateGraph=provider.mode == "live",
         ),
         safety=AgentRuntimeSafety(),
         topology=AgentRuntimeTopology(

@@ -33,17 +33,17 @@ def provider_config(**overrides) -> dict:
 
 class AgentFeatureMatrixTests(unittest.IsolatedAsyncioTestCase):
     def test_live_switch_is_rejected_for_non_live_provider_modes(self):
-        for provider in ("deterministic", "fake"):
-            with self.subTest(provider=provider), self.assertRaisesRegex(
-                RuntimeError,
-                "requires.*openai_compatible",
-            ):
-                validate_agent_provider_config(
-                    **provider_config(
-                        provider=provider,
-                        live_enabled=True,
-                    )
+        with self.assertRaisesRegex(RuntimeError, "requires.*openai_compatible"):
+            validate_agent_provider_config(
+                **provider_config(
+                    provider="deterministic",
+                    live_enabled=True,
                 )
+            )
+        with self.assertRaisesRegex(RuntimeError, "must be deterministic or openai_compatible"):
+            validate_agent_provider_config(
+                **provider_config(provider="unsupported", live_enabled=True)
+            )
 
     def test_runtime_profile_distinguishes_safe_provider_modes(self):
         cases = (
@@ -59,12 +59,12 @@ class AgentFeatureMatrixTests(unittest.IsolatedAsyncioTestCase):
             ),
             (
                 AgentProviderSettings(
-                    provider="fake",
+                    provider="unsupported",
                     base_url="",
-                    model="fake-model",
+                    model="unsupported-model",
                     api_key="",
                 ),
-                "fake",
+                "invalid",
                 False,
             ),
             (

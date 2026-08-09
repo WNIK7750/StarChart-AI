@@ -60,6 +60,31 @@ class AgentPhase1EvalCasesTest(unittest.TestCase):
                         allowed_dotted_terms=set(case.get("allowedDottedTerms", [])),
                     )
 
+    def test_code_artifact_names_are_not_misclassified_as_bare_domains(self):
+        answer = (
+            "第 4 天：创建 app.py，并安装 requirements.txt。\n"
+            "第 5 天：编写 README.md，完成第一个知识库问答 Demo。"
+        )
+
+        self.assertEqual(answer, validate_provider_answer(answer, 2000))
+
+    def test_real_bare_domain_still_requires_grounding(self):
+        with self.assertRaisesRegex(ValueError, "domain"):
+            validate_provider_answer("请访问 docs.langchain.com 查看详情。", 2000)
+
+        answer = "可参考 docs.langchain.com 的相关资料。"
+        self.assertEqual(
+            answer,
+            validate_provider_answer(
+                answer,
+                2000,
+                allowed_dotted_terms={"docs.langchain.com"},
+            ),
+        )
+
+        with self.assertRaisesRegex(ValueError, "domain"):
+            validate_provider_answer("请访问 evil.museum 获取详情。", 2000)
+
     def test_content_free_manifest_is_stable_and_complete(self):
         manifest = build_evaluation_manifest(self.cases)
         rendered = json.dumps(manifest, ensure_ascii=False)

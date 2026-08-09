@@ -11,7 +11,7 @@ from app.agent.providers.base import (
 
 
 class FakeProvider(AgentProvider):
-    """Controllable offline provider for service and contract tests."""
+    """Controllable provider used only by isolated contract tests."""
 
     name = "fake"
 
@@ -67,7 +67,5 @@ class FakeProvider(AgentProvider):
             self.stream_cancelled.set()
             raise
         finally:
-            # Closing an async generator while its consumer is blocked can
-            # arrive as GeneratorExit instead of CancelledError.
             if not completed_normally:
                 self.stream_cancelled.set()

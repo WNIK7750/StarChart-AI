@@ -14,6 +14,7 @@ from app.agent.evaluator import (
     validate_response,
 )
 from app.agent.governance import AgentGovernanceRejected, AgentRuntimeGovernance
+from app.agent.loop import BASE_SYSTEM_PROMPT, LOOP_PROMPT_VERSION, AgentLoopRunResult, SiteAgentLoopRuntime
 from app.agent.observability import build_agent_trace, get_agent_metrics
 from app.agent.providers import (
     AgentEvidenceItem,
@@ -26,7 +27,15 @@ from app.agent.providers import (
     ProviderTextDelta,
     StreamingAgentProvider,
 )
-from app.agent.schemas import AgentChatRequest, AgentHistoryMessage, AgentStructuredResponse
+from app.agent.schemas import (
+    AgentChatRequest,
+    AgentExecutionError,
+    AgentExecutionStep,
+    AgentExecutionTrace,
+    AgentHistoryMessage,
+    AgentProgress,
+    AgentStructuredResponse,
+)
 from app.agent.service import draft_agent_response
 
 
@@ -45,7 +54,9 @@ class AgentOrchestrator:
         self,
         *,
         provider: AgentProvider | None = None,
+        agent_loop: SiteAgentLoopRuntime | None = None,
         timeout_seconds: float = 15,
+        loop_timeout_seconds: float | None = None,
         max_output_chars: int = 6000,
         max_evidence_items: int = 10,
         max_evidence_chars: int = 12000,
@@ -53,7 +64,9 @@ class AgentOrchestrator:
         governance: AgentRuntimeGovernance | None = None,
     ):
         self.provider = provider
+        self.agent_loop = agent_loop
         self.timeout_seconds = timeout_seconds
+        self.loop_timeout_seconds = loop_timeout_seconds or timeout_seconds
         self.max_output_chars = max_output_chars
         self.max_evidence_items = max_evidence_items
         self.max_evidence_chars = max_evidence_chars
@@ -88,9 +101,140 @@ class AgentOrchestrator:
         user_key: str | None = None,
         provider_allowed: bool = True,
         on_answer_delta: Callable[[str], Awaitable[None]] | None = None,
+        on_progress: Callable[[AgentProgress], Awaitable[None]] | None = None,
+        agent_loop_override: SiteAgentLoopRuntime | None = None,
     ) -> AgentStructuredResponse:
         started_at = perf_counter()
         resolved_request_id = request_id or uuid4().hex
+        active_agent_loop = agent_loop_override or self.agent_loop
+        if active_agent_loop is not None:
+            deterministic = None
+            if not provider_allowed:
+                deterministic = await run_in_threadpool(
+                    draft_agent_response,
+                    request,
+                    user_context,
+                )
+                return self._fallback(
+                    deterministic,
+                    resolved_request_id,
+                    "consent_required",
+                    attempts=0,
+                    started_at=started_at,
+                )
+            try:
+                provider_user_message = validate_provider_user_message(request.message)
+                provider_history = tuple(
+                    ProviderConversationMessage(
+                        role=message.role,
+                        content=validate_provider_user_message(message.content),
+                    )
+                    for message in history
+                )
+            except ValueError:
+                deterministic = await run_in_threadpool(
+                    draft_agent_response,
+                    request,
+                    user_context,
+                )
+                return self._fallback(
+                    deterministic,
+                    resolved_request_id,
+                    "sensitive_input",
+                    attempts=0,
+                    started_at=started_at,
+                )
+            budget_request = ProviderRequest(
+                request_id=resolved_request_id,
+                prompt_version=LOOP_PROMPT_VERSION,
+                system_instruction=BASE_SYSTEM_PROMPT,
+                user_message=provider_user_message,
+                evidence=(),
+                max_output_chars=self.max_output_chars,
+                history=provider_history,
+            )
+            try:
+                loop_result, charged_cny = await asyncio.wait_for(
+                    self._run_loop_with_governance(
+                        request=request,
+                        history=history,
+                        user_context=user_context,
+                        request_id=resolved_request_id,
+                        user_key=user_key or f"request:{resolved_request_id}",
+                        budget_request=budget_request,
+                        agent_loop=active_agent_loop,
+                        on_progress=on_progress,
+                        skip_cost_budget=agent_loop_override is not None,
+                    ),
+                    timeout=self.loop_timeout_seconds,
+                )
+            except AgentGovernanceRejected as exc:
+                deterministic = await run_in_threadpool(
+                    draft_agent_response,
+                    request,
+                    user_context,
+                )
+                return self._fallback(
+                    deterministic,
+                    resolved_request_id,
+                    exc.reason,
+                    attempts=0,
+                    started_at=started_at,
+                )
+            except TimeoutError:
+                deterministic = await run_in_threadpool(
+                    draft_agent_response,
+                    request,
+                    user_context,
+                )
+                return self._fallback(
+                    deterministic,
+                    resolved_request_id,
+                    "timeout",
+                    attempts=1,
+                    started_at=started_at,
+                )
+            except Exception as exc:
+                agent_logger.error(
+                    json.dumps(
+                        {
+                            "event": "AGENT_LOOP_RUNTIME_FAILED",
+                            "requestId": resolved_request_id,
+                            "exceptionType": type(exc).__name__,
+                        },
+                        ensure_ascii=False,
+                    )
+                )
+                deterministic = await run_in_threadpool(
+                    draft_agent_response,
+                    request,
+                    user_context,
+                )
+                return self._fallback(
+                    deterministic,
+                    resolved_request_id,
+                    "unavailable",
+                    attempts=1,
+                    started_at=started_at,
+                )
+            response = loop_result.response
+            self._log_result(
+                request_id=resolved_request_id,
+                mode="provider",
+                provider=response.meta.provider,
+                model=response.meta.model,
+                attempts=response.meta.attempts,
+                fallback_reason=response.meta.fallbackReason,
+                evidence_count=len(response.citations),
+                tools=tuple(item.name for item in response.toolCalls),
+                latency_ms=round((perf_counter() - started_at) * 1000, 2),
+                input_tokens=loop_result.input_tokens,
+                output_tokens=loop_result.output_tokens,
+                cost_cny=charged_cny,
+                prompt_version=LOOP_PROMPT_VERSION,
+            )
+            return self._finalize(response)
+
         deterministic = await run_in_threadpool(draft_agent_response, request, user_context)
         if self.provider is None:
             if self.disabled_reason:
@@ -240,6 +384,8 @@ class AgentOrchestrator:
         deterministic.answer = answer
         deterministic.meta.source = "agent.provider"
         deterministic.meta.mode = "provider"
+        deterministic.meta.runtime = "legacy_provider"
+        deterministic.meta.outcome = "complete"
         deterministic.meta.provider = result.provider
         deterministic.meta.model = result.model
         deterministic.meta.promptVersion = PROMPT_VERSION
@@ -260,6 +406,75 @@ class AgentOrchestrator:
             cost_cny=charged_cny,
         )
         return self._finalize(deterministic)
+
+    async def _run_loop_with_governance(
+        self,
+        *,
+        request: AgentChatRequest,
+        history: tuple[AgentHistoryMessage, ...],
+        user_context: dict | None,
+        request_id: str,
+        user_key: str,
+        budget_request: ProviderRequest,
+        agent_loop: SiteAgentLoopRuntime,
+        on_progress: Callable[[AgentProgress], Awaitable[None]] | None,
+        skip_cost_budget: bool = False,
+    ) -> tuple[AgentLoopRunResult, float | None]:
+        async def execute() -> AgentLoopRunResult:
+            event_loop = asyncio.get_running_loop()
+
+            def progress_bridge(payload: dict) -> None:
+                if on_progress is None:
+                    return
+                progress = AgentProgress.model_validate(payload)
+                future = asyncio.run_coroutine_threadsafe(
+                    on_progress(progress),
+                    event_loop,
+                )
+                future.result(timeout=2)
+
+            return await run_in_threadpool(
+                agent_loop.run,
+                request,
+                history=history,
+                user_context=user_context,
+                request_id=request_id,
+                on_progress=progress_bridge if on_progress else None,
+            )
+
+        if self.governance is None:
+            return await execute(), None
+        async with self.governance.admission.slot(user_key):
+            if skip_cost_budget:
+                return await execute(), None
+            reservation = self.governance.cost.reserve(user_key, budget_request)
+            try:
+                result = await execute()
+            except BaseException:
+                reservation.settle(None)
+                raise
+            usage_result = ProviderResult(
+                answer=result.response.answer,
+                provider=result.response.meta.provider or "agent_loop",
+                model=result.response.meta.model or "unknown",
+                attempts=1,
+                input_tokens=result.input_tokens,
+                output_tokens=result.output_tokens,
+            )
+            charged_cny = reservation.settle(usage_result)
+            if self.governance.cost.result_exceeds_request_limit(
+                usage_result,
+                charged_cny,
+            ):
+                agent_logger.warning(json.dumps({
+                    "event": "AGENT_LOOP_BUDGET_EXCEEDED",
+                    "requestId": request_id,
+                    "inputTokens": result.input_tokens,
+                    "outputTokens": result.output_tokens,
+                    "chargedCny": charged_cny,
+                }, ensure_ascii=False))
+                raise AgentGovernanceRejected("budget_exceeded")
+            return result, charged_cny
 
     async def _generate_with_governance(
         self,
@@ -436,6 +651,8 @@ class AgentOrchestrator:
             else None
         )
         response.meta.promptVersion = PROMPT_VERSION
+        response.meta.runtime = "deterministic"
+        response.meta.outcome = "partial" if response.citations else "failed"
         allowed_reasons = {
             "not_configured",
             "cancelled",
@@ -453,6 +670,46 @@ class AgentOrchestrator:
         response.meta.fallbackReason = reason if reason in allowed_reasons else "unavailable"
         safe_attempts = attempts if isinstance(attempts, int) and not isinstance(attempts, bool) else 0
         response.meta.attempts = max(0, min(safe_attempts, 2))
+        error_codes = {
+            "not_configured": ("AGENT_MODEL_NOT_CONFIGURED", "尚未配置可用模型，已使用站内确定性结果。", False),
+            "consent_required": ("AGENT_MODEL_CONSENT_REQUIRED", "尚未授权外部模型处理，已使用站内确定性结果。", False),
+            "timeout": ("AGENT_PROVIDER_TIMEOUT", "模型工作流超时，已保留站内确定性结果。", True),
+            "authentication": ("AGENT_PROVIDER_AUTHENTICATION_FAILED", "模型身份验证失败，请检查密钥。", False),
+            "rate_limited": ("AGENT_PROVIDER_RATE_LIMITED", "模型服务当前限流，已保留站内结果。", True),
+            "budget_exceeded": ("AGENT_BUDGET_EXCEEDED", "本轮模型预算已达到上限。", False),
+            "sensitive_input": ("AGENT_INPUT_REJECTED", "输入包含不应发送给外部模型的敏感内容。", False),
+            "insufficient_evidence": ("AGENT_EVIDENCE_INSUFFICIENT", "站内证据不足，模型未被调用。", False),
+            "invalid_output": ("AGENT_MODEL_OUTPUT_INVALID", "模型输出未通过边界检查。", True),
+            "unavailable": ("AGENT_MODEL_LOOP_FAILED", "模型工作流未能完成，请检查配置或稍后重试。", True),
+        }
+        code, message, retryable = error_codes.get(
+            response.meta.fallbackReason,
+            error_codes["unavailable"],
+        )
+        outcome = "partial" if response.citations else "failed"
+        response.execution = AgentExecutionTrace(
+            runtime="deterministic_fallback",
+            graph="not_run",
+            status=outcome,
+            modelCalls=response.meta.attempts,
+            steps=[AgentExecutionStep(
+                stepId="runtime-fallback",
+                title="模型 Agent Loop 未完整执行，已降级为站内确定性结果",
+                status="partial" if response.citations else "failed",
+                toolName="agent_runtime",
+                resultCount=len(response.citations),
+                durationMs=round((perf_counter() - started_at) * 1000, 2),
+                errorCode=code,
+            )],
+            errors=[AgentExecutionError(
+                code=code,
+                message=message,
+                stage="runtime",
+                retryable=retryable,
+                partial=bool(response.citations),
+                diagnosticId=request_id,
+            )],
+        )
         self._log_result(
             request_id=request_id,
             mode="deterministic",
@@ -489,6 +746,7 @@ class AgentOrchestrator:
         input_tokens: int,
         output_tokens: int,
         cost_cny: float | None,
+        prompt_version: str = PROMPT_VERSION,
     ) -> None:
         trace = build_agent_trace(
             request_id=request_id,
@@ -497,7 +755,7 @@ class AgentOrchestrator:
             model=model,
             attempts=attempts,
             fallback_reason=fallback_reason,
-            prompt_version=PROMPT_VERSION,
+            prompt_version=prompt_version,
             evidence_count=evidence_count,
             tools=tools,
             latency_ms=latency_ms,

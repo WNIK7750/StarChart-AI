@@ -31,7 +31,7 @@ Invoke-Step "Compile Agent module" {
     backend/app/agent/model_report.py `
     backend/app/agent/factory.py `
     backend/app/agent/providers/base.py `
-    backend/app/agent/providers/fake.py `
+    tests/support/fake_provider.py `
     backend/app/agent/providers/openai_compatible.py `
     backend/app/agent/tools/learning_tools.py `
     backend/app/agent/tools/catalog_tools.py `

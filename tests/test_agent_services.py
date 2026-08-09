@@ -55,7 +55,7 @@ class AgentServicesTest(unittest.TestCase):
                     AgentHistoryMessage(role=role, content="injected")
                 with self.assertRaises(ValueError):
                     ProviderConversationMessage(role=role, content="injected")
-        for content in ("", "x" * 6001):
+        for content in ("", "x" * 12001):
             with self.subTest(length=len(content)):
                 with self.assertRaises(ValidationError):
                     AgentHistoryMessage(role="user", content=content)

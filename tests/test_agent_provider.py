@@ -26,7 +26,7 @@ from app.agent.providers import (
     ProviderRequest,
     ProviderResult,
 )
-from app.agent.providers.fake import FakeProvider
+from support.fake_provider import FakeProvider
 from app.agent.providers.openai_compatible import OpenAICompatibleProvider
 from app.agent.schemas import (
     AgentChatRequest,
@@ -1019,14 +1019,18 @@ class OpenAICompatibleProviderTest(unittest.IsolatedAsyncioTestCase):
 
 
 class AgentProviderConfigTest(unittest.TestCase):
-    def test_local_secret_file_is_ignored_and_repository_template_stays_empty(self):
+    def test_local_template_has_no_site_model_key_or_cost_budget(self):
         root = Path(__file__).resolve().parents[1]
         ignore_rules = (root / ".gitignore").read_text(encoding="utf-8")
         template = (root / ".env.example").read_text(encoding="utf-8")
         self.assertIn(".env", ignore_rules.splitlines())
         self.assertIn("!.env.example", ignore_rules.splitlines())
-        self.assertIn("AI_NAV_AGENT_PROVIDER_API_KEY=", template.splitlines())
-        self.assertNotRegex(template, r"AI_NAV_AGENT_PROVIDER_API_KEY=\S+")
+        self.assertIn("AI_NAV_AGENT_PROVIDER=deterministic", template.splitlines())
+        self.assertIn("AI_NAV_AGENT_PROVIDER_LIVE_ENABLED=0", template.splitlines())
+        self.assertIn("AI_NAV_AGENT_CREDENTIAL_STORE=windows_dpapi", template.splitlines())
+        self.assertNotIn("AI_NAV_AGENT_PROVIDER_API_KEY=", template.splitlines())
+        self.assertNotIn("AI_NAV_AGENT_PROVIDER_MODEL=", template.splitlines())
+        self.assertNotIn("AI_NAV_AGENT_GLOBAL_MONTHLY_COST_CNY=", template.splitlines())
 
     def valid(self, **overrides):
         values = {
@@ -1048,9 +1052,14 @@ class AgentProviderConfigTest(unittest.TestCase):
 
     def test_provider_configuration_rejects_unsafe_or_incomplete_modes(self):
         validate_agent_provider_config(**self.valid())
-        for environment in ("production", "provider_preview"):
-            with self.subTest(environment=environment), self.assertRaisesRegex(RuntimeError, "cannot use.*fake"):
-                validate_agent_provider_config(**self.valid(environment=environment, provider="fake"))
+        for environment in ("development", "test", "production", "provider_preview"):
+            with self.subTest(environment=environment), self.assertRaisesRegex(
+                RuntimeError,
+                "deterministic or openai_compatible",
+            ):
+                validate_agent_provider_config(
+                    **self.valid(environment=environment, provider="fake")
+                )
         with self.assertRaisesRegex(RuntimeError, "requires"):
             validate_agent_provider_config(**self.valid(provider="openai_compatible"))
         for environment in ("production", "provider_preview"):
@@ -1207,7 +1216,7 @@ class AgentProviderConfigTest(unittest.TestCase):
         )
         self.assertNotIn("top-secret-provider-key", repr(settings))
 
-    def test_live_provider_requires_the_independent_kill_switch(self):
+    def test_environment_provider_is_never_a_user_default(self):
         provider_environment = {
             "AI_NAV_AGENT_PROVIDER": "openai_compatible",
             "AI_NAV_AGENT_PROVIDER_BASE_URL": "https://provider.example.test/v1",
@@ -1225,8 +1234,9 @@ class AgentProviderConfigTest(unittest.TestCase):
             {**provider_environment, "AI_NAV_AGENT_PROVIDER_LIVE_ENABLED": "1"},
         ):
             enabled = get_agent_orchestrator()
-        self.assertIsInstance(enabled.provider, OpenAICompatibleProvider)
-        self.assertIsNone(enabled.disabled_reason)
+        self.assertIsNone(enabled.provider)
+        self.assertIsNone(enabled.agent_loop)
+        self.assertEqual("not_configured", enabled.disabled_reason)
 
     def test_chat_request_bounds_unused_context_fields(self):
         with self.assertRaises(ValidationError):
@@ -1263,7 +1273,7 @@ class AgentProviderConfigTest(unittest.TestCase):
 
 
 class AgentRouterProviderTest(unittest.IsolatedAsyncioTestCase):
-    async def test_stream_route_is_disabled_by_default_and_reuses_canonical_response(self):
+    async def test_stream_route_honors_runtime_switch_and_reuses_canonical_response(self):
         from app.api.v1.routers.agent import agent_chat_stream
 
         request = Mock()
@@ -1283,13 +1293,14 @@ class AgentRouterProviderTest(unittest.IsolatedAsyncioTestCase):
             "privacyConsentPolicyVersion": PRIVACY_POLICY_VERSION,
         }
 
-        with self.assertRaises(HTTPException) as disabled:
-            await agent_chat_stream(
-                AgentChatRequest(message="RAG"),
-                request,
-                current_user,
-                orchestrator,
-            )
+        with patch("app.api.v1.routers.agent.AGENT_STREAM_ENABLED", False):
+            with self.assertRaises(HTTPException) as disabled:
+                await agent_chat_stream(
+                    AgentChatRequest(message="RAG"),
+                    request,
+                    current_user,
+                    orchestrator,
+                )
         self.assertEqual(503, disabled.exception.status_code)
         self.assertEqual("AGENT_STREAM_DISABLED", disabled.exception.detail["code"])
         orchestrator.respond.assert_not_awaited()
@@ -1314,6 +1325,49 @@ class AgentRouterProviderTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("event: response.answer.delta", body)
         self.assertIn("event: response.completed", body)
         orchestrator.respond.assert_awaited_once()
+
+    async def test_stream_route_chunks_long_completed_answer_without_disconnect(self):
+        from app.api.v1.routers.agent import agent_chat_stream
+
+        request = Mock()
+        request.is_disconnected = AsyncMock(return_value=False)
+        request.headers = {"X-Request-Id": "long-answer-stream-request"}
+        long_answer = "".join(
+            f"第 {day} 天：完成 RAG 实践任务并记录调试结果。"
+            for day in range(1, 121)
+        )
+        response = grounded_response().model_copy(update={"answer": long_answer})
+        orchestrator = Mock()
+        orchestrator.respond = AsyncMock(return_value=response)
+        current_user = {
+            "id": 7,
+            "privacyConsentAction": "granted",
+            "privacyConsentPolicyVersion": PRIVACY_POLICY_VERSION,
+        }
+
+        with patch("app.api.v1.routers.agent.AGENT_STREAM_ENABLED", True):
+            stream = await agent_chat_stream(
+                AgentChatRequest(message="给出完整长路线"),
+                request,
+                current_user,
+                orchestrator,
+            )
+            chunks = [chunk async for chunk in stream.body_iterator]
+
+        payloads = [
+            json.loads(line.removeprefix("data: "))
+            for line in b"".join(chunks).decode("utf-8").splitlines()
+            if line.startswith("data: ")
+        ]
+        deltas = [
+            payload["delta"]
+            for payload in payloads
+            if payload["event"] == "response.answer.delta"
+        ]
+        self.assertGreater(len(deltas), 1)
+        self.assertTrue(all(1 <= len(delta) <= 1000 for delta in deltas))
+        self.assertEqual(long_answer, "".join(deltas))
+        self.assertEqual("response.completed", payloads[-1]["event"])
 
     async def test_stream_route_forwards_real_fake_provider_deltas_in_order(self):
         from app.api.v1.routers.agent import agent_chat_stream
@@ -1430,7 +1484,7 @@ class AgentRouterProviderTest(unittest.IsolatedAsyncioTestCase):
                 {
                     "id": 7,
                     "privacyConsentAction": "granted",
-                    "privacyConsentPolicyVersion": "2026-07-20",
+                    "privacyConsentPolicyVersion": "2026-08-08",
                 },
                 orchestrator,
             )
@@ -1641,13 +1695,14 @@ class AgentHttpContractTest(unittest.IsolatedAsyncioTestCase):
                     success.headers["X-Request-Id"],
                 )
 
-                stream_disabled = await asyncio.wait_for(
-                    client.post(
-                        "/api/v1/agent/chat/stream",
-                        json={"message": "RAG 是什么"},
-                    ),
-                    timeout=2,
-                )
+                with patch("app.api.v1.routers.agent.AGENT_STREAM_ENABLED", False):
+                    stream_disabled = await asyncio.wait_for(
+                        client.post(
+                            "/api/v1/agent/chat/stream",
+                            json={"message": "RAG 是什么"},
+                        ),
+                        timeout=2,
+                    )
                 self.assertEqual(503, stream_disabled.status_code)
                 self.assertEqual(
                     "AGENT_STREAM_DISABLED",
