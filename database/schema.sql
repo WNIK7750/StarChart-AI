@@ -671,6 +671,25 @@ CREATE TABLE IF NOT EXISTS user_favorites (
 CREATE INDEX IF NOT EXISTS idx_user_favorites_user
 ON user_favorites(user_id, target_type, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS user_agent_model_settings (
+  user_id INTEGER PRIMARY KEY,
+  provider_name TEXT NOT NULL,
+  base_url TEXT NOT NULL,
+  model_id TEXT NOT NULL,
+  api_key_ciphertext TEXT NOT NULL DEFAULT '',
+  max_output_tokens INTEGER NOT NULL DEFAULT 1200
+    CHECK (max_output_tokens BETWEEN 256 AND 8192),
+  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+  connection_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (connection_status IN ('pending', 'healthy', 'needs_retest', 'error')),
+  connection_error_code TEXT,
+  connection_checked_at TEXT,
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES user_accounts(id) ON DELETE CASCADE
+);
+
 INSERT OR IGNORE INTO roles(code, name, description, is_system) VALUES
 ('user', '普通用户', '默认登录用户，可管理自己的资料、偏好和会话。', 1),
 ('admin', '系统管理员', '拥有用户、内容、工具和审计管理权限。', 1),

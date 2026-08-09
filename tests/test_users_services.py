@@ -1020,6 +1020,8 @@ class UsersServicesTest(unittest.TestCase):
         logged_in = self.auth.login({"identifier": "charlie", "password": "Current123", "deviceName": "browser", "privacyAccepted": True}, self.context)
         current = self.auth.current_user_from_token(logged_in["accessToken"])
         self.assertEqual("usr_", current["user_uid"][:4])
+        self.assertEqual("granted", current["privacyConsentAction"])
+        self.assertEqual(PRIVACY_POLICY_VERSION, current["privacyConsentPolicyVersion"])
         refreshed = self.auth.refresh(logged_in["refreshToken"], self.context)
         self.assertEqual("Bearer", refreshed["tokenType"])
         self.assertIn("refreshToken", refreshed)

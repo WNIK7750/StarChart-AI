@@ -1,6 +1,7 @@
 from typing import Callable, Literal, TypeVar
 
-from fastapi import APIRouter, Cookie, Depends, File, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, Cookie, Depends, File, HTTPException, Query, Request, Response, UploadFile
+from starlette.concurrency import run_in_threadpool
 from pydantic import Field
 
 from app.api.v1.routers.auth import get_current_user
@@ -30,6 +31,13 @@ from app.users.response_schemas import (
     StatusMessageResponse,
     StatusResponse,
 )
+from app.users.model_settings.schemas import (
+    AgentModelConnectionResponse,
+    AgentModelSettingsResponse,
+    AgentModelSettingsUpdate,
+)
+from app.users.model_settings.service import get_agent_model_settings_service
+from app.agent.factory import build_user_agent_loop
 
 router = APIRouter(prefix="/users", tags=["users"])
 T = TypeVar("T")
@@ -83,6 +91,114 @@ def _users_call(fn: Callable[[], T]) -> T:
 
 def _refresh_hash_from_cookie(refresh_cookie: str | None) -> str | None:
     return hash_token(refresh_cookie) if refresh_cookie else None
+
+
+@router.get("/me/agent-model", response_model=AgentModelSettingsResponse)
+def get_agent_model_settings(current_user: dict = Depends(get_current_user)):
+    return _users_call(
+        lambda: get_agent_model_settings_service().get_public(
+            current_user["id"], current_user["user_uid"]
+        )
+    )
+
+
+@router.put("/me/agent-model", response_model=AgentModelSettingsResponse)
+def update_agent_model_settings(
+    payload: AgentModelSettingsUpdate,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    values = payload.model_dump()
+    return _audited_call(
+        lambda: get_agent_model_settings_service().save(
+            current_user["id"], current_user["user_uid"], values
+        ),
+        event="users.agent_model.updated",
+        current_user=current_user,
+        request=request,
+        resource_id=current_user["user_uid"],
+        metadata={
+            "provider": payload.providerName,
+            "model": payload.modelDisplayName,
+            "modelId": payload.modelId,
+            "enabled": payload.enabled,
+            "apiKeyChanged": bool(payload.apiKey),
+        },
+    )
+
+
+@router.post(
+    "/me/agent-model/test",
+    response_model=AgentModelConnectionResponse,
+)
+async def test_agent_model_settings(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    service = get_agent_model_settings_service()
+    try:
+        resolved = await run_in_threadpool(
+            service.resolve, current_user["id"], current_user["user_uid"]
+        )
+        if resolved is None:
+            raise UsersError("AGENT_MODEL_NOT_ENABLED", "请先保存并启用模型配置", 409)
+        runtime = build_user_agent_loop(resolved)
+        await run_in_threadpool(
+            runtime.model.invoke,
+            "这是连接检查。只回复 OK，不要调用工具。",
+        )
+        result = await run_in_threadpool(
+            service.record_connection,
+            current_user["id"],
+            ok=True,
+            error_code=None,
+        )
+    except UsersError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=users_error_detail(exc)) from exc
+    except Exception as exc:
+        error_name = type(exc).__name__
+        error_code = {
+            "AuthenticationError": "AGENT_PROVIDER_AUTHENTICATION_FAILED",
+            "PermissionDeniedError": "AGENT_PROVIDER_AUTHENTICATION_FAILED",
+            "NotFoundError": "AGENT_PROVIDER_ENDPOINT_NOT_FOUND",
+            "BadRequestError": "AGENT_PROVIDER_REQUEST_REJECTED",
+            "RateLimitError": "AGENT_PROVIDER_RATE_LIMITED",
+            "APITimeoutError": "AGENT_PROVIDER_TIMEOUT",
+            "TimeoutError": "AGENT_PROVIDER_TIMEOUT",
+        }.get(error_name, "AGENT_PROVIDER_CONNECTION_FAILED")
+        result = await run_in_threadpool(
+            service.record_connection,
+            current_user["id"],
+            ok=False,
+            error_code=error_code,
+        )
+    get_audit_service().record(
+        "users.agent_model.connection_tested",
+        actor_user_id=current_user["id"],
+        target_user_id=current_user["id"],
+        resource_id=current_user["user_uid"],
+        metadata={"ok": result["ok"], "errorCode": result.get("errorCode")},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("User-Agent"),
+    )
+    return result
+
+
+@router.delete("/me/agent-model", status_code=204)
+def delete_agent_model_settings(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    _audited_call(
+        lambda: get_agent_model_settings_service().delete(
+            current_user["id"], current_user["user_uid"]
+        ),
+        event="users.agent_model.deleted",
+        current_user=current_user,
+        request=request,
+        resource_id=current_user["user_uid"],
+    )
+    return Response(status_code=204)
 
 
 def _audited_call(

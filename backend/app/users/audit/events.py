@@ -27,6 +27,15 @@ AUDIT_EVENTS: dict[str, AuditEventSpec] = {
         frozenset({"format", "storedBytes", "oldAvatarRemoved"}),
     ),
     "users.preferences.updated": AuditEventSpec("preferences", frozenset({"changedFields"})),
+    "users.agent_model.updated": AuditEventSpec(
+        "agent_model",
+        frozenset({"provider", "model", "modelId", "enabled", "apiKeyChanged"}),
+    ),
+    "users.agent_model.connection_tested": AuditEventSpec(
+        "agent_model",
+        frozenset({"ok", "errorCode"}),
+    ),
+    "users.agent_model.deleted": AuditEventSpec("agent_model", frozenset()),
     "users.session.revoked": AuditEventSpec("session", frozenset({"scope"})),
     "users.sessions.others_revoked": AuditEventSpec("session", frozenset({"scope", "revokedCount"})),
     "users.privacy.consent_updated": AuditEventSpec(

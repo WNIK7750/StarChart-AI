@@ -10,8 +10,8 @@
     "releaseRehearsal": true
   },
   "evidence": {
-    "openapiPathCount": 51,
-    "migrationCount": 21,
+    "openapiPathCount": 53,
+    "migrationCount": 25,
     "responsiveCaptures": 4,
     "security": {
       "pass": 28,

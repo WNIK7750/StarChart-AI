@@ -16,6 +16,10 @@ export const uploadUserAvatar = (formData) => apiUpload("/users/me/avatar", form
 export const getUserPreferences = () => apiGet("/users/me/preferences");
 export const getUserPreferenceContext = (consumer) => apiGet("/users/me/preferences/context", { consumer });
 export const updateUserPreferences = (payload) => apiPatch("/users/me/preferences", payload);
+export const getAgentModelSettings = () => apiGet("/users/me/agent-model");
+export const updateAgentModelSettings = (payload) => apiPut("/users/me/agent-model", payload);
+export const testAgentModelSettings = () => apiPost("/users/me/agent-model/test", {});
+export const deleteAgentModelSettings = () => apiDelete("/users/me/agent-model");
 export const getUserPrivacyConsents = () => apiGet("/users/me/privacy/consents");
 export const updateUserPrivacyConsent = (consentType, payload) => apiPut(
   `/users/me/privacy/consents/${encodeURIComponent(consentType)}`,

@@ -10,7 +10,7 @@ Agent 阶段 1 的生产拓扑固定为 `AI_NAV_API_WORKERS=1` 与
 ## 发布前
 
 1. 冻结写入窗口，确认没有长事务或正在执行的匿名化任务。
-2. 以 `production.env.example` 为无密钥契约：设置 `AI_NAV_ENV=production`、至少 32 位随机 `AI_NAV_SECRET_KEY`、明确的 HTTPS `AI_NAV_CORS_ALLOW_ORIGINS`、源码树外的 `AI_NAV_DATABASE_PATH`/`AI_NAV_UPLOAD_DIR`，并启用 `AI_NAV_REFRESH_COOKIE_SECURE=1`、保持 `RESET_DATABASE_ON_START=0`；仅在反向代理部署时按真实网段设置 `AI_NAV_TRUSTED_PROXY_CIDRS`。不安全组合会在启动时失败。
+2. 以 `deploy/production/env.example` 为唯一无密钥契约：设置 `AI_NAV_ENV=production`、至少 32 位随机 `AI_NAV_SECRET_KEY`、明确的 HTTPS `AI_NAV_CORS_ALLOW_ORIGINS`、源码树外的 `AI_NAV_DATABASE_PATH`/`AI_NAV_UPLOAD_DIR`，并启用 `AI_NAV_REFRESH_COOKIE_SECURE=1`、保持 `RESET_DATABASE_ON_START=0`；仅在反向代理部署时按真实网段设置 `AI_NAV_TRUSTED_PROXY_CIDRS`。不安全组合会在启动时失败。
 3. 密码恢复默认使用禁用发送端并 fail-closed。发布负责人必须选择并接入真实的已验证邮件或短信服务，完成数据处理、域名/号码、退信、限流和安全通知签收；在此之前公开开始接口只返回统一受理文案，不会实际发送，也不得宣称“邮件已发送”。
 4. 执行 `.\scripts\verify-foundation.ps1` 和归档中的 Playwright 视口验收；失败时再单独运行对应模块脚本定位。
 5. 执行 `python scripts/rehearse-users-release.py`，要求迁移 checksum、完整性、外键和恢复 canary 全部通过。

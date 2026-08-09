@@ -28,6 +28,21 @@ class InputSecurityRegressionTest(unittest.TestCase):
             self.assertIn("camera=()", response.headers["Permissions-Policy"])
             self.assertNotIn("Strict-Transport-Security", response.headers)
 
+    def test_unfingerprinted_frontend_files_revalidate_in_local_deployment(self):
+        client = TestClient(app)
+        for path in ("/assistant", "/assets/js/assistant-page.js", "/assets/js/auth-ui.js"):
+            with self.subTest(path=path):
+                response = client.get(path)
+                self.assertEqual(200, response.status_code)
+                self.assertEqual("no-cache", response.headers.get("Cache-Control"))
+
+        fingerprinted = client.get("/assets/img/brand-mark.62793ed5.svg")
+        self.assertEqual(200, fingerprinted.status_code)
+        self.assertEqual(
+            "public, max-age=31536000, immutable",
+            fingerprinted.headers.get("Cache-Control"),
+        )
+
     def test_all_json_business_operations_define_a_success_response_schema(self):
         schema = app.openapi()
         missing = []
@@ -50,8 +65,8 @@ class InputSecurityRegressionTest(unittest.TestCase):
                 if not json_media.get("schema"):
                     missing.append(f"{method.upper()} {path}")
         self.assertEqual([], missing)
-        self.assertEqual(90, operations)
-        self.assertEqual(86, json_operations)
+        self.assertEqual(94, operations)
+        self.assertEqual(89, json_operations)
 
     def test_all_json_response_models_are_field_level_allowlists(self):
         response_models = [
@@ -59,7 +74,7 @@ class InputSecurityRegressionTest(unittest.TestCase):
             for route in iter_app_routes()
             if getattr(route, "response_model", None) is not None
         ]
-        self.assertEqual(87, len(response_models))
+        self.assertEqual(90, len(response_models))
         self.assertTrue(
             all(
                 isinstance(model, type)

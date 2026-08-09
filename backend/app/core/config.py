@@ -256,7 +256,7 @@ def validate_agent_provider_config(
     global_concurrency: int = 8,
     queue_limit: int = 32,
     queue_timeout_seconds: float = 3.0,
-    max_input_tokens: int = 4000,
+    max_input_tokens: int = 12000,
     input_cny_per_million: float = 0.2,
     output_cny_per_million: float = 2.0,
     per_request_cost_cny: float = 0.02,
@@ -264,12 +264,10 @@ def validate_agent_provider_config(
     global_daily_cost_cny: float = 5.0,
     global_monthly_cost_cny: float = 80.0,
 ) -> None:
-    if provider not in {"deterministic", "fake", "openai_compatible"}:
+    if provider not in {"deterministic", "openai_compatible"}:
         raise RuntimeError(
-            "AI_NAV_AGENT_PROVIDER must be deterministic, fake, or openai_compatible"
+            "AI_NAV_AGENT_PROVIDER must be deterministic or openai_compatible"
         )
-    if environment in {"production", "provider_preview"} and provider == "fake":
-        raise RuntimeError("Production and provider_preview cannot use AI_NAV_AGENT_PROVIDER=fake")
     if live_enabled and provider != "openai_compatible":
         raise RuntimeError(
             "AI_NAV_AGENT_PROVIDER_LIVE_ENABLED=1 requires "
@@ -387,7 +385,7 @@ class AgentProviderSettings:
     global_concurrency: int = 8
     queue_limit: int = 32
     queue_timeout_seconds: float = 3.0
-    max_input_tokens: int = 4000
+    max_input_tokens: int = 12000
     input_cny_per_million: float = 0.2
     output_cny_per_million: float = 2.0
     per_request_cost_cny: float = 0.02
@@ -423,7 +421,7 @@ def get_agent_provider_settings(environment: str | None = None) -> AgentProvider
             global_concurrency=int(os.getenv("AI_NAV_AGENT_GLOBAL_CONCURRENCY", "8")),
             queue_limit=int(os.getenv("AI_NAV_AGENT_QUEUE_LIMIT", "32")),
             queue_timeout_seconds=float(os.getenv("AI_NAV_AGENT_QUEUE_TIMEOUT_SECONDS", "3")),
-            max_input_tokens=int(os.getenv("AI_NAV_AGENT_PROVIDER_MAX_INPUT_TOKENS", "4000")),
+            max_input_tokens=int(os.getenv("AI_NAV_AGENT_PROVIDER_MAX_INPUT_TOKENS", "12000")),
             input_cny_per_million=float(os.getenv("AI_NAV_AGENT_INPUT_CNY_PER_MILLION", "0.2")),
             output_cny_per_million=float(os.getenv("AI_NAV_AGENT_OUTPUT_CNY_PER_MILLION", "2.0")),
             per_request_cost_cny=float(os.getenv("AI_NAV_AGENT_PER_REQUEST_COST_CNY", "0.02")),
@@ -549,6 +547,10 @@ AGENT_SESSION_RETENTION_DAYS = int(
 if not 1 <= AGENT_SESSION_RETENTION_DAYS <= 90:
     raise RuntimeError("AI_NAV_AGENT_SESSION_RETENTION_DAYS must be between 1 and 90")
 SECRET_KEY = os.getenv("AI_NAV_SECRET_KEY", DEV_SECRET_KEY).strip()
+AGENT_USER_MODEL_ALLOWED_HOSTS = _env_csv(
+    "AI_NAV_AGENT_USER_MODEL_ALLOWED_HOSTS",
+    "api.openai.com,dashscope.aliyuncs.com,openrouter.ai,api.deepseek.com",
+)
 CORS_ALLOW_ORIGINS = _env_csv(
     "AI_NAV_CORS_ALLOW_ORIGINS",
     "http://127.0.0.1:8000,http://localhost:8000,http://127.0.0.1:8088,http://localhost:8088",
@@ -564,8 +566,8 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "14"))
 PASSWORD_HASH_ROUNDS = int(os.getenv("AI_NAV_PASSWORD_HASH_ROUNDS", "180000"))
 ACCOUNT_DELETION_GRACE_DAYS = int(os.getenv("AI_NAV_ACCOUNT_DELETION_GRACE_DAYS", "7"))
 ACCOUNT_DELETION_RETENTION_DAYS = int(os.getenv("AI_NAV_ACCOUNT_DELETION_RETENTION_DAYS", "30"))
-PRIVACY_POLICY_VERSION = os.getenv("AI_NAV_PRIVACY_POLICY_VERSION", "2026-07-20")
-AGENT_MEMORY_POLICY_VERSION = os.getenv("AI_NAV_AGENT_MEMORY_POLICY_VERSION", "2026-07-01")
+PRIVACY_POLICY_VERSION = os.getenv("AI_NAV_PRIVACY_POLICY_VERSION", "2026-08-08")
+AGENT_MEMORY_POLICY_VERSION = os.getenv("AI_NAV_AGENT_MEMORY_POLICY_VERSION", "2026-08-08")
 LOGIN_MAX_FAILED_ATTEMPTS = int(os.getenv("AI_NAV_LOGIN_MAX_FAILED_ATTEMPTS", "5"))
 LOGIN_LOCK_MINUTES = int(os.getenv("AI_NAV_LOGIN_LOCK_MINUTES", "15"))
 REFRESH_COOKIE_NAME = os.getenv("AI_NAV_REFRESH_COOKIE_NAME", "ai_nav_refresh_token")

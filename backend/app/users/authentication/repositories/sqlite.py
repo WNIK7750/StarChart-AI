@@ -223,14 +223,30 @@ class SQLiteAuthenticationRepository:
         with self._connect() as conn:
             row = conn.execute(
                 """
-                SELECT id, user_uid, username, email, phone, account_status, token_version,
-                       email_verified, phone_verified, last_login_at, created_at
-                FROM user_accounts
-                WHERE user_uid = ? AND deleted_at IS NULL
+                SELECT account.id, account.user_uid, account.username, account.email,
+                       account.phone, account.account_status, account.token_version,
+                       account.email_verified, account.phone_verified,
+                       account.last_login_at, account.created_at,
+                       consent.action AS privacyConsentAction,
+                       consent.policy_version AS privacyConsentPolicyVersion
+                FROM user_accounts account
+                LEFT JOIN user_privacy_consent_events consent ON consent.id = (
+                    SELECT current.id FROM user_privacy_consent_events current
+                    WHERE current.user_id = account.id
+                      AND current.consent_type = 'privacy_policy'
+                    ORDER BY current.id DESC LIMIT 1
+                )
+                WHERE account.user_uid = ? AND account.deleted_at IS NULL
                 """,
                 (user_uid,),
             ).fetchone()
-            return self._public_user(row) if row else None
+            if not row:
+                return None
+            return {
+                **self._public_user(row),
+                "privacyConsentAction": row["privacyConsentAction"],
+                "privacyConsentPolicyVersion": row["privacyConsentPolicyVersion"],
+            }
 
     def get_token_version(self, user_id: int) -> int:
         with self._connect() as conn:

@@ -49,6 +49,9 @@ COMMAND_SAFETY: dict[tuple[str, str], CommandSafetySpec] = {
     ("PATCH", "/api/v1/users/me/profile"): _spec("profile", "users.profile.updated", "optimistic-version", "conditional-update"),
     ("POST", "/api/v1/users/me/avatar"): _spec("profile", "users.profile.avatar_updated", "content-replacement", "atomic-file-write+db-rollback"),
     ("PATCH", "/api/v1/users/me/preferences"): _spec("preferences", "users.preferences.updated", "optimistic-version", "conditional-update"),
+    ("PUT", "/api/v1/users/me/agent-model"): _spec("model_settings", "users.agent_model.updated", "optimistic-version", "credential-compensation+conditional-update"),
+    ("POST", "/api/v1/users/me/agent-model/test"): _spec("model_settings", "users.agent_model.connection_tested", "repeatable-diagnostic", "optimistic-status-update"),
+    ("DELETE", "/api/v1/users/me/agent-model"): _spec("model_settings", "users.agent_model.deleted", "natural-idempotency", "credential-compensation+owned-delete"),
     ("POST", "/api/v1/users/me/sessions/revoke-others"): _spec("sessions", "users.sessions.others_revoked", "natural-idempotency", "conditional-revoke"),
     ("DELETE", "/api/v1/users/me/sessions/{session_uid}"): _spec("sessions", "users.session.revoked", "natural-idempotency", "owned-conditional-revoke"),
 }

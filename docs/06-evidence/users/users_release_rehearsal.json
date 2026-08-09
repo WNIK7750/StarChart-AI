@@ -3,20 +3,20 @@
   "source": {
     "integrity": "ok",
     "foreignKeyErrors": 0,
-    "migrationCount": 21
+    "migrationCount": 25
   },
   "backup": {
     "integrity": "ok",
     "foreignKeyErrors": 0,
-    "migrationCount": 21
+    "migrationCount": 25
   },
   "restore": {
     "integrity": "ok",
     "foreignKeyErrors": 0,
-    "migrationCount": 21,
+    "migrationCount": 25,
     "preRestoreBackup": null
   },
   "canaryRestored": true,
   "migrationChecksumsMatch": true,
-  "migrationCount": 21
+  "migrationCount": 25
 }

@@ -25,6 +25,7 @@ import {
   getUserPrivacyConsents,
   getUserProfile,
   getUserSecurityQuestions,
+  getAgentModelSettings,
   listUserSessions,
   listUserWorkflows,
   logoutUser,
@@ -37,6 +38,9 @@ import {
   updateUserPrivacyConsent,
   updateUserProfile,
   updateUserSecurityQuestions,
+  updateAgentModelSettings,
+  testAgentModelSettings,
+  deleteAgentModelSettings,
   uploadUserAvatar,
 } from "./users-api.js";
 
@@ -52,6 +56,7 @@ let agentMemoryConsentGranted = false;
 let privacyPolicyVersion = null;
 let currentUser = null;
 let accountSnapshot = null;
+let modelSettingsVersion = null;
 const CROP_RADIUS_RATIO = 0.39;
 let settingsVisibility = {
   identityChanges: false,
@@ -85,6 +90,14 @@ const FORM_REGIONS = {
   password: ["[data-password-form]", "[data-password-message]"],
   security: ["[data-security-form]", "[data-security-message]"],
   preferences: ["[data-preferences-form]", "[data-preferences-message]"],
+  model: ["[data-model-form]", "[data-model-message]"],
+};
+
+const MODEL_PRESETS = {
+  dashscope: { providerName: "阿里云百炼 / DashScope", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", modelDisplayName: "qwen3.7-plus", modelId: "qwen3.7-plus" },
+  openai: { providerName: "OpenAI", baseUrl: "https://api.openai.com/v1", modelDisplayName: "gpt-5-mini", modelId: "gpt-5-mini" },
+  openrouter: { providerName: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", modelDisplayName: "openai/gpt-5-mini", modelId: "openai/gpt-5-mini" },
+  deepseek: { providerName: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", modelDisplayName: "deepseek-chat", modelId: "deepseek-chat" },
 };
 
 function $(selector, root = document) {
@@ -371,6 +384,117 @@ async function loadPreferences() {
   }
 }
 
+function renderModelStatus(model) {
+  const status = model?.connectionStatus || "not_configured";
+  const labels = {
+    healthy: ["连接正常", `${model.providerName} · ${model.modelDisplayName || model.modelId}`],
+    needs_retest: ["配置已保存，等待测试", "模型或密钥发生变化，请测试连接。"],
+    error: ["连接失败", model.connectionErrorCode || "请测试连接并按错误代码检查。"],
+    pending: ["等待测试", "请测试连接后再进行真实 Agent 验证。"],
+    not_configured: ["尚未配置", "助手不会调用外部模型；请保存并启用自己的模型。"],
+  };
+  const [title, detail] = labels[status] || labels.not_configured;
+  const box = $("[data-model-status]");
+  box.dataset.status = status;
+  $("[data-model-status-title]").textContent = title;
+  $("[data-model-status-detail]").textContent = detail;
+}
+
+function syncTokenPresetButtons(value) {
+  const normalized = String(value ?? "");
+  $all("[data-model-token-limit]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.modelTokenLimit === normalized);
+  });
+}
+
+async function loadModelSettings() {
+  setFormState("model", "loading", "正在读取模型配置...");
+  try {
+    const { model } = await getAgentModelSettings();
+    modelSettingsVersion = model.version || null;
+    const form = $("[data-model-form]");
+    form.providerKey.value = model.providerKey || "custom";
+    form.providerName.value = model.providerName || "";
+    form.baseUrl.value = model.baseUrl || "";
+    form.modelDisplayName.value = model.modelDisplayName || "";
+    form.modelId.value = model.modelId || "";
+    form.apiKey.value = "";
+    form.apiKey.placeholder = model.hasApiKey ? "已安全保存；留空表示不修改" : "首次配置时必填";
+    form.maxOutputTokens.value = model.maxOutputTokens ?? "";
+    syncTokenPresetButtons(form.maxOutputTokens.value);
+    form.enabled.checked = model.configured ? Boolean(model.enabled) : true;
+    $("[data-model-host-hint]").textContent = model.allowedHosts?.length
+      ? `已允许域名：${model.allowedHosts.join("、")}`
+      : "仅允许站点管理员审核过的 HTTPS 域名。";
+    renderModelStatus(model);
+    setFormState("model", "idle");
+  } catch (error) {
+    setFormState("model", "error", error.message || "模型配置加载失败。", true);
+  }
+}
+
+async function saveModelSettings(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  setFormState("model", "saving", "正在保存配置并写入系统凭据存储...");
+  try {
+    const result = await updateAgentModelSettings({
+      expectedVersion: modelSettingsVersion,
+      providerKey: form.providerKey.value,
+      providerName: form.providerName.value.trim(),
+      baseUrl: form.baseUrl.value.trim(),
+      modelDisplayName: form.modelDisplayName.value.trim(),
+      modelId: form.modelId.value.trim(),
+      apiKey: form.apiKey.value || null,
+      maxOutputTokens: form.maxOutputTokens.value === "" ? null : Number(form.maxOutputTokens.value),
+      enabled: form.enabled.checked,
+    });
+    modelSettingsVersion = result.model.version;
+    form.apiKey.value = "";
+    form.apiKey.placeholder = "已安全保存；留空表示不修改";
+    renderModelStatus(result.model);
+    setFormState("model", "success", "模型配置已保存。请测试连接，然后到助手发起真实任务。 ");
+  } catch (error) {
+    if (error.status === 409) void loadModelSettings();
+    setFormState("model", "error", `${error.message || "保存失败"}${error.code ? `（${error.code}）` : ""}`);
+  }
+}
+
+async function testModelConnection() {
+  setFormState("model", "loading", "正在连接模型服务...");
+  try {
+    const result = await testAgentModelSettings();
+    renderModelStatus({
+      connectionStatus: result.status,
+      connectionErrorCode: result.errorCode,
+      providerName: $("[data-model-form]").providerName.value,
+      modelDisplayName: $("[data-model-form]").modelDisplayName.value,
+      modelId: $("[data-model-form]").modelId.value,
+    });
+    setFormState("model", result.ok ? "success" : "error", `${result.message}${result.errorCode ? `（${result.errorCode}）` : ""}`);
+    await loadModelSettings();
+  } catch (error) {
+    setFormState("model", "error", `${error.message || "连接测试失败"}${error.code ? `（${error.code}）` : ""}`);
+  }
+}
+
+async function resetModelSettings() {
+  if (!await confirmAction({
+    title: "删除个人模型配置",
+    message: "当前账号的模型配置与系统凭据存储中的 API Key 将被删除。删除后助手不会调用外部模型。",
+    confirmLabel: "确认删除",
+  })) return;
+  setFormState("model", "loading", "正在删除个人模型配置...");
+  try {
+    await deleteAgentModelSettings();
+    modelSettingsVersion = null;
+    await loadModelSettings();
+    setFormState("model", "success", "个人模型配置已删除。 ");
+  } catch (error) {
+    setFormState("model", "error", error.message || "恢复失败。 ");
+  }
+}
+
 async function loadSecurityQuestions() {
   setFormState("security", "loading", "正在读取密保状态...");
   try {
@@ -391,6 +515,7 @@ async function loadAccount(user) {
   const loaders = [
     loadProfile(user),
     loadPreferences(),
+    loadModelSettings(),
   ];
   if (settingsVisibility.identityChanges) loaders.push(loadAccountDetails(user));
   if (settingsVisibility.recovery) loaders.push(loadSecurityQuestions());
@@ -1078,6 +1203,7 @@ async function retryArea(area) {
     account: () => loadAccountDetails(),
     profile: () => loadProfile(),
     preferences: () => loadPreferences(),
+    model: () => loadModelSettings(),
     privacy: () => loadPrivacy(),
     security: () => loadSecurityQuestions(),
     sessions: () => loadSessions(),
@@ -1118,6 +1244,33 @@ async function init() {
     $("[data-security-form]").addEventListener("submit", saveSecurityQuestions);
   }
   $("[data-preferences-form]").addEventListener("submit", savePreferences);
+  $("[data-model-form]").addEventListener("submit", saveModelSettings);
+  $("[data-model-test]").addEventListener("click", testModelConnection);
+  $("[data-model-reset]").addEventListener("click", resetModelSettings);
+  $("[data-model-key-toggle]").addEventListener("click", (event) => {
+    const input = $("[data-model-form] [name='apiKey']");
+    const visible = input.type === "text";
+    input.type = visible ? "password" : "text";
+    event.currentTarget.textContent = visible ? "显示" : "隐藏";
+    event.currentTarget.setAttribute("aria-pressed", String(!visible));
+  });
+  $("[data-model-provider]").addEventListener("change", (event) => {
+    const preset = MODEL_PRESETS[event.currentTarget.value];
+    if (!preset) return;
+    const form = $("[data-model-form]");
+    form.providerName.value = preset.providerName;
+    form.baseUrl.value = preset.baseUrl;
+    form.modelDisplayName.value = preset.modelDisplayName;
+    form.modelId.value = preset.modelId;
+  });
+  $("[data-model-form] [name='maxOutputTokens']").addEventListener("input", (event) => {
+    syncTokenPresetButtons(event.currentTarget.value);
+  });
+  $all("[data-model-token-limit]").forEach((button) => button.addEventListener("click", () => {
+    const input = $("[data-model-form] [name='maxOutputTokens']");
+    input.value = button.dataset.modelTokenLimit;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }));
   if (settingsVisibility.privacyWrites) {
     $("[data-privacy-consent-form] [name='privacyPolicy']").addEventListener("change", savePrivacyConsent);
     $("[data-deletion-form]")?.addEventListener("submit", createDeletionRequest);
