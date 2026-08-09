@@ -96,7 +96,7 @@ NO-GO 条件见
 - `backend/app/main.py`
 - `backend/run.py`
 - `.env.example`
-- `production.env.example`
+- `deploy/production/env.example`（2026-08-09 起唯一生产模板；原根目录模板已退役）
 
 ### 测试和验证
 

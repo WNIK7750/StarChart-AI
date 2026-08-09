@@ -1,4 +1,8 @@
-# Agent 阶段 1 Provider 发布清单
+# Agent 历史 Provider 发布清单
+
+> 历史状态：本文件记录网站曾提供阶段 1 默认模型时的上线门禁，不再是当前用户自带模型方案的执行入口。
+> 当前模型、凭据和 HTTPS 边界以 `docs/03-domains/agent/agent-content-recommendation-workflow-design.md`、
+> `docs/00-index/repository-layout.md` 与 `docs/04-operations/deployment/https-production-deployment-runbook.md` 为准。
 
 用途：在首次真实调用或生产放量前，由产品/合规、阿里云账户管理员和开发共同签收。任何必填项未完成时，`AI_NAV_AGENT_PROVIDER_LIVE_ENABLED` 必须保持 `0`。
 
@@ -27,7 +31,7 @@
 
 ## C. 密钥、地域与主机（开发/运维）
 
-- [ ] 从 `production.env.example` 建立部署配置；`AI_NAV_DATABASE_PATH` 与 `AI_NAV_UPLOAD_DIR` 指向源码树外持久目录，`RESET_DATABASE_ON_START=0`，生产配置预检通过。
+- [ ] 从 `deploy/production/env.example` 建立部署配置；`AI_NAV_DATABASE_PATH` 与 `AI_NAV_UPLOAD_DIR` 指向源码树外持久目录，`RESET_DATABASE_ON_START=0`，生产配置预检通过。
 - [ ] 创建最小权限、可独立撤销的非生产 API Key，并记录负责人和轮换日期；Key 只写入运行时密钥管理或环境变量。
 - [ ] 本地开发仅在已被 Git 忽略的 `.env` 中填写 `AI_NAV_AGENT_PROVIDER_API_KEY`；仓库内 `.env.example` 必须保持空值。修改后重启后端，不在聊天、工单或截图中展示 Key。
 - [ ] 使用北京业务空间专属 OpenAI-compatible 地址，生产配置校验应接受 `*.cn-beijing.maas.aliyuncs.com`，拒绝其他地域主机。

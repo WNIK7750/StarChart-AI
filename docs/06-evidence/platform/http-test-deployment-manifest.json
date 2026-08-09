@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-29T14:40:15.618403Z",
+  "generatedAt": "2026-08-09T13:37:10.831718Z",
   "sourceCommit": "WORKTREE",
   "checks": [
     {
       "name": "runtime",
       "passed": true,
-      "count": 49
+      "count": 51
     },
     {
       "name": "policy",
@@ -16,17 +16,17 @@
     {
       "name": "agentHistory",
       "passed": true,
-      "count": 74
+      "count": 80
     },
     {
       "name": "guestAgent",
       "passed": true,
-      "count": 27
+      "count": 29
     },
     {
       "name": "frontend",
       "passed": true,
-      "count": 75
+      "count": 77
     },
     {
       "name": "overlay",

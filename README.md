@@ -1,213 +1,256 @@
 # AI 知识导航
 
-本目录是 AI 知识导航的当前可运行版本，包含网站页面、业务接口、数据库迁移、自动化测试、Agent 能力和发布审计资料。文档地图见 `docs/00-index/documentation-map.md`，当前独立复验结论见 `docs/05-quality/audits/full-project-remediation-verification-report.md`。
+> 把 AI 学习路线、工具目录和可追溯的个性化助手放进同一个网站。
 
-## 当前版本
+<p align="center">
+  <a href="https://github.com/WNIK7750/StarChart-AI/actions/workflows/ai-nav-foundation-ci.yml"><img src="https://github.com/WNIK7750/StarChart-AI/actions/workflows/ai-nav-foundation-ci.yml/badge.svg" alt="CI 状态"></a>
+  <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white" alt="Python 3.11+">
+  <img src="https://img.shields.io/badge/FastAPI-0.139-009688?logo=fastapi&logoColor=white" alt="FastAPI 0.139">
+  <img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-6B5B95" alt="PolyForm Noncommercial 1.0.0">
+</p>
 
-### 首页与公共页面
+AI 知识导航（StarChart AI）是一个面向 AI 学习者的源码公开项目。它用知识地图组织学习内容，
+用结构化目录整理工具，再由用户自己配置的模型结合站内证据回答问题、推荐资源和规划工作流。
 
-- 首页只承担内容展示、搜索和主导航，不读取或展示个人学习情况。
-- 主导航统一为“主页、学习、工具、助手”。
-- 用户空间提供相同顺序的四项导航，并保留独立退出按钮。
-- 页面共享登录状态、错误提示、链接安全、键盘焦点和减少动画支持。
+当前版本优先支持 **Windows 单机本地运行**。学习区和工具区可以直接浏览；助手需要登录，
+并使用用户自己的 OpenAI-compatible 模型与 API Key。网站不提供默认模型，也不会把用户的
+API Key 写入 SQLite。
 
-### 学习区
+> [!NOTE]
+> 本项目允许学习、研究和其他非商业用途，但不允许未经授权的商业使用。它属于
+> source-available，而不是 OSI 定义的开源软件。完整条款见 [LICENSE](LICENSE)。
 
-- 知识地图包含学习节点、难度、领域、前置关系、推荐下一步和相关节点。
-- 节点页展示主资料、章节目录、建议时长、补充资料和访问类型。
-- 登录用户可以记录节点进度、章节完成状态、最近阅读和收藏。
-- 匿名阅读记录可在登录后幂等导入，不会自动制造学习进度。
-- 公开学习内容不依赖用户登录和 Agent 服务。
+<p align="center">
+  <a href="docs/assets/screenshots/readme/home-desktop.png">
+    <img src="docs/assets/screenshots/readme/home-desktop.png" alt="AI 知识导航首页" width="100%">
+  </a>
+</p>
 
-### 工具区
+<p align="center"><sub>真实运行界面：首页、学习入口、工具目录与助手入口</sub></p>
 
-- 数据库保存 144 条工具事实，其中 134 条当前公开；其余为归档或非活动记录。
-- 支持分类、子分类、搜索、免费优先、最新工具和工作流推荐。
-- 多页分类在桌面端使用固定三列四行目录，卡片尺寸和分页器位置保持稳定。
-- 移动端改为单列自然滚动，不保留桌面端空位。
-- 链接健康状态、最后检查时间和归档状态可通过维护脚本更新。
+## 为什么做这个项目
 
-### 用户空间
+AI 学习资料很多，但“找到内容”并不等于“知道下一步做什么”。常见问题是资料、工具、进度和
+AI 对话彼此割裂，模型给出的建议也很难回到站内实际内容。
 
-- 支持注册、登录、刷新、退出、设备会话查看和其他设备退出。
-- 支持用户名、邮箱和手机号登录，手机号会统一为标准格式保存。
-- 账号页可修改用户名、邮箱和手机号；联系方式变更要求当前密码。
-- 支持头像裁剪上传、公开资料、学习偏好、密保资料和密码修改；密保资料不能授权密码恢复。
-- 支持协议同意、撤回、数据导出、注销申请及撤销。
-- 支持学习概览、最近阅读、收藏和个人工作流资产。
+| 常见体验 | AI 知识导航的做法 |
+| --- | --- |
+| 学习资料散落在收藏夹和搜索结果中 | 用知识地图、前置关系和学习节点组织内容 |
+| 工具推荐依赖模型记忆，容易过时或答非所问 | 先检索站内工具事实，再由模型解释选择理由 |
+| AI 回答没有出处，也无法继续操作 | 回答绑定站内学习节点、工具卡片和可点击入口 |
+| 平台限定模型或代管用户密钥 | 用户自行配置 Provider、模型 ID 和 API Key |
+| 复杂任务失败后只剩一句报错 | 展示处理阶段，并在边界内重试、重写或降级为可执行建议 |
 
-### Agent
+## 主要能力
 
-- `POST /api/v1/agent/chat` 返回结构化回答、站内引用和工作流草案。
-- Agent 可读取学习内容、工具目录以及用户允许使用的最小上下文。
-- 工作流保存必须经过用户确认，并使用幂等键防止重复写入。
-- 已完成可替换 Provider、确定性回退、SSE、短期会话、最多 3 个长期对话、成本/并发治理和模型升级评测门禁。
-- 真实 Provider 默认关闭；阶段 1 唯一默认模型为 `qwen3.5-flash`，`qwen3.7-plus` 已接配置但升级比例固定为 0%。
-- 当前不引入多 Agent、向量库、复杂状态图或跨进程运行态；开发完成证据见 `docs/06-evidence/agent/agent_development_completion_audit.json`。
+### 探索学习知识地图
 
-### 安全与运行
+- 按领域、难度和前置关系浏览学习路线；
+- 查看章节、主资料、补充资料、建议时长与相关节点；
+- 登录后记录进度、最近阅读和收藏；
+- 公开学习内容不依赖 Agent 或用户状态。
 
-- 数据库使用 20 个增量迁移，并记录迁移校验值。
-- 登录具备失败锁定、速率限制、刷新令牌轮换和会话撤销。
-- 写操作具备权限校验、审计事件、稳定错误码和请求编号。
-- 提供数据库备份、恢复、完整性检查、外键检查和发布演练。
+<p align="center">
+  <a href="docs/assets/screenshots/readme/learning-map-desktop.png">
+    <img src="docs/assets/screenshots/readme/learning-map-desktop.png" alt="AI 学习知识地图" width="100%">
+  </a>
+</p>
 
-## 目录结构
+<p align="center"><sub>知识地图：从 AI 通识、Python 和数学基础逐步进入 LLM、RAG 与 Agent</sub></p>
+
+### 查找和比较 AI 工具
+
+- 浏览分类、子分类和经过维护的工具条目；
+- 按关键词、访问方式和免费优先等条件筛选；
+- 查看工具说明、站内状态和实际访问入口；
+- 让助手基于同一份站内目录完成推荐和组合建议。
+
+<p align="center">
+  <a href="docs/assets/screenshots/readme/tools-search-desktop.png">
+    <img src="docs/assets/screenshots/readme/tools-search-desktop.png" alt="代码工具搜索结果" width="100%">
+  </a>
+</p>
+
+<p align="center"><sub>工具目录：输入“代码”后的真实搜索结果</sub></p>
+
+### 用助手完成学习与规划任务
+
+助手会先理解目标并检索用户有权访问的站内内容，再让用户配置的模型完成分析、讲解、推荐或
+文本工作流设计。输出会保留来源和站内入口，不会把模型的自由发挥冒充站内事实。
+
+- 支持学习路线、工具推荐、原因分析和任务拆解；
+- 支持为用户生成可确认保存的个人工作流；
+- 支持流式展示准备、检索、综合和结果检查阶段；
+- 输出不符合站内链接、事实或隐私边界时，会携带修改建议重新生成；
+- 网站不能直接完成的任务会降级为草案、步骤或替代方案，不伪造执行结果。
+
+<table>
+  <tr>
+    <td width="50%" align="center"><a href="docs/assets/screenshots/readme/assistant-preparing.jpg"><img src="docs/assets/screenshots/readme/assistant-preparing.jpg" alt="助手回答准备阶段" height="480"></a></td>
+    <td width="50%" align="center"><a href="docs/assets/screenshots/readme/assistant-complete.jpg"><img src="docs/assets/screenshots/readme/assistant-complete.jpg" alt="助手对 RAG 怎么学的完整回答" height="480"></a></td>
+  </tr>
+  <tr>
+    <td align="center">准备阶段：检索并核对站内内容</td>
+    <td align="center">完整结果：学习路径、需求覆盖与站内入口</td>
+  </tr>
+</table>
+
+### 保存自己的学习状态
+
+注册用户可以管理公开资料、学习偏好、进度、收藏、最近阅读、设备会话，以及自己确认保存的
+工作流。普通对话记忆只在当前会话中使用，不会自动进入其他对话；跨对话内容需要由用户主动
+确认保存。
+
+## 快速开始
+
+### 环境要求
+
+- Windows（当前主要在 Windows 11 验证）；
+- Python `3.11+`，项目 CI 使用 Python `3.12`；
+- PowerShell 5.1 或 PowerShell 7；
+- 首次安装依赖时需要网络连接。
+
+### 安装并启动
+
+```powershell
+git clone https://github.com/WNIK7750/StarChart-AI.git
+cd StarChart-AI
+
+Copy-Item .env.example .env
+.\start.ps1
+```
+
+`start.ps1` 会检查 Python、创建或修复项目虚拟环境、安装依赖，并在服务健康后保持本地运行。
+打开 [http://127.0.0.1:8088](http://127.0.0.1:8088) 即可使用。
+
+```powershell
+# 重启当前仓库启动的服务
+.\start.ps1 -Restart
+
+# 停止当前仓库启动的服务
+.\start.ps1 -Stop
+```
+
+### 配置自己的模型
+
+1. 注册或登录；
+2. 打开“设置 → AI 模型”；
+3. 选择预设或填写 Provider 名称与 API 地址；
+4. 填写模型显示名称、模型 ID 和自己的 API Key；
+5. 保存并执行连接测试；
+6. 返回助手页开始提问。
+
+最大输出 Tokens 可以留空，由模型提供商决定；也可以使用页面中的快捷值。当前允许的 Provider
+主机由本地 `.env` 控制，新增主机前应先确认其 API 与数据处理条款。
+
+可以从这个问题开始：
 
 ```text
-ai-nav-fullstack/
-  backend/                FastAPI 应用与业务功能
-  database/               初始结构、基础数据和 20 个迁移
-  frontend/               首页、学习、工具、助手和用户空间
-  scripts/                验证、基准、备份、巡检和发布演练
-  tests/                  Python 与前端契约测试
-  docs/                   使用说明、验收记录和 Agent 开发计划
+我想从零学习 RAG。请根据站内内容给出学习顺序、推荐资料和实践建议，并说明原因。
 ```
 
-## 启动方式
+## 工作原理
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\pip install -r backend\requirements.txt
-.\.venv\Scripts\python backend\run.py
+```mermaid
+flowchart LR
+    U["用户"] --> WEB["网站界面"]
+    WEB --> L["学习内容"]
+    WEB --> T["工具目录"]
+    WEB --> P["个人学习状态"]
+    WEB --> A["AI 助手"]
+
+    A --> R["按需检索站内证据"]
+    R --> M["用户配置的模型"]
+    M --> C["事实、链接与边界检查"]
+    C -->|通过| O["回答、推荐或工作流"]
+    C -->|需要修改| M
 ```
 
-本地启用阶段 1 模型前，复制安全模板并只在本机填写：
+学习和工具领域负责提供真实内容，用户领域负责身份与个人数据，助手负责按当前目标选择所需
+证据并组织模型调用。路由、工具和模型不会直接复制数据库业务规则。
 
-```powershell
-Copy-Item .env.example .env
+对于复杂任务，助手使用 Base + Domain 上下文组合、动态工具选择、结构化计划、会话内状态与
+反思重编。工具连续失败时，会保留脱敏诊断并让模型基于已经取得的证据主导后续处理；网站仍然
+负责链接、隐私、权限和写入边界。
+
+## 模型、隐私与安全
+
+- 网站不提供默认模型、共享 API Key 或平台成本额度；
+- 用户 API Key 不写入 SQLite，也不保存在普通浏览器存储中；
+- Windows 本地版使用当前系统账号绑定的 DPAPI 独立凭据目录；
+- 日志、诊断、对话导出和发布包不得包含 API Key 或 Provider 原始载荷；
+- 助手只通过授权工具读取当前用户有权访问的数据；
+- 生产部署必须启用 HTTPS，并把凭据后端替换为独立 Secret Manager。
+
+本地保护可以降低数据库、备份或误查询泄露密钥的风险，但不能在 Windows 账号或运行进程被
+完全攻陷时承诺绝对安全。生产要求见
+[HTTPS 生产部署手册](docs/04-operations/deployment/https-production-deployment-runbook.md)。
+
+## 技术栈
+
+| 层级 | 技术 |
+| --- | --- |
+| Web | 原生 HTML、CSS、ES Modules |
+| API | Python、FastAPI、Pydantic、Uvicorn |
+| Agent | LangChain、LangGraph、SSE |
+| 数据 | SQLite、本地上传与独立凭据存储 |
+| 测试 | pytest、Node.js Test Runner、Playwright、PowerShell |
+| 部署 | Windows 本地启动器、HTTP 测试覆盖层、HTTPS 生产覆盖层 |
+
+## 项目边界
+
+当前项目聚焦“发现内容、理解内容、选择工具和规划下一步”，而不是通用执行平台：
+
+- 不提供托管模型或共享密钥；
+- 不允许助手绕过站内权限直接读取数据库；
+- 不把生成海报、操作第三方账号等站外动作伪装成已完成；
+- 不自动把普通对话写入跨会话长期记忆；
+- 不把本地 HTTP 启动结果视为已通过生产上线验收。
+
+## 开发与验证
+
+仓库采用模块化单体结构，领域服务保存业务规则，API Router 和 Agent Tool 保持轻量。
+
+```text
+backend/                FastAPI 应用、领域服务与 Agent
+database/               初始结构、基础数据与增量迁移
+frontend/               页面、样式、脚本与静态资源
+deploy/                 HTTP 测试和 HTTPS 生产覆盖层
+scripts/                启动、验证、维护、备份与发布工具
+tests/                  Python 和前端契约测试
+docs/                   设计、运维、质量证据与历史资料
 ```
 
-在 `.env` 中填写 `AI_NAV_AGENT_PROVIDER_API_KEY`、北京业务空间地址和允许主机。确认发布清单后，再将 `AI_NAV_AGENT_PROVIDER` 改为 `openai_compatible`、将 `AI_NAV_AGENT_PROVIDER_LIVE_ENABLED` 改为 `1`，并重启后端。真实 `.env` 已被 Git 忽略；部署环境应改用平台密钥管理注入同名变量，系统环境变量优先于 `.env`。
-
-默认地址：`http://127.0.0.1:8088/`
-
-主要页面：
-
-- `index.html`：首页
-- `learn.html`：学习路线
-- `learn-node.html?slug=ai-literacy`：学习节点
-- `tools.html`：工具目录
-- `assistant.html`：站内助手
-- `settings.html`：用户空间
-- `docs`：接口文档
-
-## 生产环境配置
-
-生产环境至少需要配置：
-
-```powershell
-$env:AI_NAV_ENV="production"
-$env:AI_NAV_API_WORKERS="1"
-$env:AI_NAV_AGENT_RUNTIME_STATE_BACKEND="process_local"
-$env:AI_NAV_SECRET_KEY="至少32位的随机密钥"
-$env:AI_NAV_CORS_ALLOW_ORIGINS="https://你的站点域名"
-$env:AI_NAV_DATABASE_PATH="D:\ai-nav-data\ai_nav.sqlite3"
-$env:AI_NAV_UPLOAD_DIR="D:\ai-nav-data\uploads"
-$env:AI_NAV_REFRESH_COOKIE_SECURE="1"
-$env:RESET_DATABASE_ON_START="0"
-```
-
-完整无密钥模板见 `production.env.example`。生产模式会拒绝默认/过短密钥、
-非 HTTPS 或通配来源、不安全 Cookie、源码树内数据库/上传目录、全地址空间可信
-代理、多 Worker 进程内状态、不安全 Provider/成本/保留期组合，以及任何
-`RESET_DATABASE_ON_START=1`。验证脚本设置 `AI_NAV_DISABLE_DOTENV=1`，不会读取真实
-`.env`。
-
-## 主要接口
-
-### 公共内容
-
-- `GET /api/v1/navigation`
-- `GET /api/v1/learning/roadmap`
-- `GET /api/v1/learning/nodes/{slug}`
-- `GET /api/v1/learning/search`
-- `GET /api/v1/tools/catalog`
-- `GET /api/v1/tools/latest`
-
-### 账号与用户空间
-
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/refresh`
-- `POST /api/v1/auth/logout`
-- `POST /api/v1/auth/password-reset/start`
-- `POST /api/v1/auth/password-reset/confirm`
-- `GET /api/v1/users/me/account`
-- `PATCH /api/v1/users/me/account`
-- `GET /api/v1/users/me/profile`
-- `PATCH /api/v1/users/me/profile`
-- `GET /api/v1/users/me/learning/dashboard`
-- `GET /api/v1/users/me/assets/workflows`
-
-### Agent
-
-- `POST /api/v1/agent/chat`
-- `GET /api/v1/agent/operations/runtime`（管理员脱敏运行快照）
-- `POST /api/v1/agent/workflows/save`
-
-完整接口以运行后的 `/docs` 为准。
-
-## 验证
-
-统一质量门禁（Ruff、依赖审计、发布包排除、全量 Python 测试与分支覆盖率）：
-
-```powershell
-.\scripts\verify-quality.ps1
-```
-
-全量地基验证：
+开发时请按修改范围运行对应测试；提交前至少应执行：
 
 ```powershell
 .\scripts\verify-foundation.ps1
-```
-
-Agent 专项验证：
-
-```powershell
 .\scripts\verify-agent.ps1
+git diff --check
 ```
 
-分区验证：
+涉及助手交互的修改还应在网页输入框中走通完整用户链路。测试数量和覆盖率以当前命令输出为准，
+README 不保存容易失效的历史数字。
 
-```powershell
-.\scripts\verify-frontend.ps1
-.\scripts\verify-learning.ps1
-.\scripts\verify-tools.ps1
-.\scripts\verify-users.ps1
-```
+## 文档导航
 
-## 项目文档
+| 内容 | 入口 |
+| --- | --- |
+| 文档总览 | [文档地图](docs/00-index/documentation-map.md) |
+| 仓库目录规则 | [Repository Layout](docs/00-index/repository-layout.md) |
+| Agent 推荐工作流 | [设计文档](docs/03-domains/agent/agent-content-recommendation-workflow-design.md) |
+| Agent 优化与验证 | [任务流程](docs/03-domains/agent/agent-content-recommendation-optimization-flow.md) |
+| HTTPS 部署 | [生产部署手册](docs/04-operations/deployment/https-production-deployment-runbook.md) |
 
-- `docs/00-index/documentation-map.md`：文档分类、权威顺序和维护规则
-- `docs/00-index/http-test-deployment-file-index.md`：HTTP 子路径测试部署的文件、证据和状态入口
-- `docs/02-architecture/deployment/http-subpath-test-deployment-design.md`：新旧站共存、测试账号、游客助手与 Provider 预览边界
-- `docs/04-operations/deployment/http-test-deployment-runbook.md`：参数化的 HTTP 测试部署、验证、停止与回滚步骤
-- `docs/04-operations/deployment/http-test-deployment-troubleshooting.md`：实机部署故障的快速定位、根因、推荐处理和误判边界
-- `docs/00-index/remediation-file-index.md`：审计问题到实现、测试、脚本和同步文档的整改索引
-- `docs/05-quality/audits/full-project-remediation-verification-report.md`：当前独立复验、实际门禁数字与双重发布结论
-- `docs/05-quality/audits/git-commit-readiness-handoff.md`：交给其他 AI 执行暂存、复核和本地提交的安全步骤
-- `docs/05-quality/audits/git-http-privacy-audit.md`：当前 Git 根目录、HTTP 部署文件、历史边界和隐私扫描结论
-- `docs/05-quality/audits/full-project-reaudit-report.md`：当前问题回测、加权复审与生产上线判定
-- `docs/05-quality/audits/full-project-remediation-report.md`：七批次整改状态、验证数字与剩余风险
-- `docs/05-quality/audits/full-project-audit-report.md`：首轮完整审计基线与原始发现
-- `docs/07-prompts/audits/full-project-remediation-prompt.md`：交给新对话执行的全项目整改总控提示词
-- `docs/01-overview/fullstack-development-results-handoff.md`：当前全栈成果、生态、架构、模块边界、证据与下一轮审计清单
-- `docs/03-domains/agent/agent-development-handoff.md`：当前 Agent 能力、修改边界和渐进开发流程
-- `docs/03-domains/users/users-final-acceptance-report.md`：用户空间验收结果
-- `docs/04-operations/content/content-operations-runbook.md`：学习与工具内容维护流程
-- `docs/04-operations/users/users-release-runbook.md`：用户数据备份、恢复和发布流程
+## 参与项目
 
-## 后续任务
+欢迎通过 [GitHub Issues](https://github.com/WNIK7750/StarChart-AI/issues) 报告问题或提出建议。
+提交代码前，请先说明要解决的用户问题，为相关行为补充测试，并同步受影响的契约和文档。
 
-2026-07-25 独立复验及后续整改确认：全量 176/176 个 Python 测试、34/34 个 Node
-测试、36/36 个 JavaScript 语法检查、Ruff 核心规则、依赖审计和 84% 分支覆盖率门槛
-均通过。`AUD-API-002` 原有 44 个宽泛输出模型已全部替换为领域字段级响应 DTO，并有
-额外内部字段过滤反例；本地整改候选为“通过”。完整结果见
-`docs/05-quality/audits/full-project-remediation-verification-report.md`。
+请勿提交 `.env`、API Key、SQLite 运行库、上传文件、日志、缓存、测试输出或发布压缩包。
 
-当前生产发布仍为 **NO-GO**。上线前必须由对应责任人完成
-`docs/04-operations/production-external-signoff-checklist.md`：选择并验证真实恢复发送服务，
-签收 Provider 合规与数据政策，配置北京默认业务空间端点及上海服务器出口白名单，执行
-受控真实 Provider、C4G 容量、生产备份恢复、回滚、告警和值守演练。未完成这些外部签收时，
-不得把本地结果解释为生产验证。当前也不提前加入多 Agent、自动长期记忆、向量库或复杂状态图。
+## 许可
+
+除文件中另有说明的第三方组件外，本仓库采用
+[PolyForm Noncommercial License 1.0.0](LICENSE)。允许个人学习、研究、实验及许可证列明的
+非商业组织使用；商业使用、商业集成、收费服务或预期商业应用需要另行取得书面授权。
