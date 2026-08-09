@@ -16,6 +16,25 @@ assert.match(settingsHtml, /\.learning-item\.workflow-target:focus-visible\{outl
 assert.match(settingsHtml, /\.workflow-detail-region\{grid-column:1\/-1\}/);
 assert.match(settingsHtml, /\.learning-item \.workflow-step-number\{[^}]*display:inline-flex;align-items:center;justify-content:center;[^}]*margin:0;[^}]*line-height:1/);
 assert.match(settingsHtml, /核对 Agent 保存的工作流步骤与工具状态/);
+assert.match(settingsHtml, /data-section="model"/);
+assert.match(settingsHtml, /API Key 不进入网站数据库或浏览器存储/);
+assert.match(settingsHtml, /Windows DPAPI 绑定当前账号加密/);
+assert.match(settingsHtml, /data-model-test/);
+assert.match(settingsHtml, /name="providerKey"/);
+assert.match(settingsHtml, /name="providerName"/);
+assert.match(settingsHtml, /name="modelDisplayName"/);
+assert.match(settingsHtml, /name="modelId"/);
+assert.match(settingsHtml, /placeholder="使用提供商默认值"/);
+for (const limit of ["8000", "16000", "32000", "64000"]) {
+  assert.match(settingsHtml, new RegExp(`data-model-token-limit="${limit}"`));
+}
+assert.match(settingsScript, /maxOutputTokens: form\.maxOutputTokens\.value === "" \? null/);
+assert.match(settingsScript, /form\.modelDisplayName\.value = model\.modelDisplayName \|\| ""/);
+assert.match(settingsScript, /getAgentModelSettings/);
+assert.match(settingsScript, /updateAgentModelSettings/);
+assert.match(settingsScript, /testAgentModelSettings/);
+assert.match(settingsScript, /deleteAgentModelSettings/);
+assert.match(settingsScript, /form\.apiKey\.value = ""/);
 
 const storage = new Map([["ai_nav_access_token", "test-access-token"]]);
 globalThis.window = {

@@ -19,8 +19,9 @@ function responseFromChunks(chunks) {
 test("agent SSE parser handles split CRLF frames and preserves event order", async () => {
   const frames = [
     'event: response.started\r\ndata: {"event":"response.started","sequence":0,"requestId":"req-1","delta":null,"response":null}\r\n\r\n',
-    'event: response.answer.delta\r\ndata: {"event":"response.answer.delta","sequence":1,"requestId":"req-1","delta":"你好","response":null}\r\n\r\n',
-    'event: response.completed\r\ndata: {"event":"response.completed","sequence":2,"requestId":"req-1","delta":null,"response":{"answer":"你好"}}\r\n\r\n',
+    'event: agent.progress\r\ndata: {"event":"agent.progress","sequence":1,"requestId":"req-1","progress":{"stage":"understand","status":"running","title":"理解需求"}}\r\n\r\n',
+    'event: response.answer.delta\r\ndata: {"event":"response.answer.delta","sequence":2,"requestId":"req-1","delta":"你好","response":null}\r\n\r\n',
+    'event: response.completed\r\ndata: {"event":"response.completed","sequence":3,"requestId":"req-1","delta":null,"response":{"answer":"你好"}}\r\n\r\n',
   ].join("");
   const events = [];
   await consumeAgentEventStream(
@@ -29,11 +30,13 @@ test("agent SSE parser handles split CRLF frames and preserves event order", asy
   );
   assert.deepEqual(events.map((event) => event.event), [
     "response.started",
+    "agent.progress",
     "response.answer.delta",
     "response.completed",
   ]);
-  assert.equal(events[1].delta, "你好");
-  assert.equal(events[2].response.answer, "你好");
+  assert.equal(events[1].progress.title, "理解需求");
+  assert.equal(events[2].delta, "你好");
+  assert.equal(events[3].response.answer, "你好");
 });
 
 test("agent SSE parser rejects skipped sequences and incomplete streams", async () => {

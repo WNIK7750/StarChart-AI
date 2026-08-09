@@ -1,0 +1,41 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const launcher = fs.readFileSync("frontend/assets/js/assistant-launcher.js", "utf8");
+const launcherCss = fs.readFileSync("frontend/assets/css/assistant-launcher.css", "utf8");
+const shell = fs.readFileSync("frontend/assets/js/page-shell.js", "utf8");
+const assistantHtml = fs.readFileSync("frontend/assistant.html", "utf8");
+const assistant = fs.readFileSync("frontend/assets/js/assistant-page.js", "utf8");
+
+assert.match(shell, /import \{ initAssistantLauncher \} from "\.\/assistant-launcher\.js"/);
+assert.match(shell, /initAssistantLauncher\(\)/);
+assert.match(launcher, /new Set\(\["home", "learn", "tools"\]\)/);
+assert.match(launcher, /data-assistant-quick-app/);
+assert.match(launcher, /import\("\.\/assistant-page\.js"\)/);
+assert.doesNotMatch(launcher, /iframe|assistantFrameUrl|postMessage/);
+assert.match(launcher, /PANEL_ASPECT_RATIO = 7 \/ 12/);
+assert.match(launcher, /data-quick-resize-handle/);
+assert.match(launcher, /setPointerCapture/);
+assert.match(launcher, /id="quickNewSessionButton"/);
+assert.match(launcher, /quickNewSessionButton\?\.addEventListener/);
+assert.match(launcher, /SAFE_SESSION_ID\.test/);
+assert.match(launcher, /ai-nav:quick-assistant-session/);
+assert.match(launcher, /ai-nav:quick-assistant-close/);
+assert.match(launcher, /sessionStorage/);
+assert.match(launcherCss, /\.quick-assistant-launcher/);
+assert.match(launcherCss, /\.quick-assistant-native \.conversation/);
+assert.match(launcherCss, /\.quick-assistant-native \.context-panel/);
+assert.match(launcherCss, /\.quick-assistant-native \.mobile-sessions-button,\.quick-assistant-native \.quick-head-button\{[^}]*display:grid;[^}]*place-items:center/);
+assert.match(launcherCss, /\.quick-assistant-native \.mobile-sessions-button svg,\.quick-assistant-native \.quick-head-button svg\{display:block\}/);
+assert.match(launcherCss, /@media\(max-width:640px\)/);
+assert.match(launcherCss, /prefers-reduced-motion:reduce/);
+assert.doesNotMatch(assistantHtml, /quick(?:Expand|Close)Button/);
+assert.match(launcher, /id="quickExpandButton"/);
+assert.match(launcher, /id="quickCloseButton"/);
+assert.match(assistant, /quickMountMode = Boolean\(quickAppRoot\)/);
+assert.match(assistant, /restoreSession\(initialSessionId\)/);
+assert.match(assistant, /safeInternalHref\(expandHref\)/);
+assert.match(assistant, /new CustomEvent\("ai-nav:quick-assistant-session"/);
+assert.doesNotMatch(assistant, /window\.parent\.postMessage/);
+
+console.log("assistant launcher contract tests passed");

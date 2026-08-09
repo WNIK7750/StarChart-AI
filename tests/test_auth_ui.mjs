@@ -47,11 +47,12 @@ test("login dialog uses the site logo until a recent account avatar exists", () 
   assert.match(source, /if \(mode === "login"\) body\.rememberMe/);
 });
 
-test("auth bootstrap binds immediately and starts independent network work together", () => {
+test("auth bootstrap binds immediately and consumes the shared session store", () => {
   const source = read("frontend/assets/js/auth-ui.js");
   assert.match(source, /let authInitializationPromise = null/);
-  assert.match(source, /let authRefreshVersion = 0/);
-  assert.match(source, /refreshVersion !== authRefreshVersion/);
+  assert.match(source, /subscribeAuthSession\(renderAuthSession\)/);
+  assert.match(source, /initializeAuthSession\(\)/);
+  assert.doesNotMatch(source, /authRefreshVersion|publishAuthState|subscribeAuthState/);
   assert.match(source, /function bindAuthEvents\(\)/);
   assert.match(source, /if \(authInitializationPromise\) return authInitializationPromise/);
   assert.match(
@@ -103,7 +104,7 @@ test("auth local state stores only consent and avatar URL preferences", async ()
   state.rememberRecentAvatar("/uploads/avatars/alice.webp");
   assert.equal(state.hasRememberedPrivacyConsent(), true);
   assert.equal(state.getRecentAvatarUrl(), "/uploads/avatars/alice.webp");
-  assert.deepEqual([...values.keys()].sort(), ["ai_nav_privacy_consent_2026-07-20", "ai_nav_recent_avatar_v1"]);
+  assert.deepEqual([...values.keys()].sort(), ["ai_nav_privacy_consent_2026-08-08", "ai_nav_recent_avatar_v1"]);
   assert.doesNotMatch(JSON.stringify([...values]), /password|token/i);
   delete globalThis.window;
 });
@@ -112,10 +113,11 @@ test("login and settings dialogs expose the current detailed policy", () => {
   const auth = read("frontend/assets/js/auth-ui.js");
   const settings = read("frontend/settings.html");
   for (const source of [auth, settings]) {
-    assert.match(source, /版本：2026-07-20/);
+    assert.match(source, /版本：2026-08-08/);
     assert.match(source, /不出售个人信息/);
-    assert.match(source, /阿里云百炼千问/);
-    assert.match(source, /不会发送账号资料、用户资产或长期记忆/);
+    assert.match(source, /你选择的模型服务商/);
+    assert.match(source, /API Key 不写入网站数据库或浏览器存储/);
+    assert.match(source, /普通对话、模型推断、工具结果和摘要只属于当前对话/);
     assert.match(source, /导出数据/);
     assert.match(source, /撤回/);
   }
@@ -186,11 +188,15 @@ test("assistant identity changes preserve the isolated guest-memory boundary", (
   assert.match(assistant, /getAccessToken\(\)/);
   assert.match(assistant, /new AssistantSessionEpoch\(getAccessToken\(\)\)/);
   assert.match(assistant, /sessionEpoch\.beginOperation\(\)/);
-  assert.match(assistant, /window\.addEventListener\("ai-nav-auth-changed"/);
+  const store = read("frontend/assets/js/auth-session-store.js");
+  assert.match(store, /window\.addEventListener\("ai-nav-auth-changed"/);
+  assert.match(assistant, /subscribeAuthSession\(\(snapshot\) =>/);
+  assert.match(assistant, /void initializeAuthSession\(\)/);
+  assert.match(assistant, /Boolean\(user && token\)/);
   assert.match(assistant, /renderGuestConversation/);
   assert.doesNotMatch(assistant, /importGuest|migrateGuest|syncGuest/);
-  const authChangeHandler = assistant.match(
-    /window\.addEventListener\("ai-nav-auth-changed", \(\) => \{([\s\S]*?)\n\}\);/,
+  const authChangeHandler = store.match(
+    /window\.addEventListener\("ai-nav-auth-changed", \(\) => \{([\s\S]*?)\n\s*\}\);/,
   )?.[1] || "";
   assert.doesNotMatch(authChangeHandler, /clearGuestConversations|appendGuestMessage|recentGuestHistory/);
 });

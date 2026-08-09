@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI 学习助手 · AI 知识导航</title>
   <link rel="icon" type="image/svg+xml" href="assets/img/brand-mark.62793ed5.svg">
-  <link rel="modulepreload" href="assets/js/v2-api.js">
-  <link rel="modulepreload" href="assets/js/assistant-page.js">
+  <link rel="modulepreload" href="assets/js/v2-api.js?v=20260809-auth-store-1">
+  <link rel="modulepreload" href="assets/js/assistant-page.js?v=20260809-auth-store-1">
   <link rel="stylesheet" href="assets/css/assistant.css">
 </head>
 <body data-page="assistant">
-  <main class="assistant-shell">
+  <main class="assistant-shell auth-locked" id="assistantShell">
     <aside class="context-panel" id="contextPanel" aria-label="会话导航">
       <div class="sidebar-head">
         <a href="." class="brand" aria-label="返回 AI 知识导航首页">
@@ -26,11 +26,6 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         <span>新建对话</span>
       </button>
-
-      <div id="guestMemoryNotice" hidden>
-        <p class="session-empty">游客记录仅保存在当前浏览器 7 天；登录不会自动导入。</p>
-        <button type="button" id="clearGuestHistoryButton" class="session-new">清除游客历史</button>
-      </div>
 
       <section class="session-panel" id="sessionPanel" hidden>
         <section class="session-group" id="longConversationPanel">
@@ -50,7 +45,7 @@
       </section>
 
       <div class="sidebar-footer sidebar-footer-mobile">
-        <span class="sidebar-mode"><i aria-hidden="true"></i>站内证据只读模式</span>
+        <span class="sidebar-mode"><i aria-hidden="true"></i>回答基于站内内容</span>
         <nav class="sidebar-links" aria-label="产品导航">
           <a href="learn">学习</a>
           <a href="tools">工具</a>
@@ -61,7 +56,7 @@
 
     <button type="button" class="drawer-scrim" id="drawerScrim" aria-label="关闭会话列表" hidden></button>
 
-    <section class="conversation" aria-label="Agent 对话">
+    <section class="conversation" aria-label="助手对话">
       <header class="conversation-head">
         <div class="conversation-head-primary">
           <div class="conversation-title">
@@ -70,7 +65,7 @@
             </button>
             <div>
               <h1>AI 学习助手</h1>
-              <span class="conversation-status" id="assistantStatus" role="status" aria-live="polite" aria-atomic="true">就绪</span>
+              <span class="conversation-status" id="assistantStatus" role="status" aria-live="polite" aria-atomic="true">正在确认登录状态</span>
             </div>
           </div>
           <div class="assistant-header-links">
@@ -79,11 +74,48 @@
               <a href="tools">工具</a>
               <a href="settings" data-settings-link>设置</a>
             </nav>
-            <span class="header-mode"><i aria-hidden="true"></i>站内证据只读模式</span>
+            <a class="assistant-model-entry" id="assistantModelEntry" href="settings#model" hidden>配置 API Key</a>
+            <span class="header-mode"><i aria-hidden="true"></i>回答基于站内内容</span>
           </div>
         </div>
         <div class="top-actions"><div data-auth-root></div></div>
       </header>
+
+      <section class="assistant-auth-checking" id="assistantAuthChecking" aria-labelledby="assistantAuthCheckingTitle">
+        <div class="assistant-auth-card assistant-auth-checking-card">
+          <span class="assistant-auth-kicker">正在验证</span>
+          <h2 id="assistantAuthCheckingTitle">正在恢复登录状态</h2>
+          <p>正在确认当前浏览器会话。完成前不会把你误判为未登录，也不会创建新的助手会话。</p>
+        </div>
+      </section>
+
+      <section class="assistant-auth-gate" id="assistantAuthGate" aria-labelledby="assistantAuthGateTitle" hidden>
+        <div class="assistant-auth-card">
+          <span class="assistant-auth-kicker">登录后使用</span>
+          <h2 id="assistantAuthGateTitle">先登录，再进入 AI 助手</h2>
+          <p>登录后助手才能读取你的个人模型配置、当前会话以及你有权访问的站内信息，并保持不同对话之间的数据隔离。</p>
+          <ul>
+            <li>使用你自己配置的模型与 API Key</li>
+            <li>只通过已授权的站内工具读取数据</li>
+            <li>普通对话内容不会自动进入其他对话</li>
+          </ul>
+          <button type="button" class="assistant-auth-action" data-auth-trigger="login">登录并继续</button>
+        </div>
+      </section>
+
+      <section class="assistant-model-gate" id="assistantModelGate" aria-labelledby="assistantModelGateTitle" hidden>
+        <div class="assistant-auth-card">
+          <span class="assistant-auth-kicker">个人模型</span>
+          <h2 id="assistantModelGateTitle">先配置 API Key，再开始使用</h2>
+          <p id="assistantModelGateDetail">本站不提供默认模型。你的 API Key 不会写入网站数据库或浏览器存储，本机版由 Windows DPAPI 用户级保护。</p>
+          <ul>
+            <li>选择模型服务商、API 地址和模型名称</li>
+            <li>保存后先执行一次连接测试</li>
+            <li>返回助手页开始提问或创建工作流</li>
+          </ul>
+          <a class="assistant-auth-action" href="settings#model">进入 API Key 配置</a>
+        </div>
+      </section>
 
       <div class="messages" id="messages" aria-live="polite">
         <div class="welcome" id="welcome">
@@ -126,7 +158,7 @@
     </form>
   </dialog>
 
-  <script type="module" src="assets/js/v2-api.js"></script>
-  <script type="module" src="assets/js/assistant-page.js"></script>
+  <script type="module" src="assets/js/v2-api.js?v=20260809-auth-store-1"></script>
+  <script type="module" src="assets/js/assistant-page.js?v=20260809-user-copy-1"></script>
 </body>
 </html>

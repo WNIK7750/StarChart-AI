@@ -1,16 +1,17 @@
 import {
   apiGet,
-  clearAuthTokens,
-  getAccessToken,
-  restoreAuthSession,
   saveAuthTokens,
 } from "./api.js";
+import {
+  clearAuthSession,
+  initializeAuthSession,
+  refreshAuthSession,
+  subscribeAuthSession,
+} from "./auth-session-store.js?v=20260809-auth-store-1";
 import { withPublicBasePath } from "./public-path.js";
 import { safeInternalHref } from "./url-safety.js";
 import {
   confirmPasswordReset,
-  getCurrentUser,
-  getUserProfile,
   loginUser,
   logoutUser,
   registerUser,
@@ -32,8 +33,7 @@ let authEntryVisibility = {
 };
 let authInitializationPromise = null;
 let authEventsBound = false;
-let authRefreshVersion = 0;
-let latestAuthRefreshPromise = null;
+let authSessionUnsubscribe = null;
 
 export function publicAuthEntryVisibility(runtime) {
   return {
@@ -126,9 +126,10 @@ function authPanel() {
       </form>
       <dialog class="auth-legal" data-auth-legal-dialog aria-labelledby="authLegalTitle">
         <h2 id="authLegalTitle">服务协议与隐私政策</h2>
-        <p><strong>版本：2026-07-20。</strong>使用账号服务时，请遵守法律法规，不得利用本站干扰服务、侵害他人权益或提交违法内容。本站可为安全、维护或合规需要限制异常账号与会话。</p>
+        <p><strong>版本：2026-08-08。</strong>使用账号服务时，请遵守法律法规，不得利用本站干扰服务、侵害他人权益或提交违法内容。本站可为安全、维护或合规需要限制异常账号与会话。</p>
         <p>为提供账号、学习记录与个性化功能，本站会处理账号资料、头像、登录设备与会话信息，以及你主动产生的学习进度、收藏和工作流数据；这些信息仅用于身份验证、功能交付、安全审计与故障排查，不出售个人信息。</p>
-        <p>启用 AI 模型服务时，本站会将当前问题和站内公开证据发送至位于中国内地北京区域的阿里云百炼千问处理，用于生成本次回答；不会发送账号资料、用户资产或长期记忆。生产启用以完成数据处理协议、明确数据不用于模型训练并落实约定留存策略为前提。请勿在问题中提交密码、令牌、联系方式或其他敏感个人信息。</p>
+        <p>启用个人 AI 模型时，当前问题、当前对话上下文、完成任务所需的站内证据，以及你明确允许跨对话使用的已保存知识，会发送给你选择的模型服务商。普通对话、模型推断、工具结果和摘要只属于当前对话，不会自动串联到其他对话。请先确认所选服务商的数据处理规则。</p>
+        <p>你的模型 API Key 不写入网站数据库或浏览器存储；本机版使用 Windows DPAPI 用户级保护和独立凭据目录，服务器部署必须使用独立 Secret Manager。请勿在问题中提交密码、令牌、联系方式或其他敏感个人信息。</p>
         <p>密码以不可逆安全散列保存，刷新令牌通过 HttpOnly Cookie 管理。数据按业务与安全需要保留；你可在“设置 · 隐私与数据”查询同意状态、导出数据、申请注销或撤回同意。撤回后需在登录时重新同意当前版本。</p>
         <button class="auth-ghost" data-auth-legal-close type="button">我已了解</button>
       </dialog>
@@ -267,35 +268,24 @@ function renderLoggedIn(user, avatarUrl = "", profile = {}) {
   });
 }
 
-function refreshAuthUI() {
-  const refreshVersion = ++authRefreshVersion;
-  const refreshPromise = (async () => {
-    if (!getAccessToken()) {
-      try {
-        await restoreAuthSession();
-      } catch {
-        if (refreshVersion !== authRefreshVersion) return latestAuthRefreshPromise;
-        renderLoggedOut();
-        return null;
-      }
-    }
-    try {
-      const [{ user }, profileResult] = await Promise.all([
-        getCurrentUser(),
-        getUserProfile().catch(() => ({ profile: {} })),
-      ]);
-      if (refreshVersion !== authRefreshVersion) return latestAuthRefreshPromise;
-      renderLoggedIn(user, profileResult.profile?.avatarUrl || "", profileResult.profile || {});
-      return user;
-    } catch {
-      if (refreshVersion !== authRefreshVersion) return latestAuthRefreshPromise;
-      clearAuthTokens();
-      renderLoggedOut();
-      return null;
-    }
-  })();
-  latestAuthRefreshPromise = refreshPromise;
-  return refreshPromise;
+function renderAuthSession(snapshot) {
+  if (snapshot.status === "loading") return;
+  if (snapshot.status === "authenticated" && snapshot.user) {
+    renderLoggedIn(snapshot.user, snapshot.profile?.avatarUrl || "", snapshot.profile || {});
+    return;
+  }
+  renderLoggedOut();
+}
+
+async function refreshAuthUI({ force = false } = {}) {
+  const snapshot = force ? await refreshAuthSession() : await initializeAuthSession();
+  return snapshot.user;
+}
+
+// Route guards use this verified result instead of inferring authentication
+// from whether a login event happened or whether a token existed at module load.
+export function refreshAuthState() {
+  return refreshAuthUI({ force: true });
 }
 
 async function handleLoginOrRegister(form, mode) {
@@ -353,9 +343,8 @@ async function logout() {
   } catch {
     // Local logout should still succeed when the server-side session is already invalid.
   }
-  clearAuthTokens();
+  clearAuthSession();
   document.querySelectorAll(".user-menu.open").forEach((item) => item.classList.remove("open"));
-  renderLoggedOut();
 }
 
 function bindAuthEvents() {
@@ -393,8 +382,8 @@ export function initAuthUI() {
   injectStyles();
   const panel = authPanel();
   applyPublicAuthCapabilities(null, panel);
-  renderLoggedOut();
   bindAuthEvents();
+  authSessionUnsubscribe ||= subscribeAuthSession(renderAuthSession);
   authInitializationPromise = Promise.all([
     loadPublicAuthCapabilities(),
     refreshAuthUI(),

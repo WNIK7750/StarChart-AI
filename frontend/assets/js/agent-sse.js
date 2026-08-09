@@ -1,5 +1,6 @@
 const ALLOWED_EVENTS = new Set([
   "response.started",
+  "agent.progress",
   "response.answer.delta",
   "response.completed",
 ]);
@@ -48,6 +49,10 @@ function parseBlock(block, state) {
       throw protocolError("流式开始事件无效");
     }
     state.started = true;
+  } else if (eventName === "agent.progress") {
+    if (!state.started || state.completed || !payload.progress || payload.delta != null || payload.response != null) {
+      throw protocolError("Agent 进度事件无效");
+    }
   } else if (eventName === "response.answer.delta") {
     if (!state.started || state.completed || typeof payload.delta !== "string" || !payload.delta) {
       throw protocolError("流式回答片段无效");

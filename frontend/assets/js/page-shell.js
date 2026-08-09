@@ -1,5 +1,6 @@
 import { apiGet } from "./api.js";
-import { initAuthUI } from "./auth-ui.js";
+import { initAssistantLauncher } from "./assistant-launcher.js";
+import { initAuthUI } from "./auth-ui.js?v=20260809-auth-store-1";
 import { initSiteSearch } from "./site-search.js";
 import { safeInternalHref } from "./url-safety.js";
 
@@ -135,6 +136,7 @@ export function initPageShell(activeCode) {
     if (event.target.closest('a[aria-disabled="true"]')) event.preventDefault();
   });
   initSiteSearch();
+  initAssistantLauncher();
   return Promise.all([
     hydrateNavigation(activeCode),
     initAuthUI(),

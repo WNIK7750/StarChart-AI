@@ -9,7 +9,8 @@ import {
 } from "./api.js";
 import { consumeAgentEventStream } from "./agent-sse.js";
 import { AssistantSessionEpoch } from "./assistant-session-epoch.js";
-import { createFrameBuffer } from "./page-shell.js";
+import { initializeAuthSession, subscribeAuthSession } from "./auth-session-store.js?v=20260809-auth-store-1";
+import { createFrameBuffer } from "./page-shell.js?v=20260809-auth-store-1";
 import { safeInternalHref } from "./url-safety.js";
 import {
   appendGuestMessage,
@@ -19,9 +20,15 @@ import {
   loadGuestConversations,
   recentGuestHistory,
 } from "./guest-agent-memory.js";
-import { saveAgentWorkflow } from "./users-api.js";
+import { getAgentModelSettings, saveAgentWorkflow } from "./users-api.js";
 
 const form = document.querySelector("#assistantForm");
+const assistantShell = document.querySelector("#assistantShell");
+const assistantAuthChecking = document.querySelector("#assistantAuthChecking");
+const assistantAuthGate = document.querySelector("#assistantAuthGate");
+const assistantModelGate = document.querySelector("#assistantModelGate");
+const assistantModelGateDetail = document.querySelector("#assistantModelGateDetail");
+const assistantModelEntry = document.querySelector("#assistantModelEntry");
 const input = document.querySelector("#assistantInput");
 const sendButton = document.querySelector("#sendButton");
 const stopButton = document.querySelector("#stopButton");
@@ -45,7 +52,22 @@ const sessionRenameForm = document.querySelector("#sessionRenameForm");
 const sessionRenameInput = document.querySelector("#sessionRenameInput");
 const sessionRenameState = document.querySelector("#sessionRenameState");
 const sessionRenameCancel = document.querySelector("#sessionRenameCancel");
+const quickExpandButton = document.querySelector("#quickExpandButton");
+const quickCloseButton = document.querySelector("#quickCloseButton");
+const quickAppRoot = document.querySelector("[data-assistant-quick-app]");
+const quickLoginButton = document.querySelector("[data-quick-login]");
 const welcomeTemplate = document.querySelector("#welcome")?.cloneNode(true);
+const assistantParams = new URLSearchParams(window.location.search);
+const quickMountMode = Boolean(quickAppRoot);
+const requestedSessionValue = quickMountMode
+  ? quickAppRoot.dataset.initialSession
+  : assistantParams.get("session");
+const safeRequestedSession = /^(?:ags_|agl_)[a-f0-9]{32}$|^guest-[a-zA-Z0-9-]{8,80}$/.test(
+  requestedSessionValue || "",
+)
+  ? requestedSessionValue
+  : null;
+let requestedInitialSessionId = safeRequestedSession;
 let activeController = null;
 let streamAvailable;
 let sessionAvailable = false;
@@ -56,12 +78,62 @@ let sessionCreationBlocked = false;
 let renamingSession = null;
 const sessionEpoch = new AssistantSessionEpoch(getAccessToken());
 let authenticatedMode = Boolean(getAccessToken());
+let modelReady = false;
 let assistantModeInitialized = false;
+let authGuardVersion = 0;
 let sessionListRequestVersion = { short: 0, long: 0 };
 let shortSessions = [];
 
 function isAuthenticatedMode() {
   return authenticatedMode;
+}
+
+function setAssistantCheckingState(checking) {
+  if (assistantAuthChecking) assistantAuthChecking.hidden = !checking;
+  if (checking && assistantAuthGate) assistantAuthGate.hidden = true;
+}
+
+function setAssistantAccessState(authenticated) {
+  setAssistantCheckingState(false);
+  assistantShell?.classList.toggle("auth-locked", !authenticated);
+  if (assistantAuthGate) assistantAuthGate.hidden = authenticated;
+  if (input) input.disabled = !authenticated;
+  if (sendButton) sendButton.disabled = !authenticated;
+}
+
+function setModelAccessState(model, error = null) {
+  modelReady = Boolean(
+    model?.configured
+    && model?.enabled
+    && model?.hasApiKey
+    && model?.connectionStatus === "healthy",
+  );
+  const locked = isAuthenticatedMode() && !modelReady;
+  assistantShell?.classList.toggle("model-locked", locked);
+  if (assistantModelGate) assistantModelGate.hidden = !locked;
+  if (assistantModelEntry) assistantModelEntry.hidden = !locked;
+  if (input) input.disabled = !isAuthenticatedMode() || locked;
+  if (sendButton) sendButton.disabled = !isAuthenticatedMode() || locked;
+  if (!locked) return;
+  if (assistantModelGateDetail) {
+    assistantModelGateDetail.textContent = error
+      ? "暂时无法确认个人模型凭据状态。请进入设置检查凭据存储与模型连接。"
+      : model?.configured && model?.hasApiKey && model?.enabled
+        ? "个人模型已保存，但还需要在设置页完成连接测试，才能开始使用助手。"
+        : "本站不提供默认模型。请先保存并启用自己的模型；API Key 不进入网站数据库或浏览器存储。";
+  }
+  status.textContent = error ? "模型配置检查失败" : "请先配置 API Key";
+}
+
+async function refreshModelAccessState() {
+  try {
+    const { model } = await getAgentModelSettings();
+    setModelAccessState(model);
+    return modelReady;
+  } catch (error) {
+    setModelAccessState(null, error);
+    return false;
+  }
 }
 
 function element(tag, className, text) {
@@ -75,6 +147,16 @@ function safeSiteHref(href) {
   try {
     const url = new URL(href, window.location.href);
     return url.origin === window.location.origin ? `${url.pathname.split("/").pop()}${url.search}${url.hash}` : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeResultHref(href, sourceType = "page") {
+  if (sourceType !== "web") return safeSiteHref(href);
+  try {
+    const url = new URL(href);
+    return url.protocol === "https:" && !url.username && !url.password ? url.href : null;
   } catch {
     return null;
   }
@@ -155,6 +237,24 @@ function setCurrentSession(sessionId) {
       button.dataset.sessionId === currentSessionId ? "true" : "false",
     );
   });
+  if (quickMountMode) {
+    window.dispatchEvent(new CustomEvent("ai-nav:quick-assistant-session", {
+      detail: { sessionId: currentSessionId },
+    }));
+  } else {
+    const sessionUrl = new URL(window.location.href);
+    if (currentSessionId) sessionUrl.searchParams.set("session", currentSessionId);
+    else sessionUrl.searchParams.delete("session");
+    window.history.replaceState(null, "", `${sessionUrl.pathname}${sessionUrl.search}${sessionUrl.hash}`);
+  }
+  const expandHref = currentSessionId
+    ? `/assistant?session=${encodeURIComponent(currentSessionId)}`
+    : "/assistant";
+  if (quickExpandButton) quickExpandButton.href = safeInternalHref(expandHref);
+}
+
+function syncQuickLoginButton() {
+  if (quickLoginButton) quickLoginButton.hidden = isAuthenticatedMode();
 }
 
 function syncNewSessionButton() {
@@ -644,10 +744,14 @@ function renderCards(cards = []) {
   section.appendChild(element("h3", "", "相关入口"));
   const list = element("div", "result-list");
   cards.forEach((card) => {
-    const href = safeSiteHref(card.href);
+    const href = safeResultHref(card.href, card.type);
     if (!href) return;
     const link = element("a", "result-card");
     link.href = href;
+    if (card.type === "web") {
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+    }
     const content = element("div");
     content.appendChild(element("strong", "", card.title));
     content.appendChild(element("p", "", card.description || card.reason || "站内来源"));
@@ -845,19 +949,38 @@ function renderEvidence(response) {
   const evidenceList = element("div", "evidence-list");
   const toolCalls = element("div", "tool-calls");
   (response.citations || []).forEach((citation) => {
-    const href = safeSiteHref(citation.href);
+    const href = safeResultHref(citation.href, citation.sourceType);
     if (!href) return;
     const link = element("a", "evidence-item");
     link.href = href;
+    if (citation.sourceType === "web") {
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+    }
     link.append(
-      element("span", "evidence-type", citation.sourceType === "tool" ? "工具" : "学习节点"),
+      element(
+        "span",
+        "evidence-type",
+        citation.sourceType === "tool" ? "工具" : citation.sourceType === "web" ? "网页" : "学习节点",
+      ),
       element("strong", "", citation.title),
     );
     evidenceList.appendChild(link);
   });
+  const toolLabels = {
+    "learning.search": "学习内容",
+    "tools.search": "工具",
+    "tools.workflow": "工作流",
+    "users.context": "个人信息",
+    "navigation.read": "站内页面",
+    "web.search": "网页资料",
+  };
   (response.toolCalls || []).forEach((call) => {
     const row = element("div", "tool-call");
-    row.append(element("span", "", call.name), element("strong", "", call.status === "skipped" ? "跳过" : String(call.resultCount)));
+    row.append(
+      element("span", "", toolLabels[call.name] || "站内信息"),
+      element("strong", "", call.status === "skipped" ? "未使用" : String(call.resultCount)),
+    );
     toolCalls.appendChild(row);
   });
   if (!evidenceList.children.length && !toolCalls.children.length) return;
@@ -867,16 +990,182 @@ function renderEvidence(response) {
   messages.appendChild(section);
 }
 
+function renderExecution(response) {
+  const execution = response.execution;
+  if (!execution) return;
+  const section = element(
+    "section",
+    `response-section agent-execution is-${execution.status || "complete"}`,
+  );
+  const header = element("div", "agent-execution-header");
+  const labels = {
+    complete: "已完成",
+    partial: "部分完成",
+    failed: "未完成",
+  };
+  header.append(element("strong", "", labels[execution.status] || "处理结果"));
+  section.appendChild(header);
+
+  if ((execution.objectives || []).length) {
+    const objectives = element("div", "agent-objectives");
+    objectives.appendChild(element("h4", "", "需求覆盖"));
+    execution.objectives.forEach((objective) => {
+      const row = element("div", `agent-objective is-${objective.status}`);
+      row.append(
+        element("strong", "", objective.objective),
+        element(
+          "span",
+          "",
+          objective.status === "completed"
+            ? "已满足"
+            : objective.status === "partial"
+              ? "部分满足"
+              : "未满足",
+        ),
+        element("p", "", objective.explanation),
+      );
+      objectives.appendChild(row);
+    });
+    section.appendChild(objectives);
+  }
+
+  if ((execution.steps || []).length) {
+    const details = document.createElement("details");
+    details.className = "agent-execution-plan";
+    details.open = execution.status !== "complete";
+    details.appendChild(
+      element("summary", "", `处理过程 · ${execution.steps.length} 步`),
+    );
+    const list = element("ol", "agent-execution-steps");
+    execution.steps.forEach((step) => {
+      const row = element("li", `is-${step.status}`);
+      const text = element("div");
+      text.append(
+        element("strong", "", step.title),
+        element(
+          "small",
+          "",
+          step.status === "completed"
+            ? `已完成 · ${step.resultCount} 条`
+            : step.status === "partial"
+              ? `部分完成 · ${step.resultCount} 条`
+              : "未完成",
+        ),
+      );
+      row.appendChild(text);
+      list.appendChild(row);
+    });
+    details.appendChild(list);
+    section.appendChild(details);
+  }
+
+  if ((execution.errors || []).length) {
+    const issues = element("div", "agent-execution-errors");
+    issues.appendChild(element("h4", "", "处理说明"));
+    execution.errors.forEach((error) => {
+      const item = element("div", "agent-execution-error");
+      const friendly = friendlyExecutionIssue(error);
+      item.append(
+        element("strong", "", friendly.title),
+        element("p", "", friendly.detail),
+      );
+      if (error.diagnosticId) {
+        const technical = document.createElement("details");
+        technical.className = "agent-error-technical";
+        technical.append(
+          element("summary", "", "查看技术信息"),
+          element("small", "", `参考编号 ${error.diagnosticId}`),
+        );
+        item.appendChild(technical);
+      }
+      issues.appendChild(item);
+    });
+    section.appendChild(issues);
+  }
+  messages.appendChild(section);
+}
+
+function friendlyExecutionIssue(error = {}) {
+  if (error.stage === "projection" || error.stage === "inspection") {
+    return {
+      title: "回答已自动调整",
+      detail: "部分模型内容未直接采用，当前结果已改用可验证的来源重新整理。",
+    };
+  }
+  if (error.stage === "tool") {
+    return {
+      title: "部分信息暂未取得",
+      detail: error.retryable
+        ? "已保留其他可用结果，你可以稍后重试缺失的部分。"
+        : "已保留其他可用结果，并在回答中说明当前覆盖范围。",
+    };
+  }
+  if (error.stage === "model") {
+    return {
+      title: "本次回答已尽量恢复",
+      detail: error.partial
+        ? "模型服务未完整返回，但已根据本轮取得的内容整理可用结果。"
+        : "模型服务暂时未能完成回答，请稍后重试或检查个人模型配置。",
+    };
+  }
+  return {
+    title: "本次处理未完全结束",
+    detail: error.retryable
+      ? "已保留可用结果，你可以稍后重试。"
+      : "当前回答已说明能够完成的部分。",
+  };
+}
+
+function createLiveExecution() {
+  const section = element("section", "response-section agent-live-execution");
+  const header = element("div", "agent-execution-header");
+  header.append(element("strong", "", "正在处理"));
+  const list = element("ol", "agent-live-steps");
+  section.append(header, list);
+  messages.appendChild(section);
+  return { section, list, items: new Map() };
+}
+
+function updateLiveExecution(view, progress) {
+  if (!view || !progress) return;
+  const key = `${progress.stage}:${progress.toolName || progress.title}`;
+  let row = view.items.get(key);
+  if (!row) {
+    row = element("li", "is-running");
+    row.append(element("span", "agent-live-indicator", ""), element("div"));
+    view.items.set(key, row);
+    view.list.appendChild(row);
+  }
+  row.className = `is-${progress.status}`;
+  const text = row.lastElementChild;
+  text.replaceChildren(
+    element("strong", "", progress.title),
+    element("small", "", progress.detail || (
+      progress.status === "running" ? "执行中" : progress.status === "failed" ? "未完成" : "已完成"
+    )),
+  );
+  status.textContent = progress.title;
+  messages.scrollTop = messages.scrollHeight;
+}
+
 function renderResponse(response, answerBody = null) {
   if (answerBody) answerBody.textContent = response.answer;
   else addMessage("assistant", response.answer);
+  renderExecution(response);
   renderCards(response.cards);
   renderSteps(response.workflowSteps, response.workflowDraft);
   renderEvidence(response);
-  if (response.meta?.mode === "provider") {
-    status.textContent = "模型回答 · 只读";
+  if (response.meta?.runtime === "langchain_agent") {
+    const outcome = response.execution?.status || response.meta?.outcome || "complete";
+    status.textContent = outcome === "complete"
+      ? "已完成"
+      : outcome === "partial"
+        ? "部分完成"
+        : "未完成";
+  } else if (response.meta?.mode === "provider") {
+    status.textContent = "已完成";
   } else if (response.meta?.fallbackReason) {
-    status.textContent = "确定性回退 · 只读";
+    status.textContent = "已保留可用结果";
   } else {
     status.textContent = response.meta?.readOnly ? "只读结果" : "已完成";
   }
@@ -937,6 +1226,12 @@ async function initializeSessions() {
     if (sessionAvailable) {
       await loadSessionList();
       if (!operation.isCurrent()) return;
+      if (requestedInitialSessionId) {
+        const initialSessionId = requestedInitialSessionId;
+        requestedInitialSessionId = null;
+        await restoreSession(initialSessionId);
+        if (!operation.isCurrent() || currentSessionId) return;
+      }
       await ensureAuthenticatedDraft({
         signal: operation.signal,
         statusText: "新对话",
@@ -950,10 +1245,21 @@ async function initializeSessions() {
   }
 }
 
-async function initializeAssistantMode() {
-  const token = getAccessToken();
-  const identityChanged = sessionEpoch.transition(token);
-  const nextAuthenticatedMode = Boolean(token);
+async function applyAssistantAuthState(snapshot) {
+  if (snapshot.status === "loading") {
+    if (!assistantModeInitialized) {
+      status.textContent = "正在确认登录状态";
+      setAssistantCheckingState(true);
+    }
+    return;
+  }
+  const guardVersion = ++authGuardVersion;
+  setAssistantCheckingState(false);
+  const user = snapshot.status === "authenticated" ? snapshot.user : null;
+  const token = user ? getAccessToken() : "";
+  const stableIdentity = user?.userUid || user?.user_uid || token;
+  const identityChanged = sessionEpoch.transition(stableIdentity);
+  const nextAuthenticatedMode = Boolean(user && token);
   if (!identityChanged && assistantModeInitialized) return;
   if (identityChanged && activeController) {
     stopActiveRequest();
@@ -962,6 +1268,8 @@ async function initializeAssistantMode() {
     stopButton.hidden = true;
   }
   authenticatedMode = nextAuthenticatedMode;
+  setAssistantAccessState(authenticatedMode);
+  syncQuickLoginButton();
   assistantModeInitialized = true;
   renamingSession = null;
   if (sessionRenameDialog?.open) sessionRenameDialog.close();
@@ -972,20 +1280,26 @@ async function initializeAssistantMode() {
   if (longConversationPanel) longConversationPanel.hidden = !authenticatedMode;
 
   if (!authenticatedMode) {
+    modelReady = false;
+    assistantShell?.classList.remove("model-locked");
+    if (assistantModelGate) assistantModelGate.hidden = true;
+    if (assistantModelEntry) assistantModelEntry.hidden = true;
     sessionAvailable = false;
     sessionCreationBlocked = false;
     shortSessions = [];
-    sessionPanel.hidden = false;
-    newSessionButton.hidden = false;
-    mobileSessionsButton.hidden = false;
-    renderGuestConversation();
-    syncNewSessionButton();
+    sessionPanel.hidden = true;
+    newSessionButton.hidden = true;
+    mobileSessionsButton.hidden = true;
+    requestedInitialSessionId = null;
+    status.textContent = "需要登录";
     return;
   }
 
   sessionPanel.hidden = true;
   newSessionButton.hidden = true;
   mobileSessionsButton.hidden = true;
+  if (!(await refreshModelAccessState())) return;
+  if (guardVersion !== authGuardVersion) return;
   await initializeSessions();
 }
 
@@ -994,6 +1308,7 @@ async function requestStream(payload, controller, stableRequestId, operation) {
   let completedResponse = null;
   let started = false;
   let answerBuffer = null;
+  let liveExecution = null;
   try {
     const response = await apiPostStream("/agent/chat/stream", payload, {
       signal: controller.signal,
@@ -1009,7 +1324,10 @@ async function requestStream(payload, controller, stableRequestId, operation) {
           answerBody.textContent += chunk;
           messages.scrollTop = messages.scrollHeight;
         });
+        liveExecution = createLiveExecution();
         status.textContent = "生成中";
+      } else if (event.event === "agent.progress") {
+        updateLiveExecution(liveExecution, event.progress);
       } else if (event.event === "response.answer.delta") {
         answerBuffer.push(event.delta);
       } else if (event.event === "response.completed") {
@@ -1018,6 +1336,7 @@ async function requestStream(payload, controller, stableRequestId, operation) {
     }, { signal: controller.signal });
     if (!operation.isCurrent()) throw operation.signal.reason;
     if (!completedResponse) throw new Error("流式回答缺少完成事件");
+    liveExecution?.section.remove();
     return { response: completedResponse, answerBody };
   } catch (error) {
     if (!operation.isCurrent()) throw operation.signal.reason || error;
@@ -1026,6 +1345,10 @@ async function requestStream(payload, controller, stableRequestId, operation) {
       || ["AGENT_STREAM_DISABLED", "API_STREAM_CONTENT_TYPE_INVALID"].includes(error.code)
     );
     if (!canFallback) {
+      if (liveExecution) {
+        liveExecution.section.classList.add("is-failed");
+        liveExecution.section.querySelector(".agent-execution-header strong").textContent = "Agent 链路中断";
+      }
       error.answerBody = answerBody;
       throw error;
     }
@@ -1044,6 +1367,16 @@ async function requestStream(payload, controller, stableRequestId, operation) {
 async function submitMessage(message, options = {}) {
   const text = String(message || "").trim();
   if (!text || activeController) return;
+  if (!isAuthenticatedMode()) {
+    status.textContent = "请先登录后使用助手";
+    document.querySelector('[data-auth-trigger="login"]')?.click();
+    return;
+  }
+  if (!modelReady) {
+    status.textContent = "请先配置 API Key";
+    assistantModelEntry?.focus();
+    return;
+  }
   const authenticatedRequest = isAuthenticatedMode();
   const stableRequestId = options.requestId || requestId();
   let requestSessionId = options.sessionId ?? currentSessionId;
@@ -1160,7 +1493,7 @@ async function submitMessage(message, options = {}) {
       sendButton.disabled = false;
       stopButton.hidden = true;
       syncNewSessionButton();
-      input.focus();
+      if (isAuthenticatedMode()) input.focus();
     }
   }
 }
@@ -1194,6 +1527,11 @@ document.addEventListener("keydown", (event) => {
   if (activeController) {
     event.preventDefault();
     stopActiveRequest();
+    return;
+  }
+  if (quickMountMode) {
+    event.preventDefault();
+    window.dispatchEvent(new CustomEvent("ai-nav:quick-assistant-close"));
   }
 });
 sessionPanel?.addEventListener("click", (event) => {
@@ -1282,7 +1620,12 @@ clearGuestHistoryButton?.addEventListener("click", () => {
   renderGuestConversation(null);
   status.textContent = "游客记录已清除";
 });
-window.addEventListener("ai-nav-auth-changed", () => {
-  void initializeAssistantMode();
+quickCloseButton?.addEventListener("click", () => {
+  if (quickMountMode) {
+    window.dispatchEvent(new CustomEvent("ai-nav:quick-assistant-close"));
+  }
 });
-void initializeAssistantMode();
+subscribeAuthSession((snapshot) => {
+  void applyAssistantAuthState(snapshot);
+});
+void initializeAuthSession();

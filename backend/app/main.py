@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from contextlib import asynccontextmanager
 from time import perf_counter
 from uuid import uuid4
@@ -37,6 +38,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title=APP_NAME, lifespan=lifespan)
 learning_logger = logging.getLogger("app.learning.access")
+FINGERPRINTED_FRONTEND_ASSET = re.compile(r"^/assets/.+\.[0-9a-f]{8,}\.[^/]+$")
 
 
 def iter_app_routes():
@@ -72,6 +74,20 @@ async def security_response_headers(request: Request, call_next):
     response.headers["Permissions-Policy"] = (
         "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()"
     )
+    path = request.url.path
+    if (
+        request.method in {"GET", "HEAD"}
+        and not path.startswith(API_PREFIX)
+        and not path.startswith("/uploads/")
+    ):
+        # The source-served local UI has stable filenames rather than a bundler
+        # manifest. Require revalidation so a restart cannot pair new HTML with
+        # stale ES modules. Only content-fingerprinted assets are immutable.
+        response.headers["Cache-Control"] = (
+            "public, max-age=31536000, immutable"
+            if FINGERPRINTED_FRONTEND_ASSET.fullmatch(path)
+            else "no-cache"
+        )
     if APP_ENV == "production" and HTTPS_CONFIRMED:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response

@@ -19,7 +19,8 @@ const assetHref = (page, asset) => page === "learn-node.html" ? `../${asset}` : 
 test("each non-Agent page has one explicit runtime entry", () => {
   for (const [page, expectedEntry] of Object.entries(pageEntries)) {
     const html = read(page);
-    const externalScripts = [...html.matchAll(/<script[^>]+src=["']([^"']+)["'][^>]*>/g)].map((match) => match[1]);
+    const externalScripts = [...html.matchAll(/<script[^>]+src=["']([^"']+)["'][^>]*>/g)]
+      .map((match) => match[1].split("?")[0]);
     assert.deepEqual(externalScripts, [assetHref(page, expectedEntry)], page);
     assert.doesNotMatch(html, /<script(?:\s[^>]*)?>\s*(?!<\/script>)[\s\S]*?<\/script>/i, `${page} contains inline runtime code`);
   }
@@ -41,7 +42,7 @@ test("each page preloads its critical module entry before body parsing finishes"
     const expectedHref = assetHref(page, expectedEntry);
     assert.match(
       read(page),
-      new RegExp(`<link[^>]+rel=["']modulepreload["'][^>]+href=["']${expectedHref.replaceAll(".", "\\.")}["'][^>]*>`),
+      new RegExp(`<link[^>]+rel=["']modulepreload["'][^>]+href=["']${expectedHref.replaceAll(".", "\\.")}(?:\\?[^"']+)?["'][^>]*>`),
       `${page} does not preload ${expectedHref}`,
     );
   }
@@ -49,7 +50,7 @@ test("each page preloads its critical module entry before body parsing finishes"
   for (const entry of ["assets/js/v2-api.js", "assets/js/assistant-page.js"]) {
     assert.match(
       assistant,
-      new RegExp(`<link[^>]+rel=["']modulepreload["'][^>]+href=["']${entry.replaceAll(".", "\\.")}["'][^>]*>`),
+      new RegExp(`<link[^>]+rel=["']modulepreload["'][^>]+href=["']${entry.replaceAll(".", "\\.")}(?:\\?[^"']+)?["'][^>]*>`),
       `assistant.html does not preload ${entry}`,
     );
   }
